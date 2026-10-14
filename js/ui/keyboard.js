@@ -61,11 +61,12 @@ export function buildKeyboard() {
   const arpBox = h('div', { class: 'dock-row' }, arpTog,
     chips(ARP_MODES.map(m => [m, MODE_LBL[m]]), sy.arp.mode, v => { sy.arp.mode = v; }),
     chips(ARP_RATES, sy.arp.rate, v => { sy.arp.rate = v; }),
-    chips([[1, '1 oct'], [2, '2'], [3, '3']], sy.arp.oct, v => { sy.arp.oct = +v; }),
+    chips([[1, 'arp 1 oct'], [2, '2'], [3, '3']], sy.arp.oct, v => { sy.arp.oct = +v; }),
     holdTog);
   const ctrlRow = h('div', { class: 'dock-row scroll' },
     targetChips, targetLbl, modeChips, scaleBtn,
     h('div', { class: 'stepper' }, h('button', { onclick: () => setOct(-1) }, '−'), octLbl, h('button', { onclick: () => setOct(1) }, '+')),
+    chips([[1, '🎹 1 oct'], [2, '2'], [3, '3']], s.kbOctaves || 3, v => { s.kbOctaves = +v; releaseAll(); build(); }, 'kb-oct'),
     h('div', { class: 'sep' }), arpBox);
 
   const keys = h('div', { class: 'keys' });
@@ -121,7 +122,8 @@ export function buildKeyboard() {
       }
       return;
     }
-    const nWhite = Math.max(10, Math.min(29, Math.round(W / 50)));
+    // Cantidad de octavas visibles (1, 2 o 3): menos octavas = teclas más grandes
+    const nWhite = (s.kbOctaves || 3) * 7 + 1;
     const ww = W / nWhite;
     let wi = 0, midi = base;
     while (wi < nWhite) {

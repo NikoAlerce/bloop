@@ -523,3 +523,10 @@ body.eco .pad, body.eco .tile { transition: none; }
 .cur-preset { min-width: 190px; font-weight: 800; }
 .preset-card.cur { border-color: #c792ff; background: color-mix(in srgb, #c792ff 22%, var(--panel2)); }
 .preset-card { min-height: 92px; }
+
+/* Cabecera de los pads en una sola línea en la tablet */
+@media (max-width: 1240px) {
+  .gh-hint { display: none; }
+  .grid-head .pill { padding: 0 11px; }
+  .grid-head .stepper span { min-width: 44px; }
+}

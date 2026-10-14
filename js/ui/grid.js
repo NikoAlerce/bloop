@@ -127,12 +127,12 @@ export function buildGrid(head, wrap) {
     head.append(
       h('div', { class: 'gh-title' }, h('span', { class: 'gh-dot' }), trackName(s.selected)),
       h('div', { class: 'stepper' }, h('button', { onclick: () => setLen(-1) }, '−'), lenLbl, h('button', { onclick: () => setLen(1) }, '+')),
-      h('button', { class: 'pill', onclick: () => { undo.pattern('Dados'); isSynth ? randomMelody() : randomTrack(); } }, '🎲 Dados'),
-      h('button', { class: 'pill', onclick: () => {
+      h('button', { class: 'pill', title: 'Dados: inventa un ritmo o melodía', onclick: () => { undo.pattern('Dados'); isSynth ? randomMelody() : randomTrack(); } }, '🎲'),
+      h('button', { class: 'pill', title: 'Limpiar la pista', onclick: () => {
         undo.pattern('Limpiar');
         if (isSynth) app.pattern.synth.notes = []; else tp().steps.fill(null);
         isSynth ? roll.draw() : renderPads(); app.emit('pattern-edit');
-      } }, '🧽 Limpiar'),
+      } }, '🧽'),
     );
     if (!isSynth) head.append(h('button', { class: 'pill', onclick: () => openBank(s.selected) }, '📚 Sonidos'), h('button', { class: 'pill', onclick: () => openSampleEditor(s.selected) }, '✎ Onda'));
     if (isSynth) head.append(
