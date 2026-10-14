@@ -42,13 +42,15 @@ export function regionOf(p, buf, slice) {
   return [a * buf.duration, b * buf.duration];
 }
 
-export class DrumTrack {
-  constructor(i) {
+// Canal de una pista: filtro DJ → drive → color → volumen → paneo → envíos.
+// Hay uno para la base (pasos del secuenciador) y otro, creado al primer uso, para lo que se
+// toca en vivo (pads y teclado en modo Sampler), que también alimenta "🎹 Solo lo que toco".
+class TrackStrip {
+  constructor(tap, live) {
     const ctx = A.ctx;
-    this.i = i;
     this.filter = ctx.createBiquadFilter();
     this.shaper = ctx.createWaveShaper();
-    this.shaper.oversample = '2x';
+    this.shaper.oversample = 'none';
     this.fx = new TrackFx();
     this.gain = ctx.createGain();
     this.pan = ctx.createStereoPanner();
@@ -56,12 +58,59 @@ export class DrumTrack {
     this.dly = ctx.createGain(); this.dly.gain.value = 0;
     this.filter.connect(this.shaper).connect(this.fx.input);
     this.fx.output.connect(this.gain).connect(this.pan).connect(A.mixBus);
+    this.pan.connect(tap);
     this.pan.connect(this.rev).connect(A.reverbIn);
     this.pan.connect(this.dly).connect(A.delayIn);
-    this.voices = [];
-    this.buffer = null; this.revBuffer = null;
+    if (live) {
+      this.pan.connect(A.liveBus);
+      this.rev.connect(A.liveRevIn);
+      this.dly.connect(A.liveDlyIn);
+    }
     this._drive = -1;
   }
+
+  apply(p, audible) {
+    const now = A.ctx.currentTime, T = 0.015;
+    const comp = 1 / (1 + p.drive * 1.2);
+    this.gain.gain.setTargetAtTime(audible ? p.vol * p.vol * 1.3 * comp : 0, now, T);
+    this.pan.pan.setTargetAtTime(p.pan, now, T);
+    this.rev.gain.setTargetAtTime(p.rev * p.rev, now, T);
+    this.dly.gain.setTargetAtTime(p.dly * p.dly, now, T);
+    const [type, f] = djFilter(p.filter);
+    if (this.filter.type !== type) this.filter.type = type;
+    this.filter.frequency.setTargetAtTime(f, now, T);
+    this.filter.Q.setTargetAtTime(0.5 + p.reso * p.reso * 16, now, T);
+    if (Math.abs(p.drive - this._drive) > 0.01) {
+      this.shaper.curve = p.drive > 0.01 ? driveCurve(p.drive) : null;
+      this.shaper.oversample = p.drive > 0.01 ? '2x' : 'none';
+      this._drive = p.drive;
+    }
+    this.fx.apply(p);
+  }
+}
+
+export class DrumTrack {
+  constructor(i) {
+    this.i = i;
+    this.tap = A.ctx.createGain();   // punto de toma para stems (base + vivo)
+    this.main = new TrackStrip(this.tap, false);
+    this.liveStrip = null;
+    this.pan = this.tap;
+    this.fx = this.main.fx;
+    this._apply = null;
+    this.voices = [];
+    this.buffer = null; this.revBuffer = null;
+  }
+
+  get live() {
+    if (!this.liveStrip) {
+      this.liveStrip = new TrackStrip(this.tap, true);
+      if (this._apply) this.liveStrip.apply(...this._apply);
+    }
+    return this.liveStrip;
+  }
+  scheduleGate(...a) { this.main.fx.scheduleGate(...a); if (this.liveStrip) this.liveStrip.fx.scheduleGate(...a); }
+  openGate() { this.main.fx.openGate(); if (this.liveStrip) this.liveStrip.fx.openGate(); }
 
   setBuffer(buf, root = null) {
     this.zones = buf ? [{ root, buffer: buf, rev: null }] : [];
@@ -92,22 +141,9 @@ export class DrumTrack {
   }
 
   apply(p, audible) {
-    const now = A.ctx.currentTime, T = 0.015;
-    const comp = 1 / (1 + p.drive * 1.2);
-    this.gain.gain.setTargetAtTime(audible ? p.vol * p.vol * 1.3 * comp : 0, now, T);
-    this.pan.pan.setTargetAtTime(p.pan, now, T);
-    this.rev.gain.setTargetAtTime(p.rev * p.rev, now, T);
-    this.dly.gain.setTargetAtTime(p.dly * p.dly, now, T);
-    const [type, f] = djFilter(p.filter);
-    if (this.filter.type !== type) this.filter.type = type;
-    this.filter.frequency.setTargetAtTime(f, now, T);
-    this.filter.Q.setTargetAtTime(0.5 + p.reso * p.reso * 16, now, T);
-    if (Math.abs(p.drive - this._drive) > 0.01) {
-      this.shaper.curve = p.drive > 0.01 ? driveCurve(p.drive) : null;
-      this.shaper.oversample = p.drive > 0.01 ? '2x' : 'none';
-      this._drive = p.drive;
-    }
-    this.fx.apply(p);
+    this._apply = [p, audible];
+    this.main.apply(p, audible);
+    if (this.liveStrip) this.liveStrip.apply(p, audible);
   }
 
   choke(time) {
@@ -135,7 +171,7 @@ export class DrumTrack {
     src.buffer = buf;
     src.playbackRate.value = rate;
     const env = ctx.createGain();
-    src.connect(env).connect(this.filter);
+    src.connect(env).connect(opt.live ? this.live.filter : this.main.filter);
 
     const [a, b] = reg;
     const len = (b - a) / rate;

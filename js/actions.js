@@ -162,7 +162,7 @@ export function audition(i, vel = 0.9) {
   app.seq.hit(i, A.ctx.currentTime + 0.005, vel);
 }
 export function hitLive(i, vel = 0.9) {
-  audition(i, vel);
+  app.seq.hit(i, A.ctx.currentTime + 0.005, vel, 0, true);
   app.seq.recordHit(i, vel);
 }
 
@@ -177,7 +177,7 @@ export function noteOn(midi, vel = 0.8) {
     const i = samplerTrack(), p = st().tracks[i].params, k = midi - p.root;
     const old = held.get(midi);
     if (old) app.tracks[old.track].release(old.voice);
-    const opt = { poly: true, hold: true };
+    const opt = { poly: true, hold: true, live: true };
     if (p.sliceMode && p.slices.length) opt.slice = k;
     const v = app.tracks[i].trigger(A.ctx.currentTime + 0.003, vel, p.sliceMode ? 0 : k, p, opt);
     held.set(midi, { track: i, voice: v });

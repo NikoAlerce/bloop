@@ -1,7 +1,7 @@
 // Looper. Estados: empty → armed → recording → playing ⇄ muted
 // "raw" es la grabación original (nunca se modifica en el lugar); "buffer" es la región
 // recortada y con fades que suena. Así recortar y deshacer no destruyen nada.
-import { A, capture, getMic, sliceBuffer } from './engine.js';
+import { A, capture, getMic, sliceBuffer, liveSource } from './engine.js';
 import { app } from '../app.js';
 import { undo } from '../undo.js';
 import { setBpm } from '../actions.js';
@@ -11,7 +11,7 @@ export class Looper {
     this.i = i;
     this.state = 'empty';
     this.bars = 2;
-    this.source = 'mic';     // 'mic' | 'groove'
+    this.source = 'mic';     // 'mic' | 'keys' | 'groove'
     this.volume = 0.9;
     this.raw = null;         // grabación completa
     this.region = [0, 0];    // segundos dentro de raw
@@ -33,7 +33,12 @@ export class Looper {
   get period() { return this.buffer ? this.buffer.duration / this.rate : this.bars * 16 * app.seq.stepDur; }
   get hasAudio() { return !!this.raw; }
 
-  async sourceNode() { return this.source === 'mic' ? getMic() : A.mixBus; }
+  // 'mic' = entrada de audio · 'keys' = solo lo que tocás en vivo · 'groove' = todo lo que suena
+  async sourceNode() {
+    if (this.source === 'mic') return getMic();
+    if (this.source === 'keys') return liveSource();
+    return A.mixBus;
+  }
   latency() { return this.source === 'mic' ? (app.state.settings.micLatency || 0) / 1000 : 0; }
 
   // ---------- Grabación ----------

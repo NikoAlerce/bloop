@@ -43,8 +43,8 @@ export const seq = {
     app.state.queued = null;
     app.synth.allOff();
     app.loopers.forEach(l => l.onTransportStop());
-    app.tracks.forEach(t => t.fx.openGate());
-    app.synth.fx.openGate();
+    app.tracks.forEach(t => t.openGate());
+    app.synth.openGate();
     this.uiQueue.push({ time: 0, type: 'step', eff: -1 });
     app.emit('transport'); app.emit('pattern');
   },
@@ -126,7 +126,7 @@ export const seq = {
 
     pat.tracks.forEach((tp, i) => {
       const tr = st.tracks[i];
-      if (tr.params.gate !== 'off') app.tracks[i].fx.scheduleGate(t + swing, sd, eff, tr.params.gate, tr.params.gateDepth);
+      if (tr.params.gate !== 'off') app.tracks[i].scheduleGate(t + swing, sd, eff, tr.params.gate, tr.params.gateDepth);
       const step = tp.steps[eff % tp.len];
       if (!step || !app.audible(i)) return;
       if (step.prob < 1 && Math.random() > step.prob) return;
@@ -136,7 +136,7 @@ export const seq = {
     });
 
     const sfx = st.synth.fx;
-    if (sfx.gate !== 'off') app.synth.fx.scheduleGate(t + swing, sd, eff, sfx.gate, sfx.gateDepth);
+    if (sfx.gate !== 'off') app.synth.scheduleGate(t + swing, sd, eff, sfx.gate, sfx.gateDepth);
     if (app.audible(8)) {
       const sp = eff % pat.synth.len;
       for (const n of pat.synth.notes) {
@@ -155,11 +155,12 @@ export const seq = {
   },
 
   // Dispara una pista (con choke por grupo). En modo slices, el "pitch" del paso elige el slice.
-  hit(i, time, vel, semis = 0) {
+  // live = lo toca la persona (pads, MIDI): va por el canal de vivo
+  hit(i, time, vel, semis = 0, live = false) {
     const st = app.state, tr = st.tracks[i], p = tr.params;
     if (tr.choke) st.tracks.forEach((o, j) => { if (j !== i && o.choke === tr.choke) app.tracks[j].choke(time); });
-    if (p.sliceMode && p.slices.length) app.tracks[i].trigger(time, vel, 0, p, { slice: semis });
-    else app.tracks[i].trigger(time, vel, semis, p);
+    if (p.sliceMode && p.slices.length) app.tracks[i].trigger(time, vel, 0, p, { slice: semis, live });
+    else app.tracks[i].trigger(time, vel, semis, p, { live });
     this.uiQueue.push({ time, type: 'hit', track: i, vel });
   },
 
@@ -248,7 +249,7 @@ export const seq = {
       if (!s.length) break;
       const midi = arp.mode === 'random' ? s[Math.floor(Math.random() * s.length)] : s[this.arpIdx % s.length];
       this.arpIdx++;
-      if (app.audible(8)) app.synth.playNote(midi, 0.8, this.arpNext, iv * arp.gate);
+      if (app.audible(8)) app.synth.playNote(midi, 0.8, this.arpNext, iv * arp.gate, true);
       if (this.recording && this.playing) {
         const h = this.history.reduce((b, x) => (!b || Math.abs(x.t - this.arpNext) < Math.abs(b.t - this.arpNext) ? x : b), null);
         if (h && Math.abs(h.t - this.arpNext) < this.stepDur * 0.5) {

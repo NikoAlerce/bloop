@@ -7,6 +7,10 @@ import { h, popover, closePopover, chips, slider, fmtPct, ink } from './util.js'
 import { input } from '../input.js';
 import { openLoopEditor } from './waveeditor.js';
 
+const SRC_ICON = { mic: '🎤', keys: '🎹', groove: '🥁' };
+const SRC_NEXT = { mic: 'keys', keys: 'groove', groove: 'mic' };
+const SRC_NAME = { mic: '🎤 Graba el micrófono', keys: '🎹 Graba solo lo que tocás', groove: '🥁 Graba todo lo que suena' };
+
 export function buildLoops(el) {
   const s = app.state;
   const pageChips = chips([[0, 'A · 1–4'], [1, 'B · 5–8']], s.loopPage, v => { s.loopPage = +v; layout(); });
@@ -25,7 +29,7 @@ export function buildLoops(el) {
   const items = app.loopers.map((lp, i) => {
     const col = LOOP_COLORS[i];
     const cv = h('canvas');
-    const src = h('button', { title: 'Fuente: micrófono o Bloop' });
+    const src = h('button', { title: 'Fuente: micrófono, lo que tocás o todo' });
     const od = h('button', { title: 'Overdub: otra capa encima' }, '＋');
     const edit = h('button', { title: 'Editar onda' }, '✎');
     const more = h('button', { title: 'Opciones' }, '•••');
@@ -45,7 +49,12 @@ export function buildLoops(el) {
     cv.addEventListener('pointercancel', () => { clearTimeout(lpTimer); lpTimer = null; });
     cv.addEventListener('contextmenu', e => e.preventDefault());
 
-    src.addEventListener('click', () => { if (lp.state === 'empty') { lp.source = lp.source === 'mic' ? 'groove' : 'mic'; update(); } });
+    src.addEventListener('click', () => {
+      if (lp.state !== 'empty') return;
+      lp.source = SRC_NEXT[lp.source] || 'mic';
+      update();
+      app.emit('toast', SRC_NAME[lp.source]);
+    });
     od.addEventListener('click', () => lp.overdub());
     edit.addEventListener('click', () => openLoopEditor(lp));
     more.addEventListener('click', () => {
@@ -54,7 +63,8 @@ export function buildLoops(el) {
         h('div', { class: 'lbl' }, 'Largo al compás'),
         chips([1, 2, 4, 8], lp.bars, v => { lp.bars = +v; }),
         h('div', { class: 'lbl' }, 'Fuente'),
-        chips([['mic', '🎤 Entrada'], ['groove', '🥁 Bloop']], lp.source, v => { lp.source = v; update(); }),
+        chips([['mic', '🎤 Micrófono'], ['keys', '🎹 Solo lo que toco'], ['groove', '🥁 Todo']], lp.source, v => { lp.source = v; update(); }),
+        h('div', { class: 'hint' }, '🎹 graba solo lo que tocás en vivo (teclado, MIDI y pads), sin la base. 🥁 graba todo lo que suena.'),
         slider({ label: 'Volumen', value: lp.volume, color: col, fmt: fmtPct, onInput: v => { lp.setVolume(v); app.emit('loop-saved', i); } }),
         h('button', { class: 'menu-item', onclick: () => { closePopover(); openLoopEditor(lp); } }, '✎ Editar onda'),
         h('button', { class: 'menu-item', onclick: () => { lp.clear(); closePopover(); } }, '🗑 Borrar loop (se puede deshacer)'),
@@ -64,7 +74,7 @@ export function buildLoops(el) {
 
     function update() {
       // Botones según el estado: vacío → fuente; con audio → overdub y editor
-      src.textContent = lp.source === 'mic' ? '🎤' : '🥁';
+      src.textContent = SRC_ICON[lp.source] || '🎤';
       src.hidden = !!lp.raw;
       od.hidden = !lp.raw; edit.hidden = !lp.raw;
       src.disabled = lp.state !== 'empty';

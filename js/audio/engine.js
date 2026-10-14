@@ -80,6 +80,13 @@ export async function initAudio() {
   A.dL = dL; A.dR = dR;
   A.baseFb = 0.42;
 
+  // Bus de "lo que toco en vivo": lo alimentan los canales de vivo (pads, teclado, MIDI).
+  // Sus envíos a reverb/delay van a una copia propia que se crea solo al grabar con esa fuente.
+  A.liveBus = gain(1);
+  A.liveRevIn = gain(1);
+  A.liveDlyIn = gain(1);
+  A.liveRec = null;
+
   // Ruido compartido
   const nb = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
   const nd = nb.getChannelData(0);
@@ -118,9 +125,40 @@ export function makeIR(ctx, secs, decay) {
 export function setDelay(bpm, div, fb) {
   const t = Math.min(2.9, (60 / bpm) * (DELAY_BEATS[div] ?? 0.75));
   const now = A.ctx.currentTime;
-  A.dL.delayTime.setTargetAtTime(t, now, 0.04);
-  A.dR.delayTime.setTargetAtTime(t, now, 0.04);
-  if (fb != null) { A.baseFb = fb; A.delayFb.gain.setTargetAtTime(fb, now, 0.04); }
+  A.delayTime = t;
+  for (const d of [A.dL, A.dR, A.pdL, A.pdR]) if (d) d.delayTime.setTargetAtTime(t, now, 0.04);
+  if (fb != null) {
+    A.baseFb = fb; A.delayFb.gain.setTargetAtTime(fb, now, 0.04);
+    if (A.pFb) A.pFb.gain.setTargetAtTime(fb, now, 0.04);
+  }
+}
+
+// Fuente "🎹 Solo lo que toco": lo tocado en vivo + su propia reverb y delay (iguales a los
+// generales), sin la base. Se arma la primera vez que se usa.
+export function liveSource() {
+  if (A.liveRec) return A.liveRec;
+  const ctx = A.ctx;
+  const g = (v = 1) => { const n = ctx.createGain(); n.gain.value = v; return n; };
+  A.liveRec = g(1);
+  A.liveBus.connect(A.liveRec);
+  const pre = ctx.createDelay(0.1); pre.delayTime.value = 0.02;
+  const conv = ctx.createConvolver(); conv.buffer = A.convolver.buffer;
+  const revRet = g(1);
+  A.liveRevIn.connect(pre).connect(conv).connect(revRet).connect(A.liveRec);
+  revRet.gain.value = A.reverbReturn.gain.value;
+  A.liveRevRet = revRet;
+  const dL = ctx.createDelay(3), dR = ctx.createDelay(3);
+  dL.delayTime.value = dR.delayTime.value = A.delayTime || 0.375;
+  const fb = g(A.baseFb);
+  const tone = ctx.createBiquadFilter(); tone.type = 'lowpass'; tone.frequency.value = 3600;
+  const lowcut = ctx.createBiquadFilter(); lowcut.type = 'highpass'; lowcut.frequency.value = 180;
+  const merger = ctx.createChannelMerger(2);
+  A.liveDlyIn.connect(dL); dL.connect(dR);
+  dR.connect(tone).connect(lowcut).connect(fb).connect(dL);
+  dL.connect(merger, 0, 0); dR.connect(merger, 0, 1);
+  merger.connect(g(A.delayReturn.gain.value)).connect(A.liveRec);
+  A.pdL = dL; A.pdR = dR; A.pFb = fb;
+  return A.liveRec;
 }
 
 // Pad XY: x = filtro (izq LP · der HP), y = resonancia + realimentación del delay

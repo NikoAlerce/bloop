@@ -51,7 +51,7 @@ export function buildFx() {
   });
 
   const fbKnob = knob({ label: 'Eco', value: s.delayFb, max: 0.85, def: 0.42, color: '#48dbb4', size: 46, learn: 'p:delayFb', onInput: v => { s.delayFb = v; setDelay(s.bpm, s.delayDiv, v); } });
-  const revKnob = knob({ label: 'Reverb', value: s.revLevel, def: 0.8, color: '#a29bfe', size: 46, learn: 'p:revLevel', onInput: v => { s.revLevel = v; A.reverbReturn.gain.setTargetAtTime(v, A.ctx.currentTime, 0.03); } });
+  const revKnob = knob({ label: 'Reverb', value: s.revLevel, def: 0.8, color: '#a29bfe', size: 46, learn: 'p:revLevel', onInput: v => { s.revLevel = v; A.reverbReturn.gain.setTargetAtTime(v, A.ctx.currentTime, 0.03); A.liveRevRet?.gain.setTargetAtTime(v, A.ctx.currentTime, 0.03); } });
 
   el.append(h('div', { class: 'fx-wrap' }, xy, h('div', { class: 'fx-side' },
     h('div', { class: 'dock-row' }, h('span', { class: 'lbl' }, 'Repetir (mantener)'), h('div', { style: { flex: 1 } }), lockBtn),
@@ -62,7 +62,7 @@ export function buildFx() {
   )));
 
   input.target('p:delayFb', { label: 'Eco del delay', kind: 'value', get: () => s.delayFb / 0.85, set: v => { s.delayFb = v * 0.85; fbKnob.set(s.delayFb); setDelay(s.bpm, s.delayDiv, s.delayFb); } });
-  input.target('p:revLevel', { label: 'Nivel de reverb', kind: 'value', get: () => s.revLevel, set: v => { s.revLevel = v; revKnob.set(v); A.reverbReturn.gain.setTargetAtTime(v, A.ctx.currentTime, 0.03); } });
+  input.target('p:revLevel', { label: 'Nivel de reverb', kind: 'value', get: () => s.revLevel, set: v => { s.revLevel = v; revKnob.set(v); A.reverbReturn.gain.setTargetAtTime(v, A.ctx.currentTime, 0.03); A.liveRevRet?.gain.setTargetAtTime(v, A.ctx.currentTime, 0.03); } });
 
   const g = cv.getContext('2d');
   return {

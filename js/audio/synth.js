@@ -7,24 +7,24 @@ export const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
 const cutoffHz = v => 40 * Math.pow(18000 / 40, v);
 const MAX_VOICES = 10;
 
-export class Synth {
-  constructor() {
+// Canal del synth: drive → chorus estéreo → color (crush/cinta/gate) → volumen → envíos.
+// Hay uno para la base (notas del secuenciador) y otro, creado al primer uso, para lo que se
+// toca en vivo: suenan igual, pero el de vivo también alimenta la fuente "🎹 Solo lo que toco".
+class SynthStrip {
+  constructor(tap, live) {
     const ctx = A.ctx;
     const g = (v = 1) => { const n = ctx.createGain(); n.gain.value = v; return n; };
     this.input = g(0.32);
-    this.shaper = ctx.createWaveShaper(); this.shaper.oversample = '2x';
+    this.shaper = ctx.createWaveShaper(); this.shaper.oversample = 'none';
     this.dry = g(1); this.wet = g(0);
     this.vol = g(0.7);
     this.revSend = g(0); this.dlySend = g(0);
-
-    // Chorus estéreo de dos líneas moduladas
     const cL = ctx.createDelay(0.05), cR = ctx.createDelay(0.05);
     cL.delayTime.value = 0.012; cR.delayTime.value = 0.017;
     const lfo = ctx.createOscillator(); lfo.frequency.value = 0.33;
     const lg = g(0.0025), lgi = g(-0.0025);
     lfo.connect(lg).connect(cL.delayTime); lfo.connect(lgi).connect(cR.delayTime); lfo.start();
     const pL = ctx.createStereoPanner(), pR = ctx.createStereoPanner(); pL.pan.value = -0.9; pR.pan.value = 0.9;
-
     this.fx = new TrackFx();
     this.input.connect(this.shaper);
     this.shaper.connect(this.dry).connect(this.fx.input);
@@ -33,23 +33,19 @@ export class Synth {
     this.wet.connect(this.fx.input);
     this.fx.output.connect(this.vol);
     this.vol.connect(A.mixBus);
+    this.vol.connect(tap);
     this.vol.connect(this.revSend).connect(A.reverbIn);
     this.vol.connect(this.dlySend).connect(A.delayIn);
-
-    this.voices = new Set();
-    this.live = new Map();       // midi -> voz (teclado en vivo)
-    this.seqVoices = [];         // voces secuenciadas pendientes de release
-    this.monoVoice = null;
-    this.monoStack = [];
-    this.p = null;
+    if (live) {
+      this.vol.connect(A.liveBus);
+      this.revSend.connect(A.liveRevIn);
+      this.dlySend.connect(A.liveDlyIn);
+    }
     this._drive = -1;
-    this.onNote = null;          // callback para UI (midi, on)
   }
 
-  setParams(p) { this.p = p; }
-
-  apply(audible, fx) {
-    const p = this.p, now = A.ctx.currentTime, T = 0.02;
+  apply(p, audible, fx) {
+    const now = A.ctx.currentTime, T = 0.02;
     if (fx) this.fx.apply(fx);
     this.vol.gain.setTargetAtTime(audible ? p.vol * p.vol * 1.4 : 0, now, T);
     this.revSend.gain.setTargetAtTime(p.rev * p.rev, now, T);
@@ -61,6 +57,47 @@ export class Synth {
       this.shaper.oversample = p.drive > 0.01 ? '2x' : 'none';
       this._drive = p.drive;
     }
+  }
+}
+
+export class Synth {
+  constructor() {
+    this.tap = A.ctx.createGain();     // punto de toma para stems (base + vivo)
+    this.main = new SynthStrip(this.tap, false);
+    this.liveStrip = null;
+    this.vol = this.tap;
+    this.fx = this.main.fx;
+    this._apply = null;
+
+    this.voices = new Set();
+    this.held = new Map();       // midi -> voz (teclado en vivo)
+    this.seqVoices = [];         // voces secuenciadas pendientes de release
+    this.monoVoice = null;
+    this.monoStack = [];
+    this.p = null;
+    this._drive = -1;
+    this.onNote = null;          // callback para UI (midi, on)
+  }
+
+  setParams(p) { this.p = p; }
+
+  // Canal de lo que se toca en vivo (se crea la primera vez que hace falta)
+  get live() {
+    if (!this.liveStrip) {
+      this.liveStrip = new SynthStrip(this.tap, true);
+      if (this._apply) this.liveStrip.apply(this.p, ...this._apply);
+    }
+    return this.liveStrip;
+  }
+
+  scheduleGate(...a) { this.main.fx.scheduleGate(...a); if (this.liveStrip) this.liveStrip.fx.scheduleGate(...a); }
+  openGate() { this.main.fx.openGate(); if (this.liveStrip) this.liveStrip.fx.openGate(); }
+
+  apply(audible, fx) {
+    const p = this.p, now = A.ctx.currentTime;
+    this._apply = [audible, fx];
+    this.main.apply(p, audible, fx);
+    if (this.liveStrip) this.liveStrip.apply(p, audible, fx);
     // Las voces sonando siguen al filtro (para poder "abrir" un pad en vivo)
     for (const v of this.voices) {
       if (v.released) continue;
@@ -77,13 +114,13 @@ export class Synth {
   }
   peakCut(base, vel) { return Math.min(19000, base * Math.pow(2, this.p.envAmt * 6 * (0.5 + vel * 0.5))); }
 
-  makeVoice(midi, vel, t) {
+  makeVoice(midi, vel, t, live = false) {
     const ctx = A.ctx, p = this.p, f = mtof(midi);
     const out = ctx.createGain(); out.gain.value = 0;
     const filt = ctx.createBiquadFilter(); filt.type = 'lowpass';
     filt.Q.value = 0.5 + p.reso * p.reso * 22;
     const mix = ctx.createGain();
-    mix.connect(filt).connect(out).connect(this.input);
+    mix.connect(filt).connect(out).connect(live ? this.live.input : this.main.input);
 
     const srcs = [], fosc = []; // fosc: osciladores con frecuencia relativa
     const n = Math.max(1, Math.round(p.unison));
@@ -211,12 +248,12 @@ export class Synth {
       this.monoStack = this.monoStack.filter(m => m !== midi); this.monoStack.push(midi);
       const v = this.monoVoice;
       if (v && !v.released) { this.glideTo(v, midi, t); return; }
-      this.monoVoice = this.makeVoice(midi, vel, t);
+      this.monoVoice = this.makeVoice(midi, vel, t, true);
       return;
     }
-    const old = this.live.get(midi);
+    const old = this.held.get(midi);
     if (old) this.release(old, t, 0.03);
-    this.live.set(midi, this.makeVoice(midi, vel, t));
+    this.held.set(midi, this.makeVoice(midi, vel, t, true));
   }
 
   noteOff(midi, t = A.ctx.currentTime) {
@@ -228,12 +265,12 @@ export class Synth {
       else if (!v.seq) this.release(v, t);
       return;
     }
-    const v = this.live.get(midi);
-    if (v) { this.release(v, t); this.live.delete(midi); }
+    const v = this.held.get(midi);
+    if (v) { this.release(v, t); this.held.delete(midi); }
   }
 
   // ---- Secuenciado (con tiempo y duración) ----
-  playNote(midi, vel, t, dur) {
+  playNote(midi, vel, t, dur, live = false) {
     if (this.p.mono) {
       const v = this.monoVoice;
       if (v && !v.released && v.seq && v.seqEnd > t + 0.002) { // nota ligada → glide (estilo 303)
@@ -241,7 +278,7 @@ export class Synth {
       }
       if (v && !v.released) this.release(v, v.seq ? Math.min(t, v.seqEnd) : t, 0.04);
     }
-    const nv = this.makeVoice(midi, vel, t);
+    const nv = this.makeVoice(midi, vel, t, live);
     nv.seq = true; nv.seqEnd = t + dur;
     this.seqVoices.push(nv);
     if (this.p.mono) this.monoVoice = nv;
@@ -258,6 +295,6 @@ export class Synth {
 
   allOff(t = A.ctx.currentTime) {
     for (const v of this.voices) this.release(v, t, 0.05);
-    this.live.clear(); this.seqVoices = []; this.monoStack = []; this.monoVoice = null;
+    this.held.clear(); this.seqVoices = []; this.monoStack = []; this.monoVoice = null;
   }
 }
