@@ -1,0 +1,9 @@
+{
+  "name": "bloop-groovebox",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sampler groovebox + loops + synth en el navegador",
+  "scripts": {
+    "start": "node server.cjs"
+  }
+}

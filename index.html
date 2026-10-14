@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#15121b">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Bloop</title>
+  <meta name="description" content="Sampler groovebox, loops y synth — offline">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="blobs"><i></i><i></i><i></i></div>
+
+  <div id="splash">
+    <div class="splash-blob"></div>
+    <h1>bloop</h1>
+    <p>sampler · groovebox · synth</p>
+    <button id="startBtn" class="big-btn">▶ tocá para empezar</button>
+    <small id="splashMsg"></small>
+  </div>
+
+  <div id="app" hidden>
+    <header id="topbar" class="topbar"></header>
+    <main class="stage">
+      <aside id="tracks" class="panel tracks"></aside>
+      <section class="panel center">
+        <div id="gridHead" class="grid-head"></div>
+        <div id="gridWrap" class="grid-wrap"></div>
+      </section>
+      <aside id="perf" class="panel perf"></aside>
+    </main>
+    <footer id="dock" class="panel dock"></footer>
+  </div>
+
+  <div id="toasts"></div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
