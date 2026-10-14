@@ -1,7 +1,7 @@
 // 8 loopers circulares estilo Loopy (2 páginas de 4). Tocá para grabar / mutear,
 // mantené apretado para abrir el editor de onda.
 import { app } from '../app.js';
-import { A, inputLevel } from '../audio/engine.js';
+import { A, inputLevel, closeMic } from '../audio/engine.js';
 import { LOOP_COLORS } from '../state.js';
 import { h, popover, closePopover, chips, slider, fmtPct, ink, toggle } from './util.js';
 import { input } from '../input.js';
@@ -18,7 +18,8 @@ export function buildLoops(el) {
   const modeChips = chips([[0, '🧲 Al compás'], [1, '〰 Libre']], s.loopFree ? 1 : 0, v => { s.loopFree = !!+v; });
   modeChips.classList.add('no-learn');
   const meterFill = h('i');
-  const meter = h('div', { class: 'in-meter', title: 'Nivel de entrada' }, meterFill);
+  const meter = h('div', { class: 'in-meter', title: 'Micrófono abierto · tocá para cerrarlo' }, meterFill);
+  meter.addEventListener('click', () => { if (A.micStream && !app.loopers.some(l => l.job && l.source === 'mic')) { closeMic(); app.emit('toast', '🎤 Micrófono cerrado'); } });
   el.append(
     h('div', { class: 'loops-head' }, h('span', { class: 'panel-title' }, 'Loops'), dots, h('div', { style: { flex: 1 } }), meter),
     h('div', { class: 'loops-head' }, pageChips, modeChips),

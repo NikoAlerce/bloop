@@ -212,9 +212,21 @@ export async function getMic(deviceId) {
   A.micDevice = want;
   A.micSrc = A.ctx.createMediaStreamSource(stream);
   A.micSrc.connect(A.micNode);
+  scheduleMicClose(4000); // si nadie lo usa enseguida, se cierra
   stream.getAudioTracks().forEach(t => t.addEventListener('ended', () => { if (A.micStream === stream) closeMic(); }));
   return A.micNode;
 }
+// El micrófono se abre solo mientras se usa: en Android, tenerlo abierto pasa el audio a un
+// modo de "llamada" (peor calidad, más cortes). Cada grabación lo "toma" y lo suelta al terminar;
+// sin usos (ni monitoreo, ni el panel de entrada abierto) se cierra a los pocos segundos.
+let micUsers = 0, micTimer = null;
+export function micHold() { micUsers++; clearTimeout(micTimer); }
+export function micRelease() { micUsers = Math.max(0, micUsers - 1); scheduleMicClose(); }
+export function scheduleMicClose(delay = 1500) {
+  clearTimeout(micTimer);
+  micTimer = setTimeout(() => { if (micUsers === 0 && !A.monitorOn && !A.micPinned) closeMic(); }, delay);
+}
+
 export function closeMic() {
   if (A.micSrc) A.micSrc.disconnect();
   if (A.micStream) A.micStream.getTracks().forEach(t => t.stop());
@@ -224,7 +236,11 @@ export async function listInputs() {
   const devs = await navigator.mediaDevices.enumerateDevices();
   return devs.filter(d => d.kind === 'audioinput');
 }
-export function setMonitor(on) { A.monitor.gain.setTargetAtTime(on ? 1 : 0, A.ctx.currentTime, 0.02); }
+export function setMonitor(on) {
+  A.monitorOn = on;
+  A.monitor.gain.setTargetAtTime(on ? 1 : 0, A.ctx.currentTime, 0.02);
+  if (!on) scheduleMicClose();
+}
 
 // Nivel pico de la entrada (0..1)
 const meterBuf = new Float32Array(512);
@@ -293,8 +309,11 @@ function recNodeFor(src) {
 export function capture(src, startTime, seconds) {
   const n = recNodeFor(src);
   const id = ++jobId;
+  const usesMic = src === A.micNode;
+  if (usesMic) micHold();
   const sr = A.ctx.sampleRate;
   const promise = new Promise(res => pending.set(id, res)).then(({ L, R }) => {
+    if (usesMic) micRelease();
     const b = A.ctx.createBuffer(2, Math.max(1, L.length), sr);
     b.copyToChannel(L, 0); b.copyToChannel(R, 1);
     return b;

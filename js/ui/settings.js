@@ -1,12 +1,13 @@
 // Entrada de audio: dispositivo, monitoreo, umbral, latencia (manual y automática) y medidor.
 import { app } from '../app.js';
-import { A, getMic, listInputs, setMonitor, inputLevel, calibrateLatency } from '../audio/engine.js';
+import { A, getMic, listInputs, setMonitor, inputLevel, calibrateLatency, scheduleMicClose } from '../audio/engine.js';
 import { h, popover, slider, toggle, toast } from './util.js';
 
 const db = v => (v > 0 ? (20 * Math.log10(v)).toFixed(0) + ' dB' : '-∞');
 
 export async function openInputSettings(anchor) {
   const s = app.state.settings;
+  A.micPinned = true; // abierto mientras se ve este panel (para el medidor)
   try { await getMic(s.inputId); } catch (e) { toast('🎤 Sin acceso a la entrada de audio'); }
   const sel = h('select', { class: 'select' });
   const fill = async () => {
@@ -59,5 +60,5 @@ export async function openInputSettings(anchor) {
     calBtn,
     h('div', { class: 'hint' }, 'Calibrar: sin auriculares, con volumen alto. Suenan 5 clicks por el parlante y se mide cuánto tardan en volver por el micrófono. Con interfaz, conectá la salida a la entrada.'),
     h('div', { class: 'hint' }, 'La señal entra cruda: sin cancelación de eco, supresión de ruido ni ganancia automática.'),
-  ], { cls: 'wide' });
+  ], { cls: 'wide', onClose: () => { A.micPinned = false; scheduleMicClose(800); } });
 }

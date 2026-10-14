@@ -1,5 +1,5 @@
 // Pista de sampler: voces → filtro DJ → drive → color (crush/cinta/gate) → vol → pan → envíos.
-import { A } from './engine.js';
+import { A, holdParam } from './engine.js';
 import { TrackFx } from './trackfx.js';
 
 export function reverseBuffer(buf) {
@@ -156,8 +156,10 @@ export class DrumTrack {
   choke(time) {
     for (const v of this.voices) {
       if (v.end <= time) continue;
-      v.env.gain.cancelScheduledValues(time);
-      v.env.gain.setTargetAtTime(0, time, 0.006);
+      // Congelar el volumen en el valor que tiene en ese instante y apagarlo suave.
+      // (cancelScheduledValues solo borraba la caída y el volumen saltaba al máximo: click)
+      holdParam(v.env.gain, time);
+      v.env.gain.setTargetAtTime(0, time, 0.004);
       try { v.src.stop(time + 0.06); } catch (e) { /* ya detenida */ }
       v.end = time;
     }

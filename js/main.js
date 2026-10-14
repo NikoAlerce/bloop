@@ -134,6 +134,7 @@ function buildAudio() {
   A.master.gain.value = s.master;
   A.reverbReturn.gain.value = s.revLevel;
   setDelay(s.bpm, s.delayDiv, s.delayFb);
+  s.settings.monitor = false; // el monitoreo (y el micrófono) nunca arrancan prendidos
   setMonitor(false);
   applyMix();
 }
