@@ -43,7 +43,7 @@ export function defaultState() {
       theme: 'dark', eco: false,
     },
     recQuant: { on: true, amount: 1 },
-    loopFree: false, selLoop: 0, loopPage: 0,
+    loopFree: false, selLoop: 0, loopPage: 0, loopScenes: true, loopScenesV2: true,
     kbTarget: 'synth', kbMode: 'piano', scale: { root: 9, type: 'chromatic' },
     song: { on: false, chain: [{ pat: 0, bars: 4 }, { pat: 1, bars: 4 }] },
     tracks: Array.from({ length: 8 }, (_, i) => ({
@@ -129,6 +129,7 @@ export function storeToBuffer(ctx, o) {
 // Completa campos nuevos en proyectos guardados con versiones anteriores
 export function migrateState(s) {
   const def = defaultState();
+  const needLoopMigration = s.loopScenesV2 === undefined; // antes de completar campos nuevos
   for (const k of Object.keys(def)) if (s[k] === undefined) s[k] = def[k];
   s.settings = { ...def.settings, ...s.settings };
   s.recQuant = { ...def.recQuant, ...s.recQuant };
@@ -136,6 +137,12 @@ export function migrateState(s) {
   s.synth.arp = { ...def.synth.arp, ...s.synth.arp };
   s.synth.fx = { ...fxParams(), ...(s.synth.fx || {}) };
   s.tracks.forEach(t => { t.params = { ...trackParams(), ...t.params }; });
+  // Antes cada loop quedaba activo en todas las escenas (y arrancaban todos al cambiar de escena).
+  // Ahora pertenece a la escena actual; se puede sumar a otras tocándolo allí.
+  if (needLoopMigration) {
+    s.patterns.forEach((p, k) => { if (k !== s.current) p.loops = Array(NUM_LOOPS).fill(false); });
+    s.loopScenesV2 = true;
+  }
   s.patterns.forEach(p => {
     p.loops = Array.from({ length: NUM_LOOPS }, (_, i) => (p.loops ? p.loops[i] !== false : true));
     p.tracks.forEach(t => t.steps.forEach(st => { if (st && st.nudge == null) st.nudge = 0; }));

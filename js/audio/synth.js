@@ -1,6 +1,6 @@
 // Synth polifónico/monofónico sustractivo + FM simple, con chorus estéreo.
 import { A, holdParam } from './engine.js';
-import { driveCurve } from './sampler.js';
+import { driveCurve, DRIVE_RANGE } from './sampler.js';
 import { TrackFx } from './trackfx.js';
 
 export const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
@@ -26,7 +26,8 @@ class SynthStrip {
     lfo.connect(lg).connect(cL.delayTime); lfo.connect(lgi).connect(cR.delayTime); lfo.start();
     const pL = ctx.createStereoPanner(), pR = ctx.createStereoPanner(); pL.pan.value = -0.9; pR.pan.value = 0.9;
     this.fx = new TrackFx();
-    this.input.connect(this.shaper);
+    this.pre = g(1);
+    this.input.connect(this.pre).connect(this.shaper);
     this.shaper.connect(this.dry).connect(this.fx.input);
     this.shaper.connect(cL).connect(pL).connect(this.wet);
     this.shaper.connect(cR).connect(pR).connect(this.wet);
@@ -53,8 +54,10 @@ class SynthStrip {
     this.wet.gain.setTargetAtTime(p.chorus * 0.9, now, T);
     this.dry.gain.setTargetAtTime(1 - p.chorus * 0.35, now, T);
     if (Math.abs(p.drive - this._drive) > 0.01) {
-      this.shaper.curve = p.drive > 0.01 ? driveCurve(p.drive) : null;
-      this.shaper.oversample = p.drive > 0.01 ? '2x' : 'none';
+      const on = p.drive > 0.01;
+      this.shaper.curve = on ? driveCurve(p.drive) : null;
+      this.shaper.oversample = on ? '2x' : 'none';
+      this.pre.gain.value = on ? 1 / DRIVE_RANGE : 1;
       this._drive = p.drive;
     }
   }

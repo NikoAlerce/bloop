@@ -1,5 +1,5 @@
 // Secuenciador con planificación anticipada ("A tale of two clocks").
-import { A } from './audio/engine.js';
+import { A, heardTime } from './audio/engine.js';
 import { metroClick } from './audio/drums.js';
 import { app } from './app.js';
 import { mkStep, isPatternEmpty } from './state.js';
@@ -166,7 +166,9 @@ export const seq = {
 
   // Paso más cercano a "ahora" (compensando latencia de salida) y desfase en pasos
   nearestStep() {
-    const now = A.ctx.currentTime - A.outLat;
+    // Lo que se ESCUCHABA en el instante del toque (no cuando el código lo procesa)
+    const ts = app.lastInputTs && performance.now() - app.lastInputTs < 400 ? app.lastInputTs : undefined;
+    const now = heardTime(ts);
     let best = null;
     for (const h of this.history) if (!best || Math.abs(h.t - now) < Math.abs(best.t - now)) best = h;
     if (!best) return null;

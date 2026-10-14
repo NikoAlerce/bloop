@@ -3,7 +3,7 @@
 import { app } from '../app.js';
 import { A, inputLevel } from '../audio/engine.js';
 import { LOOP_COLORS } from '../state.js';
-import { h, popover, closePopover, chips, slider, fmtPct, ink } from './util.js';
+import { h, popover, closePopover, chips, slider, fmtPct, ink, toggle } from './util.js';
 import { input } from '../input.js';
 import { openLoopEditor } from './waveeditor.js';
 
@@ -66,6 +66,8 @@ export function buildLoops(el) {
         chips([['mic', '🎤 Micrófono'], ['keys', '🎹 Solo lo que toco'], ['groove', '🥁 Todo']], lp.source, v => { lp.source = v; update(); }),
         h('div', { class: 'hint' }, '🎹 graba solo lo que tocás en vivo (teclado, MIDI y pads), sin la base. 🥁 graba todo lo que suena.'),
         slider({ label: 'Volumen', value: lp.volume, color: col, fmt: fmtPct, onInput: v => { lp.setVolume(v); app.emit('loop-saved', i); } }),
+        toggle('🎬 Las escenas manejan los loops', s.loopScenes !== false, v => { s.loopScenes = v; app.emit('toast', v ? 'Cada escena recuerda qué loops suenan' : 'Cambiar de escena ya no toca los loops'); }),
+        h('div', { class: 'hint' }, 'Un loop nuevo suena solo en la escena donde lo grabaste. Para sumarlo a otra escena, andá a esa escena y tocalo.'),
         h('button', { class: 'menu-item', onclick: () => { closePopover(); openLoopEditor(lp); } }, '✎ Editar onda'),
         h('button', { class: 'menu-item', onclick: () => { lp.clear(); closePopover(); } }, '🗑 Borrar loop (se puede deshacer)'),
       ]).style.setProperty('--c', col);

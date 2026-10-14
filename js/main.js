@@ -245,6 +245,8 @@ function buildUI() {
   app.on('display', applyDisplay);
 
   document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('button'); if (b) b.blur(); });
+  // Hora exacta de cada toque (para cuantizar donde realmente tocaste)
+  document.addEventListener('pointerdown', e => { app.lastInputTs = e.timeStamp; }, true);
   document.addEventListener('contextmenu', e => { if (!e.target.closest('input,textarea')) e.preventDefault(); });
 
   // Bucle de animación: consume eventos programados cuando realmente suenan.

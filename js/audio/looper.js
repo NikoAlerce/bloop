@@ -39,7 +39,13 @@ export class Looper {
     if (this.source === 'keys') return liveSource();
     return A.mixBus;
   }
-  latency() { return this.source === 'mic' ? (app.state.settings.micLatency || 0) / 1000 : 0; }
+  // Corrimiento para que lo grabado quede donde lo tocaste:
+  // micrófono = latencia calibrada · lo que toco = latencia de salida (tocás sobre lo que oís)
+  latency() {
+    if (this.source === 'mic') return (app.state.settings.micLatency || 0) / 1000;
+    if (this.source === 'keys') return A.outLat;
+    return 0;
+  }
 
   // ---------- Grabación ----------
   tap() {
@@ -110,10 +116,21 @@ export class Looper {
         seq.start(tEnd);
         app.emit('toast', `⏱ Tempo del loop: ${best.bpm.toFixed(1)} BPM`);
       }
-    } else if (!seq.playing) seq.start(tEnd);
+      this.recBpm = app.state.bpm;
+      this.recLen = L;
+      this.job.stopAt(tEnd + this.latency());
+      return;
+    }
+    // Ya hay tempo: el largo se ajusta a compases enteros para que el loop quede en tiempo
+    const bar = 16 * seq.stepDur;
+    const n = Math.max(1, Math.round(L / bar));
+    const end = this.recStart + n * bar;
+    this.bars = n;
+    if (!seq.playing) seq.start(Math.max(A.ctx.currentTime + 0.02, end));
     this.recBpm = app.state.bpm;
-    this.recLen = L;
-    this.job.stopAt(tEnd + this.latency());
+    this.recLen = n * bar;
+    this.job.stopAt(end + this.latency());
+    if (end > A.ctx.currentTime + 0.05) app.emit('toast', `〰 Cerrando el loop en ${n} compás${n > 1 ? 'es' : ''}`);
   }
 
   setRecorded(buf, origin) {
@@ -123,7 +140,7 @@ export class Looper {
     this.fadeIn = 0.003; this.fadeOut = 0.003;
     this.origin = origin;
     this.state = 'playing';
-    app.state.patterns.forEach(p => { p.loops[this.i] = true; });
+    this.claimScene();
     this.render();
     if (app.seq.playing) this.play();
     this.pushUndo('Grabar loop', prev);
@@ -144,12 +161,18 @@ export class Looper {
     this.fadeIn = 0.003; this.fadeOut = 0.003;
     this.free = false;
     this.state = 'playing';
-    app.state.patterns.forEach(p => { p.loops[this.i] = true; });
+    this.claimScene();
     this.render();
     if (app.seq.playing) { this.origin = app.seq.nextBarTime(); this.play(); }
     this.out.gain.setTargetAtTime(this.volume, A.ctx.currentTime, 0.01);
     this.pushUndo('Cargar loop', prev);
     app.emit('loops'); app.emit('loop-saved', this.i);
+  }
+
+  // Un loop nuevo suena solo en la escena donde se grabó (o en todas si las escenas no manejan loops)
+  claimScene() {
+    const st = app.state, all = st.loopScenes === false;
+    st.patterns.forEach((p, k) => { p.loops[this.i] = all || k === st.current; });
   }
 
   // Construye el buffer que suena: región + fades
@@ -167,24 +190,39 @@ export class Looper {
     this.computePeaks();
   }
 
+  // Cada reproducción entra y sale con un fundido corto: cambiar de buffer (overdub, recorte)
+  // o parar el transporte no hace "click".
   play() {
-    this.stopSrc();
-    if (!this.buffer) return;
     const ctx = A.ctx;
+    const now = ctx.currentTime + 0.01;
+    const when = Math.max(now, this.origin);
+    this.stopSrc(when);
+    if (!this.buffer) return;
     const src = ctx.createBufferSource();
     src.buffer = this.buffer; src.loop = true;
     src.playbackRate.value = this.rate;
-    const now = ctx.currentTime + 0.01;
-    const when = Math.max(now, this.origin);
     const phase = (((when - this.origin) / this.period) % 1 + 1) % 1;
-    src.connect(this.out);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, when);
+    g.gain.linearRampToValueAtTime(1, when + 0.008);
+    src.connect(g).connect(this.out);
     src.start(when, phase * this.buffer.duration);
-    this.src = src;
+    this.src = src; this.srcGain = g;
     this.out.gain.setTargetAtTime(this.state === 'muted' ? 0 : this.volume, now, 0.01);
   }
 
-  stopSrc() {
-    if (this.src) { try { this.src.stop(); } catch (e) { /* */ } this.src.disconnect(); this.src = null; }
+  stopSrc(at = A.ctx.currentTime) {
+    if (!this.src) return;
+    const src = this.src, g = this.srcGain;
+    this.src = null; this.srcGain = null;
+    const t = Math.max(A.ctx.currentTime, at);
+    if (g) {
+      g.gain.cancelScheduledValues(t);
+      g.gain.setValueAtTime(g.gain.value, t);
+      g.gain.linearRampToValueAtTime(0, t + 0.01);
+    }
+    try { src.stop(t + 0.015); } catch (e) { /* */ }
+    setTimeout(() => { src.disconnect(); g && g.disconnect(); }, (t - A.ctx.currentTime) * 1000 + 100);
   }
 
   // ---------- Mute / scenes ----------
@@ -198,6 +236,7 @@ export class Looper {
 
   // Al cambiar de patrón: sigue lo que guardó esa scene, justo en el compás
   applyScene(on, time) {
+    if (app.state.loopScenes === false) return;
     if (!this.raw || this.state === 'armed' || this.state === 'recording') return;
     const m = !on;
     if ((this.state === 'muted') === m) return;

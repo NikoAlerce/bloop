@@ -153,6 +153,7 @@ export const input = {
     const typing = e => e.target.closest && e.target.closest('input,textarea,select');
     window.addEventListener('keydown', e => {
       if (typing(e) || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (!e.repeat) app.lastInputTs = e.timeStamp;
       if (this.learn.on && e.key === 'Escape') { this.setLearn(false); return; }
       if (e.repeat) { if (this.maps[KEYS]?.['k:' + e.code]) e.preventDefault(); return; }
       if (this.dispatch({ device: KEYS, id: 'k:' + e.code, kind: 'button', on: true, value: 1 })) { e.preventDefault(); return; }
@@ -175,7 +176,7 @@ export const input = {
         const seen = new Set();
         acc.inputs.forEach(inp => {
           seen.add(inp.name);
-          inp.onmidimessage = e => this.handleMidi(inp.name, e.data);
+          inp.onmidimessage = e => this.handleMidi(inp.name, e.data, e.timeStamp);
           this.setDevice(inp.name, this.devices.get(inp.name)?.type === 'ble' ? 'ble' : 'midi', inp.state === 'connected');
         });
         for (const d of this.devices.values()) if (d.type === 'midi' && !seen.has(d.name)) this.setDevice(d.name, 'midi', false);
@@ -185,7 +186,8 @@ export const input = {
     } catch (e) { /* sin permiso MIDI */ }
   },
 
-  handleMidi(device, data) {
+  handleMidi(device, data, ts) {
+    app.lastInputTs = ts ?? performance.now();
     const [s, d1, d2 = 0] = data, cmd = s & 0xf0, ch = s & 0x0f;
     let ev = null;
     if (cmd === 0x90 && d2 > 0) ev = { id: `n${ch}:${d1}`, kind: 'button', on: true, value: d2 / 127 };

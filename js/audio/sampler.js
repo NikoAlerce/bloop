@@ -12,11 +12,15 @@ export function reverseBuffer(buf) {
 }
 
 const curves = new Map();
+export const DRIVE_RANGE = 4;
 export function driveCurve(amt) {
   const key = Math.round(amt * 50);
   if (!curves.has(key)) {
-    const n = 1024, c = new Float32Array(n), k = 1 + key / 50 * 18;
-    for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; c[i] = Math.tanh(k * x) / Math.tanh(k); }
+    const n = 2048, c = new Float32Array(n), k = 1 + key / 50 * 12;
+    for (let i = 0; i < n; i++) {
+      const u = (i / (n - 1) * 2 - 1) * DRIVE_RANGE; // entrada real (antes del /4)
+      c[i] = Math.tanh(k * u) / Math.tanh(k);
+    }
     curves.set(key, c);
   }
   return curves.get(key);
@@ -56,7 +60,8 @@ class TrackStrip {
     this.pan = ctx.createStereoPanner();
     this.rev = ctx.createGain(); this.rev.gain.value = 0;
     this.dly = ctx.createGain(); this.dly.gain.value = 0;
-    this.filter.connect(this.shaper).connect(this.fx.input);
+    this.pre = ctx.createGain();
+    this.filter.connect(this.pre).connect(this.shaper).connect(this.fx.input);
     this.fx.output.connect(this.gain).connect(this.pan).connect(A.mixBus);
     this.pan.connect(tap);
     this.pan.connect(this.rev).connect(A.reverbIn);
@@ -81,8 +86,10 @@ class TrackStrip {
     this.filter.frequency.setTargetAtTime(f, now, T);
     this.filter.Q.setTargetAtTime(0.5 + p.reso * p.reso * 16, now, T);
     if (Math.abs(p.drive - this._drive) > 0.01) {
-      this.shaper.curve = p.drive > 0.01 ? driveCurve(p.drive) : null;
-      this.shaper.oversample = p.drive > 0.01 ? '2x' : 'none';
+      const on = p.drive > 0.01;
+      this.shaper.curve = on ? driveCurve(p.drive) : null;
+      this.shaper.oversample = on ? '2x' : 'none';
+      this.pre.gain.value = on ? 1 / DRIVE_RANGE : 1;
       this._drive = p.drive;
     }
     this.fx.apply(p);

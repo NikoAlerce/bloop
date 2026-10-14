@@ -19,23 +19,25 @@ export async function initAudio() {
   A.mode = audioMode();
   const ctx = A.ctx = new AC({ latencyHint: A.mode === 'stable' ? 'balanced' : 'interactive' });
   if (ctx.state !== 'running') await ctx.resume();
-  A.outLat = (ctx.outputLatency || 0) + (ctx.baseLatency || 0);
+  // Latencia leída siempre en vivo (al arrancar suele informar un valor menor al real)
+  Object.defineProperty(A, 'outLat', { configurable: true, get: () => (ctx.outputLatency || 0) + (ctx.baseLatency || 0) });
   const gain = (v = 1) => { const n = ctx.createGain(); n.gain.value = v; return n; };
   const biquad = (type, f, q = 0.7) => { const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; return b; };
 
   // Bus: pistas+synth+FX → filtro performance → suma ← loops → comp → master → limitador
-  A.mixBus = gain(1);
+  A.mixBus = gain(0.6);   // margen: la suma de pistas y synth no empuja al compresor todo el tiempo
   A.loopBus = gain(1);
   A.sum = gain(1);
   A.perfHP = biquad('highpass', 10);
   A.perfLP = biquad('lowpass', 22000);
   A.comp = ctx.createDynamicsCompressor();
-  A.comp.threshold.value = -14; A.comp.knee.value = 10; A.comp.ratio.value = 3;
-  A.comp.attack.value = 0.005; A.comp.release.value = 0.15;
+  // Compresión de "pegamento": suave y lenta (rápida distorsiona los graves)
+  A.comp.threshold.value = -12; A.comp.knee.value = 12; A.comp.ratio.value = 2;
+  A.comp.attack.value = 0.02; A.comp.release.value = 0.3;
   A.master = gain(0.8);
   A.limiter = ctx.createDynamicsCompressor();
-  A.limiter.threshold.value = -1.5; A.limiter.knee.value = 0; A.limiter.ratio.value = 20;
-  A.limiter.attack.value = 0.001; A.limiter.release.value = 0.08;
+  A.limiter.threshold.value = -1; A.limiter.knee.value = 1; A.limiter.ratio.value = 20;
+  A.limiter.attack.value = 0.002; A.limiter.release.value = 0.2;
   A.analyser = ctx.createAnalyser();
   A.analyser.fftSize = 1024; A.analyser.smoothingTimeConstant = 0.6;
 
@@ -44,7 +46,7 @@ export async function initAudio() {
   // Protector final: deja pasar la señal limpia y redondea solo los picos que se pasarían de 0 dB
   // (en vez del recorte digital áspero que suena a chisporroteo)
   A.safety = ctx.createWaveShaper();
-  const n = 4096, curve = new Float32Array(n), knee = 0.75;
+  const n = 4096, curve = new Float32Array(n), knee = 0.9;
   for (let i = 0; i < n; i++) {
     const x = (i / (n - 1)) * 2 - 1, ax = Math.abs(x);
     curve[i] = Math.sign(x) * (ax <= knee ? ax : knee + (0.98 - knee) * Math.tanh((ax - knee) / (0.98 - knee)));
@@ -120,6 +122,22 @@ export function makeIR(ctx, secs, decay) {
     for (let i = 0; i < fade; i++) d[i] *= i / fade;
   }
   return b;
+}
+
+// Latencia de salida actual (cambia después de arrancar, sobre todo en Android)
+export function outLatency() { return (A.ctx.outputLatency || 0) + (A.ctx.baseLatency || 0); }
+
+// Momento (en tiempo del audio) que se estaba ESCUCHANDO cuando ocurrió un evento de la página
+// (toque, tecla, MIDI). Usa el reloj de salida real del navegador: compensa la latencia de la
+// tablet y la demora del propio evento, para que la cuantización caiga en el paso correcto.
+export function heardTime(eventTimeStamp) {
+  const ctx = A.ctx;
+  const evt = eventTimeStamp ?? performance.now();
+  try {
+    const ts = ctx.getOutputTimestamp?.();
+    if (ts && ts.performanceTime > 0) return ts.contextTime + (evt - ts.performanceTime) / 1000;
+  } catch (e) { /* */ }
+  return ctx.currentTime - outLatency() - (performance.now() - evt) / 1000;
 }
 
 export function setDelay(bpm, div, fb) {
