@@ -19,9 +19,10 @@ export function buildLoops(el) {
   modeChips.classList.add('no-learn');
   const meterFill = h('i');
   const meter = h('div', { class: 'in-meter', title: 'Micrófono abierto · tocá para cerrarlo' }, meterFill);
-  meter.addEventListener('click', () => { if (A.micStream && !app.loopers.some(l => l.job && l.source === 'mic')) { closeMic(); app.emit('toast', '🎤 Micrófono cerrado'); } });
+  const micBox = h('div', { class: 'mic-on', title: 'Micrófono abierto · tocá para cerrarlo', hidden: true }, h('span', {}, '🎤'), meter);
+  micBox.addEventListener('click', () => { if (A.micStream && !app.loopers.some(l => l.job && l.source === 'mic')) { closeMic(); app.emit('toast', '🎤 Micrófono cerrado'); } });
   el.append(
-    h('div', { class: 'loops-head' }, h('span', { class: 'panel-title' }, 'Loops'), dots, h('div', { style: { flex: 1 } }), meter),
+    h('div', { class: 'loops-head' }, h('span', { class: 'panel-title' }, 'Loops'), dots, h('div', { style: { flex: 1 } }), micBox),
     h('div', { class: 'loops-head' }, pageChips, modeChips),
   );
   const grid = h('div', { class: 'loops' });
@@ -32,9 +33,9 @@ export function buildLoops(el) {
     const cv = h('canvas');
     const src = h('button', { title: 'Fuente: micrófono, lo que tocás o todo' });
     const od = h('button', { title: 'Overdub: otra capa encima' }, '＋');
-    const edit = h('button', { title: 'Editar onda' }, '✎');
+    const del = h('button', { class: 'del', title: 'Borrar loop (se puede deshacer)' }, '🗑');
     const more = h('button', { title: 'Opciones' }, '•••');
-    const wrap = h('div', { class: 'loop' }, cv, h('div', { class: 'loop-ctrls' }, src, od, edit, more));
+    const wrap = h('div', { class: 'loop' }, cv, h('div', { class: 'loop-ctrls' }, src, od, del, more));
     wrap.style.setProperty('--c', col);
 
     // Tocar = grabar/mutear; mantener apretado = editor
@@ -57,7 +58,7 @@ export function buildLoops(el) {
       app.emit('toast', SRC_NAME[lp.source]);
     });
     od.addEventListener('click', () => lp.overdub());
-    edit.addEventListener('click', () => openLoopEditor(lp));
+    del.addEventListener('click', () => { lp.clear(); app.emit('toast', `🗑 Loop ${i + 1} borrado · ↶ para deshacer`); });
     more.addEventListener('click', () => {
       popover(more, [
         h('h4', {}, `Loop ${i + 1}`),
@@ -79,7 +80,7 @@ export function buildLoops(el) {
       // Botones según el estado: vacío → fuente; con audio → overdub y editor
       src.textContent = SRC_ICON[lp.source] || '🎤';
       src.hidden = !!lp.raw;
-      od.hidden = !lp.raw; edit.hidden = !lp.raw;
+      od.hidden = !lp.raw; del.hidden = !lp.raw;
       src.disabled = lp.state !== 'empty';
       od.disabled = lp.overdubbing;
       od.classList.toggle('on', lp.overdubbing);
@@ -108,6 +109,7 @@ export function buildLoops(el) {
   return function draw(time) {
     const lvl = inputLevel();
     meter.classList.toggle('on', !!A.micStream);
+    micBox.hidden = !A.micStream;
     meterFill.style.width = Math.min(100, Math.sqrt(lvl) * 100) + '%';
     meterFill.classList.toggle('clip', lvl > 0.97);
     const now = A.ctx.currentTime;

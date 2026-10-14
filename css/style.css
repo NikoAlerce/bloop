@@ -530,3 +530,8 @@ body.eco .pad, body.eco .tile { transition: none; }
   .grid-head .pill { padding: 0 11px; }
   .grid-head .stepper span { min-width: 44px; }
 }
+
+/* Micrófono abierto: indicador rojo (solo se ve si está abierto) */
+.mic-on { display: flex; align-items: center; gap: 6px; padding: 3px 8px 3px 6px; border-radius: 999px; background: color-mix(in srgb, var(--rec) 25%, transparent); border: 1.5px solid var(--rec); cursor: pointer; }
+.mic-on span { font-size: 13px; animation: pulse 1.2s ease-in-out infinite; border-radius: 50%; }
+.loop-ctrls button.del { background: color-mix(in srgb, var(--rec) 22%, var(--panel2)); }
