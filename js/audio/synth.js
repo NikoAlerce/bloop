@@ -58,6 +58,7 @@ export class Synth {
     this.dry.gain.setTargetAtTime(1 - p.chorus * 0.35, now, T);
     if (Math.abs(p.drive - this._drive) > 0.01) {
       this.shaper.curve = p.drive > 0.01 ? driveCurve(p.drive) : null;
+      this.shaper.oversample = p.drive > 0.01 ? '2x' : 'none';
       this._drive = p.drive;
     }
     // Las voces sonando siguen al filtro (para poder "abrir" un pad en vivo)
@@ -86,7 +87,7 @@ export class Synth {
 
     const srcs = [], fosc = []; // fosc: osciladores con frecuencia relativa
     const n = Math.max(1, Math.round(p.unison));
-    const level = (1 - p.mix2 * 0.4) / Math.sqrt(n);
+    const level = (p.osc1 ?? 1) * (1 - p.mix2 * 0.4) / Math.sqrt(n);
     const mainOscs = [];
     for (let i = 0; i < n; i++) {
       const o = ctx.createOscillator(); o.type = p.wave; o.frequency.value = f;

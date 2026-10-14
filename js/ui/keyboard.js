@@ -1,9 +1,9 @@
 // Teclado: presets, arpegiador, destino (synth o sampler), piano o pads en escala.
 import { app } from '../app.js';
-import { PRESETS } from '../audio/presets.js';
+import { openPresets, stepPreset, allPresets } from './presets.js';
 import { ARP_MODES, ARP_RATES } from '../sequencer.js';
 import { h, chips, toggle, popover } from './util.js';
-import { noteOn, noteOff, setPreset, samplerTrack, trackName } from '../actions.js';
+import { noteOn, noteOff, setPreset, samplerTrack, trackName, presetLabel, presetById, varyPreset } from '../actions.js';
 import { input } from '../input.js';
 import { SCALES, NOTE_NAMES, scaleActive, inScale, degree, scaleLabel, noteName } from '../scales.js';
 
@@ -16,13 +16,33 @@ export function buildKeyboard() {
   const s = app.state, sy = s.synth;
   const el = h('div', { class: 'dock-body' });
 
-  // Presets del synth
-  const presetRow = h('div', { class: 'dock-row scroll' });
-  const presetBtns = PRESETS.map((p, i) => {
-    const b = h('button', { class: 'preset', onclick: () => setPreset(i) }, p.emoji + ' ' + p.name);
-    presetRow.append(b); return b;
-  });
-  const markPreset = () => presetBtns.forEach((b, i) => b.classList.toggle('on', i === sy.preset));
+  // Presets del synth: ◀ ▶ dentro de la categoría, botón al navegador completo, variar,
+  // y atajos con los demás sonidos de la misma categoría
+  const curBtn = h('button', { class: 'preset on cur-preset', title: 'Ver todos los sonidos', onclick: openPresets });
+  const quick = h('div', { class: 'dock-row', style: { gap: '6px' } });
+  const presetRow = h('div', { class: 'dock-row scroll' },
+    h('button', { class: 'round', title: 'Anterior', onclick: () => stepPreset(-1) }, '◀'),
+    h('button', { class: 'round', title: 'Siguiente', onclick: () => stepPreset(1) }, '▶'),
+    curBtn,
+    h('button', { class: 'preset', title: 'Variación aleatoria', onclick: () => varyPreset() }, '🎲'),
+    h('div', { class: 'sep' }), quick);
+  let quickCat = null;
+  const markPreset = () => {
+    curBtn.textContent = presetLabel() + '  ▾';
+    const pr = presetById(sy.preset);
+    const cat = typeof sy.preset === 'string' ? 'mine' : pr?.cat;
+    const list = allPresets().filter(x => x.cat === cat);
+    const sig = cat + ':' + list.map(x => x.key).join(',');
+    if (sig !== quickCat) {
+      quickCat = sig;
+      quick.innerHTML = '';
+      for (const p of list) {
+        const b = h('button', { class: 'preset', 'data-k': String(p.key), onclick: () => setPreset(p.key) }, p.emoji + ' ' + p.name);
+        quick.append(b);
+      }
+    }
+    [...quick.children].forEach(b => b.classList.toggle('on', b.dataset.k === String(sy.preset)));
+  };
   markPreset();
   app.on('preset', markPreset);
 

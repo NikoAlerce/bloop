@@ -2,8 +2,7 @@
 import { app } from '../app.js';
 import { TRACK_COLORS, SYNTH_COLOR } from '../state.js';
 import { h } from './util.js';
-import { selectTrack, trackName, hitLive, applyMix, loadFileToTrack } from '../actions.js';
-import { PRESETS } from '../audio/presets.js';
+import { selectTrack, trackName, hitLive, applyMix, loadFileToTrack, presetLabel } from '../actions.js';
 import { input } from '../input.js';
 import { bank } from '../bank.js';
 
@@ -51,7 +50,7 @@ export function buildTracks(el) {
       r.so.classList.toggle('on', c.solo);
       r.name.textContent = trackName(r.i);
       const p = !r.isSynth && c.params;
-      r.sub.textContent = r.isSynth ? PRESETS[s.synth.preset].emoji + ' ' + PRESETS[s.synth.preset].name
+      r.sub.textContent = r.isSynth ? presetLabel()
         : (p.sliceMode && p.slices.length ? `✂ ${p.slices.length} slices` : c.sound.custom ? 'sample propio' : c.sound.bank ? (bank.packs.get(c.sound.bank)?.name || 'banco') : app.kits[c.sound.kit]?.name || '');
     }
   }

@@ -5,7 +5,7 @@ import { app } from './app.js';
 import { mkStep, isPatternEmpty } from './state.js';
 import { undo } from './undo.js';
 
-const LOOK = 0.16;
+const LOOK = 0.22;
 const ARP_RATE = { '1/8': 2, '1/16': 1, '1/16T': 2 / 3, '1/32': 0.5 };
 export const ARP_RATES = Object.keys(ARP_RATE);
 export const ARP_MODES = ['up', 'down', 'updown', 'random', 'order'];

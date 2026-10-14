@@ -49,6 +49,7 @@ export const DRUM_SPECS = {
 };
 export const SYNTH_SPECS = {
   Osciladores: [
+    ['osc1', 'Osc 1', { def: 1 }],
     ['unison', 'Voces', { min: 1, max: 7, step: 1, fmt: v => v + 'x' }],
     ['detune', 'Detune', {}], ['mix2', 'Osc 2', {}],
     ['semi2', 'Semitono 2', { min: -24, max: 24, step: 1, bipolar: true, fmt: pm }],

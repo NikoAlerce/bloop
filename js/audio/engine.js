@@ -4,9 +4,20 @@ export const A = { ctx: null, outLat: 0 };
 const DELAY_BEATS = { '1/16': 0.25, '1/8T': 1 / 3, '1/8': 0.5, '3/16': 0.75, '1/4': 1 };
 export const DELAY_DIVS = Object.keys(DELAY_BEATS);
 
+// Modo de audio: 'stable' usa un búfer algo más grande (sin cortes en tablets/teléfonos),
+// 'fast' la menor latencia posible (computadoras potentes). Se guarda por dispositivo.
+export function audioMode() {
+  let m = null;
+  try { m = localStorage.getItem('bloop-audio-mode'); } catch (e) { /* */ }
+  if (m === 'stable' || m === 'fast') return m;
+  return /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? 'stable' : 'fast';
+}
+export function setAudioMode(m) { try { localStorage.setItem('bloop-audio-mode', m); } catch (e) { /* */ } }
+
 export async function initAudio() {
   const AC = window.AudioContext || window.webkitAudioContext;
-  const ctx = A.ctx = new AC({ latencyHint: 'interactive' });
+  A.mode = audioMode();
+  const ctx = A.ctx = new AC({ latencyHint: A.mode === 'stable' ? 'balanced' : 'interactive' });
   if (ctx.state !== 'running') await ctx.resume();
   A.outLat = (ctx.outputLatency || 0) + (ctx.baseLatency || 0);
   const gain = (v = 1) => { const n = ctx.createGain(); n.gain.value = v; return n; };
@@ -30,7 +41,17 @@ export async function initAudio() {
 
   A.mixBus.connect(A.perfHP).connect(A.perfLP).connect(A.sum);
   A.loopBus.connect(A.sum);
-  A.sum.connect(A.comp).connect(A.master).connect(A.limiter).connect(A.analyser).connect(ctx.destination);
+  // Protector final: deja pasar la señal limpia y redondea solo los picos que se pasarían de 0 dB
+  // (en vez del recorte digital áspero que suena a chisporroteo)
+  A.safety = ctx.createWaveShaper();
+  const n = 4096, curve = new Float32Array(n), knee = 0.75;
+  for (let i = 0; i < n; i++) {
+    const x = (i / (n - 1)) * 2 - 1, ax = Math.abs(x);
+    curve[i] = Math.sign(x) * (ax <= knee ? ax : knee + (0.98 - knee) * Math.tanh((ax - knee) / (0.98 - knee)));
+  }
+  A.safety.curve = curve;
+  A.safety.oversample = '2x';
+  A.sum.connect(A.comp).connect(A.master).connect(A.limiter).connect(A.safety).connect(A.analyser).connect(ctx.destination);
   A.silent = gain(0);
   A.silent.connect(ctx.destination);
 
@@ -38,7 +59,7 @@ export async function initAudio() {
   A.reverbIn = gain(1);
   const pre = ctx.createDelay(0.1); pre.delayTime.value = 0.02;
   A.convolver = ctx.createConvolver();
-  A.convolver.buffer = makeIR(ctx, 3.4, 2.4);
+  A.convolver.buffer = makeIR(ctx, 2.6, 2.4);
   A.reverbReturn = gain(0.8);
   A.reverbIn.connect(pre).connect(A.convolver).connect(A.reverbReturn).connect(A.mixBus);
 

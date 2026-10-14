@@ -4,7 +4,7 @@ import {
   A, setDelay, capture, encodeWav, getMic, trimAndNormalize, normalizeBuffer, peakOf,
 } from './audio/engine.js';
 import { kvSet, kvKeys, kvDel, bufferToStore, serializeState, fxParams } from './state.js';
-import { PRESETS } from './audio/presets.js';
+import { PRESETS, PRESET_DEFAULTS, mutate } from './audio/presets.js';
 import { toast, clamp } from './ui/util.js';
 import { undo } from './undo.js';
 import { snap } from './scales.js';
@@ -196,15 +196,68 @@ export function noteOff(midi) {
   else { app.synth.noteOff(midi); app.seq.recordNoteOff(midi); }
 }
 
+// ---------- Presets del synth (de fábrica y propios) ----------
+// La clave es el número de preset de fábrica o 'u:<id>' para los guardados por el usuario.
+export function presetById(k) {
+  if (typeof k === 'string' && k.startsWith('u:')) return (app.userPresets || []).find(p => 'u:' + p.id === k) || null;
+  return PRESETS[k] || null;
+}
+export function presetLabel() {
+  const s = st().synth, pr = presetById(s.preset);
+  if (!pr) return '🎛️ Sonido propio';
+  return `${pr.emoji} ${pr.name}${s.varied ? ' 🎲' : ''}`;
+}
+
 export function setPreset(k) {
+  const pr = presetById(k);
+  if (!pr) return;
   const s = st().synth;
   s.preset = k;
-  s.params = { ...PRESETS[k].params };
-  s.fx = { ...fxParams(), ...(PRESETS[k].fx || {}) };
+  s.varied = false;
+  s.params = { ...PRESET_DEFAULTS, ...pr.params };
+  s.fx = { ...fxParams(), ...(pr.fx || {}) };
   app.synth.allOff();
   app.synth.setParams(s.params);
   applySynth();
   app.emit('preset');
+}
+
+// Variación aleatoria del sonido actual (se puede deshacer)
+export function varyPreset(amount = 0.25) {
+  const s = st().synth;
+  undo.state('Variar sonido', null, () => ({ params: { ...s.params }, fx: { ...s.fx }, varied: s.varied }), v => {
+    s.params = { ...v.params }; s.fx = { ...v.fx }; s.varied = v.varied;
+    app.synth.setParams(s.params); applySynth(); app.emit('preset');
+  });
+  s.params = mutate(s.params, amount);
+  s.varied = true;
+  app.synth.setParams(s.params);
+  applySynth();
+  app.emit('preset');
+}
+
+export async function saveUserPreset(name) {
+  const s = st().synth;
+  const pr = { id: Date.now().toString(36), name: name.slice(0, 32), emoji: '⭐', cat: 'mine', params: { ...s.params }, fx: { ...s.fx } };
+  app.userPresets = [...(app.userPresets || []), pr];
+  await kvSet('userPresets', app.userPresets);
+  s.preset = 'u:' + pr.id;
+  s.varied = false;
+  app.emit('preset');
+  toast(`💾 Guardado: ${pr.name}`);
+}
+
+export async function deleteUserPreset(id) {
+  app.userPresets = (app.userPresets || []).filter(p => p.id !== id);
+  await kvSet('userPresets', app.userPresets);
+  app.emit('preset');
+}
+
+// Escucha de prueba según el tipo de sonido
+export function auditionPreset(cat) {
+  const t = A.ctx.currentTime + 0.03;
+  const notes = cat === 'bass' ? [36] : cat === 'lead' || cat === 'fx' ? [60] : [60, 64, 67, 71];
+  notes.forEach(m => app.synth.playNote(m, 0.8, t, cat === 'pluck' || cat === 'bell' ? 0.3 : 0.9));
 }
 
 // ---------- Grabación a pistas ----------

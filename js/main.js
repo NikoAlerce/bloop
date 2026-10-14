@@ -4,7 +4,7 @@ import { generateKits } from './audio/drums.js';
 import { DrumTrack } from './audio/sampler.js';
 import { Synth } from './audio/synth.js';
 import { Looper } from './audio/looper.js';
-import { PRESETS } from './audio/presets.js';
+import { PRESETS, PRESET_DEFAULTS } from './audio/presets.js';
 import { seq } from './sequencer.js';
 import {
   defaultState, migrateState, kvGet, kvSet, kvDel, kvKeys, storeToBuffer, bufferToStore, serializeState, NUM_LOOPS,
@@ -100,7 +100,8 @@ async function loadProject() {
   if (!s || s.version !== 1) s = defaultState();
   s = migrateState(s);
   s.queued = null;
-  s.synth.params = { ...PRESETS[s.synth.preset || 0].params, ...(s.synth.params || {}) };
+  s.synth.params = { ...PRESET_DEFAULTS, ...(s.synth.params || PRESETS[0].params) };
+  app.userPresets = (await kvGet('userPresets')) || [];
   app.state = s;
   A.inputId = s.settings.inputId;
 

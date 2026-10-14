@@ -518,3 +518,8 @@ body.eco .pad, body.eco .tile { transition: none; }
 /* Aviso de versión nueva */
 .update-banner { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 70; display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 18px; border-radius: 999px; background: var(--card); border: 2px solid var(--accent); box-shadow: 0 16px 50px rgba(0, 0, 0, 0.45); font-weight: 800; }
 .update-banner .sbtn { height: 40px; }
+
+/* Presets del synth */
+.cur-preset { min-width: 190px; font-weight: 800; }
+.preset-card.cur { border-color: #c792ff; background: color-mix(in srgb, #c792ff 22%, var(--panel2)); }
+.preset-card { min-height: 92px; }

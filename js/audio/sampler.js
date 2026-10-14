@@ -104,6 +104,7 @@ export class DrumTrack {
     this.filter.Q.setTargetAtTime(0.5 + p.reso * p.reso * 16, now, T);
     if (Math.abs(p.drive - this._drive) > 0.01) {
       this.shaper.curve = p.drive > 0.01 ? driveCurve(p.drive) : null;
+      this.shaper.oversample = p.drive > 0.01 ? '2x' : 'none';
       this._drive = p.drive;
     }
     this.fx.apply(p);

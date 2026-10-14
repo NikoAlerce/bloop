@@ -6,8 +6,12 @@ class BloopCrush extends AudioWorkletProcessor {
       { name: 'down', defaultValue: 1, minValue: 1, maxValue: 64, automationRate: 'k-rate' },
     ];
   }
-  constructor() { super(); this.ph = 0; this.hold = [0, 0]; }
+  constructor() {
+    super(); this.ph = 0; this.hold = [0, 0]; this.alive = true;
+    this.port.onmessage = e => { if (e.data === 'stop') this.alive = false; };
+  }
   process(inputs, outputs, params) {
+    if (!this.alive) return false; // fuera de uso: el navegador deja de llamarlo
     const inp = inputs[0], out = outputs[0];
     const bits = params.bits[0], down = params.down[0];
     if (!inp || !inp.length) { for (const o of out) o.fill(0); return true; }

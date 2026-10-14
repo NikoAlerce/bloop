@@ -1,6 +1,6 @@
 import { app } from '../app.js';
-import { A } from '../audio/engine.js';
-import { h, popover, closePopover, toast, slider, toggle } from './util.js';
+import { A, audioMode, setAudioMode } from '../audio/engine.js';
+import { h, popover, closePopover, toast, slider, toggle, chips } from './util.js';
 import { knob } from './knob.js';
 import { setBpm, loadKit, exportWav, exportStems, exportProject, importProject } from '../actions.js';
 import { clonePattern, newPattern, isPatternEmpty } from '../state.js';
@@ -200,6 +200,9 @@ function openMenu(anchor) {
       toggle('☀️ Modo sol', s.settings.theme === 'light', v => { s.settings.theme = v ? 'light' : 'dark'; app.emit('display'); }, 'sbtn'),
       toggle('🔋 Ahorro', s.settings.eco, v => { s.settings.eco = v; app.emit('display'); }, 'sbtn'),
       h('button', { class: 'sbtn', onclick: () => { closePopover(); toggleFullscreen(); } }, '⛶ Pantalla completa')),
+    h('div', { class: 'lbl' }, 'Audio'),
+    chips([['stable', '🛡️ Estable (tablet)'], ['fast', '⚡ Baja latencia']], audioMode(), v => { setAudioMode(v); toast('Se aplica la próxima vez que abras Bloop'); }),
+    h('div', { class: 'hint' }, `Latencia actual: ${Math.round(((A.ctx.baseLatency || 0) + (A.ctx.outputLatency || 0)) * 1000)} ms. Si el sonido se corta o chisporrotea, usá Estable y el modo 🔋 Ahorro.`),
     h('button', { class: 'menu-item', onclick: () => { closePopover(); openInputSettings(anchor); } }, '🎤 Entrada de audio, latencia y monitoreo'),
     h('div', { class: 'lbl' }, 'Cargar kit completo'),
     h('div', { class: 'btn-row' }, ...app.kits.map((k, i) => h('button', { class: 'sbtn', onclick: () => { closePopover(); loadKit(i); } }, k.name))),

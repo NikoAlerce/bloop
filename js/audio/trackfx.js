@@ -1,4 +1,6 @@
-// Inserto "color" por canal: bitcrusher → cinta/vinilo → gater rítmico.
+// Inserto "color" por canal: bitcrusher → cinta → gater rítmico.
+// Para no gastar CPU (clave en la tablet), el bitcrusher y la cinta se crean solo cuando se usan
+// y se sacan de la cadena cuando vuelven a cero. Sin efectos, el canal es input → gate → output.
 import { A } from './engine.js';
 
 // Patrones del gater: por cada semicorchea, ventanas [inicio, fin] abiertas (fracción del paso)
@@ -14,58 +16,74 @@ function windows(mode, step) {
   }
 }
 
-let crackleBuf = null;
-function crackle(ctx) {
-  if (crackleBuf) return crackleBuf;
-  const sr = ctx.sampleRate, len = sr * 3;
-  crackleBuf = ctx.createBuffer(2, len, sr);
-  for (let c = 0; c < 2; c++) {
-    const d = crackleBuf.getChannelData(c);
-    let lp = 0;
-    for (let i = 0; i < len; i++) {
-      lp += ((Math.random() * 2 - 1) - lp) * 0.08;
-      d[i] = lp * 0.12;                                        // soplido
-      if (Math.random() < 0.00018) d[i] += (Math.random() * 2 - 1) * 0.9;  // pops
-    }
-  }
-  return crackleBuf;
-}
-
 export class TrackFx {
   constructor() {
     const ctx = A.ctx;
     this.input = ctx.createGain();
-    this.crush = new AudioWorkletNode(ctx, 'bloop-crush', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
-    // Cinta: wow & flutter con una línea de retardo modulada + pérdida de agudos
-    this.tapeDelay = ctx.createDelay(0.05);
-    this.tapeDelay.delayTime.value = 0.006;
-    this.wow = ctx.createOscillator(); this.wow.frequency.value = 0.55;
-    this.flutter = ctx.createOscillator(); this.flutter.frequency.value = 6.3;
-    this.wowG = ctx.createGain(); this.wowG.gain.value = 0;
-    this.flutG = ctx.createGain(); this.flutG.gain.value = 0;
-    this.wow.connect(this.wowG).connect(this.tapeDelay.delayTime);
-    this.flutter.connect(this.flutG).connect(this.tapeDelay.delayTime);
-    this.wow.start(); this.flutter.start();
-    this.tapeLP = ctx.createBiquadFilter(); this.tapeLP.type = 'lowpass'; this.tapeLP.frequency.value = 20000; this.tapeLP.Q.value = 0.5;
     this.gate = ctx.createGain();
     this.output = ctx.createGain();
-    this.input.connect(this.crush).connect(this.tapeDelay).connect(this.tapeLP).connect(this.gate).connect(this.output);
-    // Vinilo: crujido de fondo (solo suena si hay "cinta")
-    this.crk = ctx.createBufferSource(); this.crk.buffer = crackle(ctx); this.crk.loop = true;
-    this.crkG = ctx.createGain(); this.crkG.gain.value = 0;
-    this.crk.connect(this.crkG).connect(this.output); this.crk.start();
+    this.gate.connect(this.output);
+    this.crush = null;   // AudioWorkletNode, solo si se usa
+    this.tape = null;    // {delay, lp, oscs, gains}, solo si se usa
     this.mode = 'off';
+    this.wire();
+  }
+
+  // Arma la cadena con lo que esté activo
+  wire() {
+    this.input.disconnect();
+    if (this.crush) this.crush.disconnect();
+    if (this.tape) this.tape.lp.disconnect();
+    let node = this.input;
+    if (this.crush) { node.connect(this.crush); node = this.crush; }
+    if (this.tape) { node.connect(this.tape.delay); node = this.tape.lp; }
+    node.connect(this.gate);
+  }
+
+  makeTape() {
+    const ctx = A.ctx;
+    const delay = ctx.createDelay(0.05);
+    delay.delayTime.value = 0.006;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 0.5; lp.frequency.value = 20000;
+    const wow = ctx.createOscillator(); wow.frequency.value = 0.55;
+    const flut = ctx.createOscillator(); flut.frequency.value = 6.3;
+    const wowG = ctx.createGain(), flutG = ctx.createGain();
+    wowG.gain.value = 0; flutG.gain.value = 0;
+    wow.connect(wowG).connect(delay.delayTime);
+    flut.connect(flutG).connect(delay.delayTime);
+    wow.start(); flut.start();
+    delay.connect(lp);
+    return { delay, lp, wow, flut, wowG, flutG };
   }
 
   apply(p) {
     const now = A.ctx.currentTime, T = 0.03;
-    this.crush.parameters.get('bits').setValueAtTime(16 - p.crush * 14, now);
-    this.crush.parameters.get('down').setValueAtTime(1 + p.down * p.down * 40, now);
-    const t = p.tape;
-    this.wowG.gain.setTargetAtTime(t * 0.0022, now, T);
-    this.flutG.gain.setTargetAtTime(t * 0.00025, now, T);
-    this.tapeLP.frequency.setTargetAtTime(20000 * Math.pow(3500 / 20000, t), now, T);
-    this.crkG.gain.setTargetAtTime(t * t * 0.5, now, T);
+    const needCrush = p.crush > 0.005 || p.down > 0.005;
+    const needTape = p.tape > 0.005;
+    if (needCrush !== !!this.crush || needTape !== !!this.tape) {
+      if (needCrush && !this.crush) {
+        this.crush = new AudioWorkletNode(A.ctx, 'bloop-crush', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
+      } else if (!needCrush && this.crush) {
+        this.crush.port.postMessage('stop'); // el procesador deja de correr
+        this.crush.disconnect(); this.crush = null;
+      }
+      if (needTape && !this.tape) this.tape = this.makeTape();
+      else if (!needTape && this.tape) {
+        const tp = this.tape; this.tape = null;
+        tp.wow.stop(); tp.flut.stop(); tp.lp.disconnect(); tp.delay.disconnect();
+      }
+      this.wire();
+    }
+    if (this.crush) {
+      this.crush.parameters.get('bits').setValueAtTime(16 - p.crush * 14, now);
+      this.crush.parameters.get('down').setValueAtTime(1 + p.down * p.down * 40, now);
+    }
+    if (this.tape) {
+      const t = p.tape;
+      this.tape.wowG.gain.setTargetAtTime(t * 0.0022, now, T);
+      this.tape.flutG.gain.setTargetAtTime(t * 0.00025, now, T);
+      this.tape.lp.frequency.setTargetAtTime(20000 * Math.pow(3500 / 20000, t), now, T);
+    }
     if (p.gate === 'off' && this.mode !== 'off') this.gate.gain.setTargetAtTime(1, now, 0.01);
     this.mode = p.gate;
   }
