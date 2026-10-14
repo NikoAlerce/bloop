@@ -76,8 +76,14 @@ así que la app tiene que publicarse una vez en un hosting HTTPS (GitHub Pages, 
 Después: abrir la URL en Chrome en la tablet → menú ⋮ → **Instalar app / Agregar a pantalla principal**.
 A partir de ahí abre a pantalla completa y funciona sin internet.
 
-Para publicar una versión nueva, subí `VERSION` en `sw.js` (ej. `bloop-v2`) así la tablet descarga los cambios
-la próxima vez que tenga internet.
+### Actualizaciones automáticas
+La app instalada **se actualiza sola al abrirla** si hay internet: carga primero de la red (con un tope de
+3.5 s) y si no hay conexión usa la copia offline. Si Android la tenía abierta en segundo plano, al volver a
+ella revisa si hay versión nueva: si no está sonando nada, guarda y recarga sola; si estás tocando, muestra
+un aviso con el botón «Actualizar ahora». La versión actual se ve en el menú ☰.
+
+Para publicar: `python tools/stamp.py` (calcula la versión con un hash del contenido y actualiza
+`version.json` y la lista offline de `sw.js`), después commit y push.
 
 ## Archivos
 

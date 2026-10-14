@@ -1,9 +1,14 @@
-// Service worker: guarda toda la app para usarla sin internet.
-// Al cambiar cualquier archivo, subí VERSION para que la tablet baje la versión nueva.
-const VERSION = 'bloop-v3';
+// Service worker: la app funciona sin internet y se actualiza sola al abrirla.
+// VERSION y FILES los escribe tools/stamp.py (no editar a mano).
+const VERSION = 'bloop-2026-10-14-016ccad3';
 const FILES = [
-  './', 'index.html', 'manifest.webmanifest', 'css/style.css',
-  'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png',
+  './',
+  'index.html',
+  'manifest.webmanifest',
+  'css/style.css',
+  'icons/icon-192.png',
+  'icons/icon-512.png',
+  'icons/icon-maskable-512.png',
   'js/actions.js',
   'js/app.js',
   'js/audio/crush-worklet.js',
@@ -45,7 +50,7 @@ const FILES = [
 // El pack base (los kits por defecto) se guarda junto con la app; la lista sale de su pack.json
 async function baseFiles() {
   try {
-    const m = await (await fetch('packs/base/pack.json', { cache: 'no-cache' })).json();
+    const m = await (await fetch('packs/base/pack.json', { cache: 'reload' })).json();
     return ['packs/base/pack.json', ...m.sounds.map(s => 'packs/base/' + s.file)];
   } catch (e) { return []; }
 }
@@ -53,7 +58,8 @@ async function baseFiles() {
 self.addEventListener('install', e => {
   e.waitUntil((async () => {
     const c = await caches.open(VERSION);
-    await c.addAll([...FILES, ...(await baseFiles())]);
+    // 'reload' saltea la caché HTTP del navegador/CDN: se guarda la versión recién publicada
+    await c.addAll([...FILES, ...(await baseFiles())].map(f => new Request(f, { cache: 'reload' })));
     await self.skipWaiting();
   })());
 });
@@ -65,20 +71,46 @@ self.addEventListener('activate', e => {
   );
 });
 
-// Primero caché (offline), y si hay red actualiza en segundo plano.
+// Estrategia: RED PRIMERO al abrir (así siempre arranca la última versión) y copia offline si no hay red.
+// Para no mezclar versiones, se decide una vez por apertura: si la página vino de la red, todo
+// lo demás también; si vino de la caché (sin internet o red muy lenta), todo sale de la caché.
+let online = false;
+const NAV_TIMEOUT = 3500, ASSET_TIMEOUT = 10000;
+
+function fromNetwork(req, cache, timeout) {
+  const net = fetch(req.mode === 'navigate' ? req.url : req, { cache: 'no-cache' }).then(res => {
+    if (res.ok) cache.put(req, res.clone());
+    return res;
+  });
+  return Promise.race([net, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), timeout))]);
+}
+
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (url.origin !== location.origin) return;
   // Los packs descargables se guardan en la base de datos de la app: no duplicarlos en caché
-  const path = new URL(e.request.url).pathname;
-  if (path.includes('/packs/') && !path.includes('/packs/base/')) return;
-  e.respondWith(
-    caches.open(VERSION).then(async cache => {
-      const hit = await cache.match(e.request, { ignoreSearch: true });
-      const net = fetch(e.request).then(res => {
-        if (res.ok && new URL(e.request.url).origin === location.origin) cache.put(e.request, res.clone());
+  if (url.pathname.includes('/packs/') && !url.pathname.includes('/packs/base/')) return;
+  e.respondWith((async () => {
+    const cache = await caches.open(VERSION);
+    const cached = () => cache.match(req, { ignoreSearch: true });
+    const isNav = req.mode === 'navigate';
+    if (isNav || url.pathname.endsWith('/version.json')) {
+      try {
+        const res = await fromNetwork(req, cache, NAV_TIMEOUT);
+        if (isNav) online = res.ok;
         return res;
-      }).catch(() => null);
-      return hit || (await net) || new Response('offline', { status: 503 });
-    }),
-  );
+      } catch (err) {
+        if (isNav) online = false;
+        return (await cached()) || new Response('offline', { status: 503 });
+      }
+    }
+    if (online) {
+      try { return await fromNetwork(req, cache, ASSET_TIMEOUT); } catch (err) { /* sigue con la caché */ }
+    }
+    const hit = await cached();
+    if (hit) return hit;
+    try { return await fetch(req); } catch (err) { return new Response('offline', { status: 503 }); }
+  })());
 });

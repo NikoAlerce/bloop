@@ -25,8 +25,42 @@ const $ = id => document.getElementById(id);
 
 // Service worker (offline). En localhost se omite para no cachear mientras se desarrolla (?sw=1 lo fuerza).
 if ('serviceWorker' in navigator && (location.hostname !== 'localhost' || location.search.includes('sw=1'))) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  // updateViaCache 'none': el navegador siempre busca un sw.js nuevo, sin usar su caché HTTP
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
 }
+
+// ---------- Actualización automática ----------
+// Se recuerda la versión con la que arrancó la app. Al volver a la app (Android la deja viva en
+// segundo plano), si hay una versión publicada más nueva: si no está sonando nada, guarda y
+// recarga sola; si está sonando, avisa con un botón para no cortar lo que estás tocando.
+async function fetchVersion() {
+  try { return (await (await fetch('version.json', { cache: 'no-store' })).json()).version; } catch (e) { return null; }
+}
+let updateBanner = null;
+async function checkUpdate() {
+  if (!app.version || document.hidden) return;
+  const v = await fetchVersion();
+  if (!v || v === app.version) return;
+  const busy = app.seq?.playing || app.loopers?.some(l => l.state === 'armed' || l.state === 'recording' || l.overdubbing);
+  if (!app.booted || !busy) { applyUpdate(); return; }
+  if (updateBanner) return;
+  updateBanner = document.createElement('div');
+  updateBanner.className = 'update-banner';
+  updateBanner.innerHTML = '<span>✨ Hay una versión nueva de Bloop</span>';
+  const b = document.createElement('button');
+  b.className = 'sbtn on'; b.textContent = 'Actualizar ahora';
+  b.onclick = applyUpdate;
+  updateBanner.append(b);
+  document.body.append(updateBanner);
+}
+async function applyUpdate() {
+  if (app.booted) { save(); resetting = true; }
+  try { const reg = await navigator.serviceWorker?.getRegistration(); await reg?.update(); } catch (e) { /* */ }
+  location.reload();
+}
+fetchVersion().then(v => { app.version = v; });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkUpdate(); });
+setInterval(checkUpdate, 20 * 60 * 1000);
 
 $('startBtn').addEventListener('click', boot, { once: true });
 
@@ -51,6 +85,7 @@ async function boot() {
     startAutosave();
     $('splash').remove();
     $('app').hidden = false;
+    app.booted = true;
     window.dispatchEvent(new Event('resize'));
   } catch (e) {
     console.error(e);

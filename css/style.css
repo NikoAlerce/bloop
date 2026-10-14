@@ -514,3 +514,7 @@ body.eco .pad, body.eco .tile { transition: none; }
   .bk-body { flex-direction: column; }
   .bk-side { width: auto; max-height: 34vh; }
 }
+
+/* Aviso de versión nueva */
+.update-banner { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 70; display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 18px; border-radius: 999px; background: var(--card); border: 2px solid var(--accent); box-shadow: 0 16px 50px rgba(0, 0, 0, 0.45); font-weight: 800; }
+.update-banner .sbtn { height: 40px; }

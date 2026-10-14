@@ -194,6 +194,7 @@ function openMenu(anchor) {
   popover(anchor, [
     h('h4', {}, 'Bloop'),
     h('button', { class: 'menu-item', onclick: () => { closePopover(); showHelp(); } }, '❓ Cómo se usa'),
+    h('div', { class: 'hint' }, `Versión ${app.version || 'local'} · se actualiza sola al abrirla con internet`),
     h('div', { class: 'lbl' }, 'Pantalla'),
     h('div', { class: 'btn-row' },
       toggle('☀️ Modo sol', s.settings.theme === 'light', v => { s.settings.theme = v ? 'light' : 'dark'; app.emit('display'); }, 'sbtn'),
