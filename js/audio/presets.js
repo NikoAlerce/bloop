@@ -7,12 +7,13 @@ const BASE = {
   fa: 0.005, fd: 0.4, fs: 0.3, fr: 0.5,
   a: 0.005, d: 0.3, s: 0.8, r: 0.4,
   glide: 0, mono: false,
+  lfoAmt: 0, lfoDiv: '1/8', lfoShape: 'sine',
   vib: 0, vibRate: 5.5, vibDelay: 0.3,
   penv: 0, ptime: 0.12,
   chorus: 0, drive: 0, rev: 0.25, dly: 0.15, vol: 0.65,
 };
 
-const P = (name, emoji, o) => ({ name, emoji, params: { ...BASE, ...o } });
+const P = (name, emoji, o, fx) => ({ name, emoji, params: { ...BASE, ...o }, fx });
 
 export const PRESETS = [
   P('Himno Supersaw', '🌅', { unison: 7, detune: 0.55, spread: 1, wave2: 'sawtooth', semi2: 12, mix2: 0.25, sub: 0.2,
@@ -46,4 +47,24 @@ export const PRESETS = [
     cutoff: 1, envAmt: 0, a: 0.005, d: 0.1, s: 1, r: 0.12, chorus: 0.9, vib: 0.1, rev: 0.4, dly: 0.1, vol: 0.55 }),
   P('Campanas Lunares', '🌙', { wave: 'sine', wave2: 'sine', fm: 0.5, fmRatio: 1.41, unison: 2, detune: 0.08,
     cutoff: 0.8, envAmt: 0.1, a: 0.002, d: 2.5, s: 0.1, r: 2.5, chorus: 0.4, rev: 0.75, dly: 0.4, vol: 0.55 }),
+  // ---- Bajos gordos, lo-fi y chill
+  P('808 Glide', '🛸', { wave: 'sine', wave2: 'triangle', semi2: 12, mix2: 0.12, mono: true, glide: 0.12,
+    cutoff: 0.6, envAmt: 0.05, penv: 2, ptime: 0.05, a: 0.002, d: 1.6, s: 0.55, r: 0.45, drive: 0.55, rev: 0, dly: 0, vol: 0.75 }),
+  P('Reese Oscuro', '🌑', { unison: 4, detune: 0.45, spread: 0.6, wave2: 'sawtooth', semi2: -12, mix2: 0.4, sub: 0.5, mono: true, glide: 0.03,
+    cutoff: 0.3, reso: 0.25, envAmt: 0.1, a: 0.01, d: 0.5, s: 1, r: 0.3, chorus: 0.3, drive: 0.35, rev: 0.05, dly: 0, vol: 0.55 }),
+  P('Wobble Dubstep', '🌊', { unison: 3, detune: 0.2, wave2: 'square', semi2: -12, mix2: 0.5, sub: 0.5, mono: true, glide: 0.02,
+    cutoff: 0.16, reso: 0.55, envAmt: 0, lfoAmt: 0.75, lfoDiv: '1/8', lfoShape: 'sine',
+    a: 0.005, d: 0.3, s: 1, r: 0.1, drive: 0.55, rev: 0, dly: 0, vol: 0.55 }),
+  P('Growl Monstruo', '👹', { wave: 'sawtooth', wave2: 'square', fm: 0.6, fmRatio: 1, mix2: 0, sub: 0.4, mono: true,
+    cutoff: 0.32, reso: 0.6, envAmt: 0.1, lfoAmt: 0.6, lfoDiv: '1/16', lfoShape: 'square',
+    a: 0.003, d: 0.3, s: 1, r: 0.08, drive: 0.8, rev: 0, dly: 0, vol: 0.5 }),
+  P('Rhodes Blonde', '🌼', { wave: 'sine', wave2: 'sine', fm: 0.35, fmRatio: 1, cutoff: 0.8, envAmt: 0.05,
+    a: 0.002, d: 2.2, s: 0.25, r: 0.8, vib: 0.05, chorus: 0.55, rev: 0.35, dly: 0.15, vol: 0.65 }, { tape: 0.35 }),
+  P('Pad Nostalgia', '🌆', { unison: 5, detune: 0.3, wave2: 'triangle', semi2: 12, mix2: 0.2, cutoff: 0.32, reso: 0.1, envAmt: 0.1,
+    fa: 1.2, fd: 1.5, fs: 0.8, a: 0.9, d: 1, s: 0.9, r: 2.2, chorus: 0.8, rev: 0.6, dly: 0.1, vol: 0.55 }, { tape: 0.4 }),
+  P('Lead Igor', '💛', { wave: 'square', unison: 2, detune: 0.15, wave2: 'sawtooth', fine2: 9, mix2: 0.4, mono: true, glide: 0.1,
+    cutoff: 0.45, reso: 0.3, envAmt: 0.3, fd: 0.4, fs: 0.5, a: 0.01, d: 0.4, s: 0.8, r: 0.3, vib: 0.25, vibDelay: 0.25,
+    drive: 0.2, chorus: 0.3, rev: 0.3, dly: 0.3, vol: 0.5 }),
+  P('Sub Lofi', '🧸', { wave: 'triangle', sub: 0.5, mono: true, glide: 0.05, cutoff: 0.25, envAmt: 0.15, fd: 0.3, fs: 0.3,
+    a: 0.005, d: 0.5, s: 0.8, r: 0.25, drive: 0.2, rev: 0, dly: 0, vol: 0.65 }, { tape: 0.3 }),
 ];

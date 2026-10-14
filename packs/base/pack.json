@@ -1,0 +1,362 @@
+{
+ "id": "base",
+ "name": "Kits Bloop",
+ "emoji": "🫧",
+ "desc": "Los 4 kits que vienen con la app (siempre disponibles, sin descargar).",
+ "license": "CC0 · sintetizado por Bloop",
+ "sounds": [
+  {
+   "id": "k0-0",
+   "name": "Bombo 808",
+   "cat": "kit",
+   "tags": [
+    "Chicle 808"
+   ],
+   "file": "k0-0.ogg",
+   "dur": 3.05,
+   "kit": "Chicle 808"
+  },
+  {
+   "id": "k0-1",
+   "name": "Caja 808",
+   "cat": "kit",
+   "tags": [
+    "Chicle 808"
+   ],
+   "file": "k0-1.ogg",
+   "dur": 0.54,
+   "kit": "Chicle 808"
+  },
+  {
+   "id": "k0-2",
+   "name": "Palmas 808",
+   "cat": "kit",
+   "tags": [
+    "Chicle 808"
+   ],
+   "file": "k0-2.ogg",
+   "dur": 1.207,
+   "kit": "Chicle 808"
+  },
+  {
+   "id": "k0-3",
+   "name": "Hat cerrado",
+   "cat": "kit",
+   "tags": [
+    "Chicle 808"
+   ],
+   "file": "k0-3.ogg",
+   "dur": 0.18,
+   "kit": "Chicle 808"
+  },
+  {
+   "id": "k0-4",
+   "name": "Hat abierto",
+   "cat": "kit",
+   "tags": [
+    "Chicle 808"
+   ],
+   "file": "k0-4.ogg",
+   "dur": 1.28,
+   "kit": "Chicle 808"
+  },
+  {
+   "id": "k0-5",
+   "name": "Tom 808",
+   "cat": "kit",
+   "tags": [
+    "Chicle 808"
+   ],
+   "file": "k0-5.ogg",
+   "dur": 1.35,
+   "kit": "Chicle 808"
+  },
+  {
+   "id": "k0-6",
+   "name": "Cencerro",
+   "cat": "kit",
+   "tags": [
+    "Chicle 808"
+   ],
+   "file": "k0-6.ogg",
+   "dur": 0.6,
+   "kit": "Chicle 808"
+  },
+  {
+   "id": "k0-7",
+   "name": "Conga 808",
+   "cat": "kit",
+   "tags": [
+    "Chicle 808"
+   ],
+   "file": "k0-7.ogg",
+   "dur": 0.54,
+   "kit": "Chicle 808"
+  },
+  {
+   "id": "k1-0",
+   "name": "Bombo polvo",
+   "cat": "kit",
+   "tags": [
+    "Polvo Lofi"
+   ],
+   "file": "k1-0.ogg",
+   "dur": 1.031,
+   "kit": "Polvo Lofi"
+  },
+  {
+   "id": "k1-1",
+   "name": "Caja polvo",
+   "cat": "kit",
+   "tags": [
+    "Polvo Lofi"
+   ],
+   "file": "k1-1.ogg",
+   "dur": 1.119,
+   "kit": "Polvo Lofi"
+  },
+  {
+   "id": "k1-2",
+   "name": "Rim polvo",
+   "cat": "kit",
+   "tags": [
+    "Polvo Lofi"
+   ],
+   "file": "k1-2.ogg",
+   "dur": 0.08,
+   "kit": "Polvo Lofi"
+  },
+  {
+   "id": "k1-3",
+   "name": "Hat polvo",
+   "cat": "kit",
+   "tags": [
+    "Polvo Lofi"
+   ],
+   "file": "k1-3.ogg",
+   "dur": 0.14,
+   "kit": "Polvo Lofi"
+  },
+  {
+   "id": "k1-4",
+   "name": "Shaker",
+   "cat": "kit",
+   "tags": [
+    "Polvo Lofi"
+   ],
+   "file": "k1-4.ogg",
+   "dur": 0.25,
+   "kit": "Polvo Lofi"
+  },
+  {
+   "id": "k1-5",
+   "name": "Hat polvo abierto",
+   "cat": "kit",
+   "tags": [
+    "Polvo Lofi"
+   ],
+   "file": "k1-5.ogg",
+   "dur": 0.88,
+   "kit": "Polvo Lofi"
+  },
+  {
+   "id": "k1-6",
+   "name": "Acorde m9",
+   "cat": "kit",
+   "tags": [
+    "Polvo Lofi"
+   ],
+   "file": "k1-6.ogg",
+   "dur": 4.178,
+   "kit": "Polvo Lofi"
+  },
+  {
+   "id": "k1-7",
+   "name": "Vinilo",
+   "cat": "kit",
+   "tags": [
+    "Polvo Lofi"
+   ],
+   "file": "k1-7.ogg",
+   "dur": 4.0,
+   "kit": "Polvo Lofi"
+  },
+  {
+   "id": "k2-0",
+   "name": "Bombo 909",
+   "cat": "kit",
+   "tags": [
+    "Neón Techno"
+   ],
+   "file": "k2-0.ogg",
+   "dur": 1.17,
+   "kit": "Neón Techno"
+  },
+  {
+   "id": "k2-1",
+   "name": "Caja 909",
+   "cat": "kit",
+   "tags": [
+    "Neón Techno"
+   ],
+   "file": "k2-1.ogg",
+   "dur": 0.66,
+   "kit": "Neón Techno"
+  },
+  {
+   "id": "k2-2",
+   "name": "Palmas XL",
+   "cat": "kit",
+   "tags": [
+    "Neón Techno"
+   ],
+   "file": "k2-2.ogg",
+   "dur": 1.573,
+   "kit": "Neón Techno"
+  },
+  {
+   "id": "k2-3",
+   "name": "Hat 909",
+   "cat": "kit",
+   "tags": [
+    "Neón Techno"
+   ],
+   "file": "k2-3.ogg",
+   "dur": 0.16,
+   "kit": "Neón Techno"
+  },
+  {
+   "id": "k2-4",
+   "name": "Hat 909 abierto",
+   "cat": "kit",
+   "tags": [
+    "Neón Techno"
+   ],
+   "file": "k2-4.ogg",
+   "dur": 1.2,
+   "kit": "Neón Techno"
+  },
+  {
+   "id": "k2-5",
+   "name": "Rim",
+   "cat": "kit",
+   "tags": [
+    "Neón Techno"
+   ],
+   "file": "k2-5.ogg",
+   "dur": 0.08,
+   "kit": "Neón Techno"
+  },
+  {
+   "id": "k2-6",
+   "name": "Rumble",
+   "cat": "kit",
+   "tags": [
+    "Neón Techno"
+   ],
+   "file": "k2-6.ogg",
+   "dur": 2.543,
+   "kit": "Neón Techno"
+  },
+  {
+   "id": "k2-7",
+   "name": "Zap",
+   "cat": "kit",
+   "tags": [
+    "Neón Techno"
+   ],
+   "file": "k2-7.ogg",
+   "dur": 0.25,
+   "kit": "Neón Techno"
+  },
+  {
+   "id": "k3-0",
+   "name": "Bombo trap",
+   "cat": "kit",
+   "tags": [
+    "Bajo Tierra"
+   ],
+   "file": "k3-0.ogg",
+   "dur": 0.55,
+   "kit": "Bajo Tierra"
+  },
+  {
+   "id": "k3-1",
+   "name": "Caja trap",
+   "cat": "kit",
+   "tags": [
+    "Bajo Tierra"
+   ],
+   "file": "k3-1.ogg",
+   "dur": 0.661,
+   "kit": "Bajo Tierra"
+  },
+  {
+   "id": "k3-2",
+   "name": "Snap",
+   "cat": "kit",
+   "tags": [
+    "Bajo Tierra"
+   ],
+   "file": "k3-2.ogg",
+   "dur": 0.415,
+   "kit": "Bajo Tierra"
+  },
+  {
+   "id": "k3-3",
+   "name": "Hat trap",
+   "cat": "kit",
+   "tags": [
+    "Bajo Tierra"
+   ],
+   "file": "k3-3.ogg",
+   "dur": 0.1,
+   "kit": "Bajo Tierra"
+  },
+  {
+   "id": "k3-4",
+   "name": "Hat trap abierto",
+   "cat": "kit",
+   "tags": [
+    "Bajo Tierra"
+   ],
+   "file": "k3-4.ogg",
+   "dur": 0.72,
+   "kit": "Bajo Tierra"
+  },
+  {
+   "id": "k3-5",
+   "name": "Caja dubstep",
+   "cat": "kit",
+   "tags": [
+    "Bajo Tierra"
+   ],
+   "file": "k3-5.ogg",
+   "dur": 1.998,
+   "kit": "Bajo Tierra"
+  },
+  {
+   "id": "k3-6",
+   "name": "Sub drop",
+   "cat": "kit",
+   "tags": [
+    "Bajo Tierra"
+   ],
+   "file": "k3-6.ogg",
+   "dur": 2.5,
+   "kit": "Bajo Tierra"
+  },
+  {
+   "id": "k3-7",
+   "name": "808 bajo (C2)",
+   "cat": "kit",
+   "tags": [
+    "Bajo Tierra"
+   ],
+   "file": "k3-7.ogg",
+   "dur": 3.4,
+   "kit": "Bajo Tierra"
+  }
+ ],
+ "instruments": []
+}

@@ -148,6 +148,19 @@ export class Synth {
     filt.frequency.setValueAtTime(base, t);
     filt.frequency.linearRampToValueAtTime(peak, t + p.fa + 0.001);
     filt.frequency.setTargetAtTime(base + (peak - base) * p.fs, t + p.fa + 0.001, p.fd / 3 + 0.001);
+    // LFO al filtro sincronizado al tempo (wobble). Arranca cerrado, como un "wub".
+    if (p.lfoAmt > 0) {
+      const DIV = { '1/1': 0.25, '1/2': 0.5, '1/4': 1, '1/4T': 1.5, '1/8': 2, '1/8T': 3, '1/16': 4, '1/16T': 6, '1/32': 8 };
+      const bpm = this.getBpm ? this.getBpm() : 120;
+      const l = ctx.createOscillator();
+      if (p.lfoShape === 'square') l.type = 'square';
+      else if (p.lfoShape === 'saw') l.type = 'sawtooth';
+      else l.setPeriodicWave(this.cosWave ||= ctx.createPeriodicWave(new Float32Array([0, -1]), new Float32Array([0, 0])));
+      l.frequency.value = bpm / 60 * (DIV[p.lfoDiv] ?? 2);
+      const lg = ctx.createGain(); lg.gain.value = p.lfoAmt * 4800;
+      l.connect(lg).connect(filt.detune);
+      srcs.push(l);
+    }
     // Amplitud
     const pk = 0.25 + 0.75 * vel;
     out.gain.setValueAtTime(0, t);

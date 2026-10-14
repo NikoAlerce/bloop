@@ -7,6 +7,7 @@ import { Roll } from './roll.js';
 import { undo } from '../undo.js';
 import { input } from '../input.js';
 import { openSampleEditor } from './waveeditor.js';
+import { openBank } from './bank.js';
 import { degree } from '../scales.js';
 
 const WEIGHTS = [ // [tiempo fuerte, contratiempo, semicorchea]
@@ -133,7 +134,7 @@ export function buildGrid(head, wrap) {
         isSynth ? roll.draw() : renderPads(); app.emit('pattern-edit');
       } }, '🧽 Limpiar'),
     );
-    if (!isSynth) head.append(h('button', { class: 'pill', onclick: () => openSampleEditor(s.selected) }, '✎ Onda'));
+    if (!isSynth) head.append(h('button', { class: 'pill', onclick: () => openBank(s.selected) }, '📚 Sonidos'), h('button', { class: 'pill', onclick: () => openSampleEditor(s.selected) }, '✎ Onda'));
     if (isSynth) head.append(
       h('button', { class: 'pill', onclick: () => roll.scroll(12) }, '▲ oct'),
       h('button', { class: 'pill', onclick: () => roll.scroll(-12) }, '▼ oct'),

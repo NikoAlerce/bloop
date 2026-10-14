@@ -37,6 +37,28 @@ y un synth con teclado y presets épicos. Sin dependencias: HTML + CSS + JavaScr
 - **Stems** (ZIP con un WAV por pista, synth, loop y retornos de FX + la mezcla) y **respaldo del proyecto completo** en un archivo `.bloop`.
 - Efectos por pista y synth: **bitcrusher**, **cinta/vinilo** y **gater** sincronizado.
 
+### Banco de sonidos
+- **📚 Sonidos** abre el banco: escuchar con un toque, mandar a cualquier pista, favoritos, búsqueda y categorías.
+- **Packs descargables** que quedan offline (se bajan una vez con internet), todos **CC0**:
+
+| Pack | Qué trae | Peso |
+|---|---|---|
+| 🫧 Kits Bloop | Los 4 kits por defecto (808, lofi, techno, trap/dubstep), incluidos en la app | 0.6 MB |
+| 🎛️ Máquinas Bloop | 56 sonidos: bombos/cajas/hats 808, 909, trap, dubstep, toms, percusión, FX | 1.3 MB |
+| 📼 Polvo Lofi | Boom bap y lo-fi: bombos y cajas sucias, acordes Rhodes, pads, vinilo, lluvia | 1.8 MB |
+| 🔊 Bajos Gordos | 808 limpio/sucio/eterno, sub, reese, pluck y Rhodes (instrumentos), growls y wobbles | 3.0 MB |
+| 🥁 Batería real | 141 golpes acústicos grabados (Stargate) | 2.2 MB |
+| 🪘 Percusión del mundo | 87 sonidos: congas, bongós, cajón, darbuka, shakers… (VCSL) | 2.0 MB |
+| 🎹 Instrumentos | Piano, piano FM, vibráfono, kalimba, marimba, glockenspiel, arpa, contrabajo, cellos, violines, flauta, saxo | 7.6 MB |
+| 🔁 Loops, voces y FX | Loops de batería, bajo, guitarra y acordes con su tempo, voces y FX (Stargate) | 5.9 MB |
+
+- **Instrumentos multisampleados**: se tocan en notas desde el teclado (modo 🥁 Sampler), el MIDI o los pasos.
+- **Loops al looper** (🔁): se ajustan solos a compases enteros del tempo actual.
+- **Importar tus packs** (ZIP, archivos o carpeta): se clasifican solos por nombre y quedan solo en tu tablet.
+- Synth: **wobble** (LFO al filtro a tempo) y presets nuevos: 808 Glide, Reese Oscuro, Wobble Dubstep,
+  Growl Monstruo, Rhodes Blonde, Pad Nostalgia, Lead Igor, Sub Lofi.
+- Los packs se regeneran con `python tools/build_packs.py` (requiere ffmpeg, numpy y scipy). Créditos en [packs/CREDITS.md](packs/CREDITS.md).
+
 ## Probarlo en la PC
 
 ```bash

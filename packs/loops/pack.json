@@ -1,0 +1,644 @@
+{
+ "id": "loops",
+ "name": "Loops, voces y FX",
+ "emoji": "🔁",
+ "desc": "Loops de batería, bajo, guitarra y acordes con su tempo, voces y sonidos encontrados (Stargate, CC0).",
+ "license": "CC0 · github.com/stargatedaw/stargate-sample-pack",
+ "sounds": [
+  {
+   "id": "fs-bowlhit",
+   "name": "Bowlhit",
+   "cat": "fx",
+   "tags": [
+    "fx"
+   ],
+   "file": "fs-bowlhit.ogg",
+   "dur": 1.046
+  },
+  {
+   "id": "fs-coinshake1",
+   "name": "Coinshake1",
+   "cat": "fx",
+   "tags": [
+    "fx"
+   ],
+   "file": "fs-coinshake1.ogg",
+   "dur": 5.435
+  },
+  {
+   "id": "fs-coinshake2",
+   "name": "Coinshake2",
+   "cat": "fx",
+   "tags": [
+    "fx"
+   ],
+   "file": "fs-coinshake2.ogg",
+   "dur": 2.314
+  },
+  {
+   "id": "fs-glass-hit",
+   "name": "Glass hit",
+   "cat": "fx",
+   "tags": [
+    "fx"
+   ],
+   "file": "fs-glass-hit.ogg",
+   "dur": 0.267
+  },
+  {
+   "id": "fs-lid-swirl",
+   "name": "Lid swirl",
+   "cat": "fx",
+   "tags": [
+    "fx"
+   ],
+   "file": "fs-lid-swirl.ogg",
+   "dur": 5.65
+  },
+  {
+   "id": "fs-thunder",
+   "name": "Thunder",
+   "cat": "fx",
+   "tags": [
+    "fx"
+   ],
+   "file": "fs-thunder.ogg",
+   "dur": 6.0
+  },
+  {
+   "id": "fs-a-dive1",
+   "name": "A dive1",
+   "cat": "fx",
+   "tags": [
+    "fx"
+   ],
+   "file": "fs-a-dive1.ogg",
+   "dur": 2.288
+  },
+  {
+   "id": "fs-a-dive2",
+   "name": "A dive2",
+   "cat": "fx",
+   "tags": [
+    "fx"
+   ],
+   "file": "fs-a-dive2.ogg",
+   "dur": 2.943
+  },
+  {
+   "id": "fs-a-harm",
+   "name": "A harm",
+   "cat": "fx",
+   "tags": [
+    "fx"
+   ],
+   "file": "fs-a-harm.ogg",
+   "dur": 3.874
+  },
+  {
+   "id": "fs-d-harm",
+   "name": "D harm",
+   "cat": "fx",
+   "tags": [
+    "fx"
+   ],
+   "file": "fs-d-harm.ogg",
+   "dur": 3.414
+  },
+  {
+   "id": "fs-e-harm",
+   "name": "E harm",
+   "cat": "fx",
+   "tags": [
+    "fx"
+   ],
+   "file": "fs-e-harm.ogg",
+   "dur": 3.469
+  },
+  {
+   "id": "fs-stringscrape",
+   "name": "Stringscrape",
+   "cat": "fx",
+   "tags": [
+    "fx"
+   ],
+   "file": "fs-stringscrape.ogg",
+   "dur": 4.218
+  },
+  {
+   "id": "loop-120-crossed",
+   "name": "120 crossed",
+   "cat": "loop",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-120-crossed.ogg",
+   "dur": 3.997,
+   "bpm": 120,
+   "loop": true
+  },
+  {
+   "id": "loop-120-filterhats",
+   "name": "120 filterhats",
+   "cat": "loop",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-120-filterhats.ogg",
+   "dur": 8.0,
+   "bpm": 120,
+   "loop": true
+  },
+  {
+   "id": "loop-120-funkybeat",
+   "name": "120 funkybeat",
+   "cat": "loop-drums",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-120-funkybeat.ogg",
+   "dur": 4.0,
+   "bpm": 120,
+   "loop": true
+  },
+  {
+   "id": "loop-130-discobeat",
+   "name": "130 discobeat",
+   "cat": "loop-drums",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-130-discobeat.ogg",
+   "dur": 3.693,
+   "bpm": 130,
+   "loop": true
+  },
+  {
+   "id": "loop-130-voxybeat",
+   "name": "130 voxybeat",
+   "cat": "loop-drums",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-130-voxybeat.ogg",
+   "dur": 3.692,
+   "bpm": 130,
+   "loop": true
+  },
+  {
+   "id": "loop-130-metalworx",
+   "name": "130 metalworx",
+   "cat": "loop",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-130-metalworx.ogg",
+   "dur": 14.769,
+   "bpm": 130,
+   "loop": true
+  },
+  {
+   "id": "loop-140-resobeat",
+   "name": "140 resobeat",
+   "cat": "loop-drums",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-140-resobeat.ogg",
+   "dur": 6.857,
+   "bpm": 140,
+   "loop": true
+  },
+  {
+   "id": "loop-140-vocodiver",
+   "name": "140 vocodiver",
+   "cat": "loop",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-140-vocodiver.ogg",
+   "dur": 6.857,
+   "bpm": 140,
+   "loop": true
+  },
+  {
+   "id": "loop-ambience-a-85bpm",
+   "name": "Ambience A 85BPM",
+   "cat": "loop",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-ambience-a-85bpm.ogg",
+   "dur": 5.647,
+   "bpm": 85,
+   "loop": true
+  },
+  {
+   "id": "loop-bass-a-major-72bpm",
+   "name": "Bass A Major 72BPM",
+   "cat": "loop",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-bass-a-major-72bpm.ogg",
+   "dur": 6.667,
+   "bpm": 72,
+   "loop": true
+  },
+  {
+   "id": "loop-bass-c-minor-76bpm",
+   "name": "Bass C Minor 76BPM",
+   "cat": "loop",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-bass-c-minor-76bpm.ogg",
+   "dur": 6.316,
+   "bpm": 76,
+   "loop": true
+  },
+  {
+   "id": "loop-chord-bb-half-diminished-96bpm",
+   "name": "Chord Bb Half Diminished 96BPM",
+   "cat": "loop",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-chord-bb-half-diminished-96bpm.ogg",
+   "dur": 10.0,
+   "bpm": 96,
+   "loop": true
+  },
+  {
+   "id": "loop-chord-c-locrian-natural-six-83",
+   "name": "Chord C Locrian Natural Six 83",
+   "cat": "loop",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-chord-c-locrian-natural-six-83.ogg",
+   "dur": 11.566,
+   "bpm": 83,
+   "loop": true
+  },
+  {
+   "id": "loop-chord-d-harmonic-minor-81bpm",
+   "name": "Chord D Harmonic Minor 81BPM",
+   "cat": "loop",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-chord-d-harmonic-minor-81bpm.ogg",
+   "dur": 11.852,
+   "bpm": 81,
+   "loop": true
+  },
+  {
+   "id": "loop-chord-e-dorian-flat-two-89bpm",
+   "name": "Chord E Dorian Flat Two 89BPM",
+   "cat": "loop",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-chord-e-dorian-flat-two-89bpm.ogg",
+   "dur": 10.787,
+   "bpm": 89,
+   "loop": true
+  },
+  {
+   "id": "loop-chord-eb-natural-minor-77bpm",
+   "name": "Chord Eb Natural Minor 77BPM",
+   "cat": "loop",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-chord-eb-natural-minor-77bpm.ogg",
+   "dur": 12.468,
+   "bpm": 77,
+   "loop": true
+  },
+  {
+   "id": "loop-drums-100bpm",
+   "name": "Drums 100BPM",
+   "cat": "loop-drums",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-drums-100bpm.ogg",
+   "dur": 9.6,
+   "bpm": 100,
+   "loop": true
+  },
+  {
+   "id": "loop-drums-120bpm",
+   "name": "Drums 120BPM",
+   "cat": "loop-drums",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-drums-120bpm.ogg",
+   "dur": 8.0,
+   "bpm": 120,
+   "loop": true
+  },
+  {
+   "id": "loop-drums-15-16-95bpm",
+   "name": "Drums 15 16 95BPM",
+   "cat": "loop-drums",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-drums-15-16-95bpm.ogg",
+   "dur": 9.474,
+   "bpm": 95,
+   "loop": true
+  },
+  {
+   "id": "loop-drums-170bpm",
+   "name": "Drums 170BPM",
+   "cat": "loop-drums",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-drums-170bpm.ogg",
+   "dur": 5.604,
+   "bpm": 170,
+   "loop": true
+  },
+  {
+   "id": "loop-drums-19-16-110bpm",
+   "name": "Drums 19 16 110BPM",
+   "cat": "loop-drums",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-drums-19-16-110bpm.ogg",
+   "dur": 10.364,
+   "bpm": 110,
+   "loop": true
+  },
+  {
+   "id": "loop-drums-5-8-75bpm",
+   "name": "Drums 5 8 75BPM",
+   "cat": "loop-drums",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-drums-5-8-75bpm.ogg",
+   "dur": 7.947,
+   "bpm": 75,
+   "loop": true
+  },
+  {
+   "id": "loop-drums-67bpm",
+   "name": "Drums 67BPM",
+   "cat": "loop-drums",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-drums-67bpm.ogg",
+   "dur": 14.328,
+   "bpm": 67,
+   "loop": true
+  },
+  {
+   "id": "loop-drums-7-8-85bpm",
+   "name": "Drums 7 8 85BPM",
+   "cat": "loop-drums",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-drums-7-8-85bpm.ogg",
+   "dur": 9.882,
+   "bpm": 85,
+   "loop": true
+  },
+  {
+   "id": "loop-drums-70bpm",
+   "name": "Drums 70BPM",
+   "cat": "loop-drums",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-drums-70bpm.ogg",
+   "dur": 13.714,
+   "bpm": 70,
+   "loop": true
+  },
+  {
+   "id": "loop-drums-80bpm",
+   "name": "Drums 80BPM",
+   "cat": "loop-drums",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-drums-80bpm.ogg",
+   "dur": 12.0,
+   "bpm": 80,
+   "loop": true
+  },
+  {
+   "id": "loop-drums-90bpm",
+   "name": "Drums 90BPM",
+   "cat": "loop-drums",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-drums-90bpm.ogg",
+   "dur": 10.357,
+   "bpm": 90,
+   "loop": true
+  },
+  {
+   "id": "loop-fx-65bpm",
+   "name": "FX 65BPM",
+   "cat": "loop",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-fx-65bpm.ogg",
+   "dur": 7.385,
+   "bpm": 65,
+   "loop": true
+  },
+  {
+   "id": "loop-guitar-db-minor-74bpm",
+   "name": "Guitar Db Minor 74BPM",
+   "cat": "loop",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-guitar-db-minor-74bpm.ogg",
+   "dur": 12.973,
+   "bpm": 74,
+   "loop": true
+  },
+  {
+   "id": "loop-guitar-f-major-93bpm",
+   "name": "Guitar F# Major 93BPM",
+   "cat": "loop",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-guitar-f-major-93bpm.ogg",
+   "dur": 10.323,
+   "bpm": 93,
+   "loop": true
+  },
+  {
+   "id": "loop-guitar-f-harmonic-minor-3-4-86bpm",
+   "name": "Guitar F Harmonic Minor 3 4 86BPM",
+   "cat": "loop",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-guitar-f-harmonic-minor-3-4-86bpm.ogg",
+   "dur": 8.372,
+   "bpm": 86,
+   "loop": true
+  },
+  {
+   "id": "loop-melody-b-minor-73bpm",
+   "name": "Melody B Minor 73BPM",
+   "cat": "loop",
+   "tags": [
+    "loop"
+   ],
+   "file": "loop-melody-b-minor-73bpm.ogg",
+   "dur": 6.575,
+   "bpm": 73,
+   "loop": true
+  },
+  {
+   "id": "ml-alien-shotgun-g",
+   "name": "Alien Shotgun G",
+   "cat": "fx",
+   "tags": [
+    "fx"
+   ],
+   "file": "ml-alien-shotgun-g.ogg",
+   "dur": 4.178
+  },
+  {
+   "id": "ml-december",
+   "name": "December",
+   "cat": "vocal",
+   "tags": [
+    "vocal"
+   ],
+   "file": "ml-december.ogg",
+   "dur": 1.01
+  },
+  {
+   "id": "ml-excuse-me",
+   "name": "Excuse Me",
+   "cat": "vocal",
+   "tags": [
+    "vocal"
+   ],
+   "file": "ml-excuse-me.ogg",
+   "dur": 0.818
+  },
+  {
+   "id": "ml-fantastic",
+   "name": "Fantastic",
+   "cat": "vocal",
+   "tags": [
+    "vocal"
+   ],
+   "file": "ml-fantastic.ogg",
+   "dur": 6.0
+  },
+  {
+   "id": "ml-i-hope-it-s-not-over",
+   "name": "I Hope It's Not Over",
+   "cat": "vocal",
+   "tags": [
+    "vocal"
+   ],
+   "file": "ml-i-hope-it-s-not-over.ogg",
+   "dur": 1.707
+  },
+  {
+   "id": "ml-life-goes-on",
+   "name": "Life Goes On",
+   "cat": "vocal",
+   "tags": [
+    "vocal"
+   ],
+   "file": "ml-life-goes-on.ogg",
+   "dur": 1.496
+  },
+  {
+   "id": "ml-one-two-three-let-s-go",
+   "name": "One Two Three Let's Go",
+   "cat": "vocal",
+   "tags": [
+    "vocal"
+   ],
+   "file": "ml-one-two-three-let-s-go.ogg",
+   "dur": 1.935
+  },
+  {
+   "id": "ml-praise-the-lord",
+   "name": "Praise The Lord",
+   "cat": "vocal",
+   "tags": [
+    "vocal"
+   ],
+   "file": "ml-praise-the-lord.ogg",
+   "dur": 1.509
+  },
+  {
+   "id": "ml-pretty-cool",
+   "name": "Pretty Cool",
+   "cat": "vocal",
+   "tags": [
+    "vocal"
+   ],
+   "file": "ml-pretty-cool.ogg",
+   "dur": 0.729
+  },
+  {
+   "id": "ml-shine-muscat-is-bussin",
+   "name": "Shine Muscat Is Bussin",
+   "cat": "vocal",
+   "tags": [
+    "vocal"
+   ],
+   "file": "ml-shine-muscat-is-bussin.ogg",
+   "dur": 2.003
+  },
+  {
+   "id": "ml-that-s-insane",
+   "name": "That's Insane",
+   "cat": "vocal",
+   "tags": [
+    "vocal"
+   ],
+   "file": "ml-that-s-insane.ogg",
+   "dur": 1.655
+  },
+  {
+   "id": "ml-vocal-check-this-out",
+   "name": "Vocal Check This Out",
+   "cat": "vocal",
+   "tags": [
+    "vocal"
+   ],
+   "file": "ml-vocal-check-this-out.ogg",
+   "dur": 0.994
+  },
+  {
+   "id": "ml-word-up",
+   "name": "Word Up",
+   "cat": "vocal",
+   "tags": [
+    "vocal"
+   ],
+   "file": "ml-word-up.ogg",
+   "dur": 1.002
+  }
+ ],
+ "instruments": []
+}

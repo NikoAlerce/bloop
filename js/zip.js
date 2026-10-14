@@ -41,18 +41,34 @@ export function zip(files) {
   return new Blob([...parts, ...central, end], { type: 'application/zip' });
 }
 
-// Lee ZIPs sin compresión (los que genera Bloop)
-export function unzip(ab) {
-  const dv = new DataView(ab), dec = new TextDecoder(), out = [];
-  let p = 0;
-  while (p + 30 <= ab.byteLength && dv.getUint32(p, true) === 0x04034b50) {
-    const method = dv.getUint16(p + 8, true), size = dv.getUint32(p + 18, true);
-    const nl = dv.getUint16(p + 26, true), el = dv.getUint16(p + 28, true);
-    const name = dec.decode(new Uint8Array(ab, p + 30, nl));
-    const start = p + 30 + nl + el;
-    if (method !== 0) throw new Error('ZIP comprimido no soportado');
-    out.push({ name, data: new Uint8Array(ab, start, size) });
-    p = start + size;
+// Lee ZIPs (sin compresión o con deflate) usando el directorio central.
+// filter(name) permite saltear archivos que no interesan sin descomprimirlos.
+export async function unzip(ab, filter = () => true) {
+  const dv = new DataView(ab), out = [];
+  let eocd = -1;
+  for (let i = ab.byteLength - 22; i >= Math.max(0, ab.byteLength - 66000); i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('no es un ZIP válido');
+  const count = dv.getUint16(eocd + 10, true);
+  let p = dv.getUint32(eocd + 16, true);
+  for (let k = 0; k < count; k++) {
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const flags = dv.getUint16(p + 8, true), method = dv.getUint16(p + 10, true);
+    const csize = dv.getUint32(p + 20, true);
+    const nl = dv.getUint16(p + 28, true), el = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true);
+    const local = dv.getUint32(p + 42, true);
+    const raw = new Uint8Array(ab, p + 46, nl);
+    const name = (flags & 0x800 ? new TextDecoder() : new TextDecoder('latin1')).decode(raw);
+    p += 46 + nl + el + cl;
+    if (name.endsWith('/') || !filter(name)) continue;
+    const start = local + 30 + dv.getUint16(local + 26, true) + dv.getUint16(local + 28, true);
+    const comp = new Uint8Array(ab, start, csize);
+    let data;
+    if (method === 0) data = comp;
+    else if (method === 8) data = new Uint8Array(await new Response(new Blob([comp]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+    else continue; // método no soportado
+    out.push({ name, data });
   }
   return out;
 }

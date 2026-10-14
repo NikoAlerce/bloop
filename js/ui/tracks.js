@@ -5,6 +5,7 @@ import { h } from './util.js';
 import { selectTrack, trackName, hitLive, applyMix, loadFileToTrack } from '../actions.js';
 import { PRESETS } from '../audio/presets.js';
 import { input } from '../input.js';
+import { bank } from '../bank.js';
 
 export function buildTracks(el) {
   const s = app.state;
@@ -51,7 +52,7 @@ export function buildTracks(el) {
       r.name.textContent = trackName(r.i);
       const p = !r.isSynth && c.params;
       r.sub.textContent = r.isSynth ? PRESETS[s.synth.preset].emoji + ' ' + PRESETS[s.synth.preset].name
-        : (p.sliceMode && p.slices.length ? `✂ ${p.slices.length} slices` : c.sound.custom ? 'sample propio' : app.kits[c.sound.kit].name);
+        : (p.sliceMode && p.slices.length ? `✂ ${p.slices.length} slices` : c.sound.custom ? 'sample propio' : c.sound.bank ? (bank.packs.get(c.sound.bank)?.name || 'banco') : app.kits[c.sound.kit]?.name || '');
     }
   }
   update();

@@ -1,0 +1,552 @@
+{
+ "id": "maquinas",
+ "name": "Máquinas Bloop",
+ "emoji": "🎛️",
+ "desc": "Cajas de ritmo 808, 909, trap y dubstep sintetizadas por Bloop, más FX.",
+ "license": "CC0 · sintetizado por Bloop",
+ "sounds": [
+  {
+   "id": "kick-808-0",
+   "name": "Bombo 808 corto",
+   "cat": "kick",
+   "tags": [
+    "808"
+   ],
+   "file": "kick-808-0.ogg",
+   "dur": 1.55
+  },
+  {
+   "id": "kick-808-1",
+   "name": "Bombo 808 medio",
+   "cat": "kick",
+   "tags": [
+    "808"
+   ],
+   "file": "kick-808-1.ogg",
+   "dur": 2.75
+  },
+  {
+   "id": "kick-808-2",
+   "name": "Bombo 808 largo",
+   "cat": "kick",
+   "tags": [
+    "808"
+   ],
+   "file": "kick-808-2.ogg",
+   "dur": 4.85
+  },
+  {
+   "id": "kick-808-3",
+   "name": "Bombo 808 eterno",
+   "cat": "kick",
+   "tags": [
+    "808"
+   ],
+   "file": "kick-808-3.ogg",
+   "dur": 7.25
+  },
+  {
+   "id": "kick-808-4",
+   "name": "Bombo 808 duro",
+   "cat": "kick",
+   "tags": [
+    "808"
+   ],
+   "file": "kick-808-4.ogg",
+   "dur": 2.15
+  },
+  {
+   "id": "kick-808-5",
+   "name": "Bombo 808 cálido",
+   "cat": "kick",
+   "tags": [
+    "808"
+   ],
+   "file": "kick-808-5.ogg",
+   "dur": 3.65
+  },
+  {
+   "id": "kick-909-0",
+   "name": "Bombo 909 1",
+   "cat": "kick",
+   "tags": [
+    "909",
+    "house",
+    "techno"
+   ],
+   "file": "kick-909-0.ogg",
+   "dur": 1.01
+  },
+  {
+   "id": "kick-909-1",
+   "name": "Bombo 909 2",
+   "cat": "kick",
+   "tags": [
+    "909",
+    "house",
+    "techno"
+   ],
+   "file": "kick-909-1.ogg",
+   "dur": 1.49
+  },
+  {
+   "id": "kick-909-2",
+   "name": "Bombo 909 3",
+   "cat": "kick",
+   "tags": [
+    "909",
+    "house",
+    "techno"
+   ],
+   "file": "kick-909-2.ogg",
+   "dur": 0.754
+  },
+  {
+   "id": "kick-909-3",
+   "name": "Bombo 909 4",
+   "cat": "kick",
+   "tags": [
+    "909",
+    "house",
+    "techno"
+   ],
+   "file": "kick-909-3.ogg",
+   "dur": 1.97
+  },
+  {
+   "id": "kick-rumble",
+   "name": "Bombo rumble",
+   "cat": "kick",
+   "tags": [
+    "techno"
+   ],
+   "file": "kick-rumble.ogg",
+   "dur": 2.543
+  },
+  {
+   "id": "kick-trap-1",
+   "name": "Bombo trap",
+   "cat": "kick",
+   "tags": [
+    "trap"
+   ],
+   "file": "kick-trap-1.ogg",
+   "dur": 0.55
+  },
+  {
+   "id": "kick-dub",
+   "name": "Bombo dubstep",
+   "cat": "kick",
+   "tags": [
+    "dubstep"
+   ],
+   "file": "kick-dub.ogg",
+   "dur": 0.6
+  },
+  {
+   "id": "snare-808-0",
+   "name": "Caja 808 1",
+   "cat": "snare",
+   "tags": [
+    "808"
+   ],
+   "file": "snare-808-0.ogg",
+   "dur": 0.54
+  },
+  {
+   "id": "snare-808-1",
+   "name": "Caja 808 2",
+   "cat": "snare",
+   "tags": [
+    "808"
+   ],
+   "file": "snare-808-1.ogg",
+   "dur": 0.75
+  },
+  {
+   "id": "snare-808-2",
+   "name": "Caja 808 3",
+   "cat": "snare",
+   "tags": [
+    "808"
+   ],
+   "file": "snare-808-2.ogg",
+   "dur": 0.36
+  },
+  {
+   "id": "snare-909-0",
+   "name": "Caja 909 1",
+   "cat": "snare",
+   "tags": [
+    "909"
+   ],
+   "file": "snare-909-0.ogg",
+   "dur": 0.54
+  },
+  {
+   "id": "snare-909-1",
+   "name": "Caja 909 2",
+   "cat": "snare",
+   "tags": [
+    "909"
+   ],
+   "file": "snare-909-1.ogg",
+   "dur": 0.84
+  },
+  {
+   "id": "snare-909-2",
+   "name": "Caja 909 3",
+   "cat": "snare",
+   "tags": [
+    "909"
+   ],
+   "file": "snare-909-2.ogg",
+   "dur": 0.42
+  },
+  {
+   "id": "snare-trap",
+   "name": "Caja trap",
+   "cat": "snare",
+   "tags": [
+    "trap"
+   ],
+   "file": "snare-trap.ogg",
+   "dur": 0.661
+  },
+  {
+   "id": "snare-dub",
+   "name": "Caja dubstep",
+   "cat": "snare",
+   "tags": [
+    "dubstep"
+   ],
+   "file": "snare-dub.ogg",
+   "dur": 1.998
+  },
+  {
+   "id": "rim-808",
+   "name": "Rim 808",
+   "cat": "perc",
+   "tags": [
+    "808"
+   ],
+   "file": "rim-808.ogg",
+   "dur": 0.08
+  },
+  {
+   "id": "clap-0",
+   "name": "Palmas 808",
+   "cat": "clap",
+   "tags": [
+    "808"
+   ],
+   "file": "clap-0.ogg",
+   "dur": 1.251
+  },
+  {
+   "id": "clap-1",
+   "name": "Palmas grandes",
+   "cat": "clap",
+   "tags": [
+    "808"
+   ],
+   "file": "clap-1.ogg",
+   "dur": 1.6
+  },
+  {
+   "id": "clap-2",
+   "name": "Palmas secas",
+   "cat": "clap",
+   "tags": [
+    "808"
+   ],
+   "file": "clap-2.ogg",
+   "dur": 1.054
+  },
+  {
+   "id": "snap",
+   "name": "Chasquido",
+   "cat": "clap",
+   "tags": [],
+   "file": "snap.ogg",
+   "dur": 0.415
+  },
+  {
+   "id": "hat-808-c0",
+   "name": "Hat 808 cerrado 1",
+   "cat": "hat",
+   "tags": [
+    "808"
+   ],
+   "file": "hat-808-c0.ogg",
+   "dur": 0.12
+  },
+  {
+   "id": "hat-808-c1",
+   "name": "Hat 808 cerrado 2",
+   "cat": "hat",
+   "tags": [
+    "808"
+   ],
+   "file": "hat-808-c1.ogg",
+   "dur": 0.2
+  },
+  {
+   "id": "hat-808-c2",
+   "name": "Hat 808 cerrado 3",
+   "cat": "hat",
+   "tags": [
+    "808"
+   ],
+   "file": "hat-808-c2.ogg",
+   "dur": 0.32
+  },
+  {
+   "id": "hat-808-o0",
+   "name": "Hat 808 abierto 1",
+   "cat": "hat",
+   "tags": [
+    "808"
+   ],
+   "file": "hat-808-o0.ogg",
+   "dur": 1.0
+  },
+  {
+   "id": "hat-808-o1",
+   "name": "Hat 808 abierto 2",
+   "cat": "hat",
+   "tags": [
+    "808"
+   ],
+   "file": "hat-808-o1.ogg",
+   "dur": 1.8
+  },
+  {
+   "id": "hat-909-c0",
+   "name": "Hat 909 cerrado 1",
+   "cat": "hat",
+   "tags": [
+    "909"
+   ],
+   "file": "hat-909-c0.ogg",
+   "dur": 0.14
+  },
+  {
+   "id": "hat-909-c1",
+   "name": "Hat 909 cerrado 2",
+   "cat": "hat",
+   "tags": [
+    "909"
+   ],
+   "file": "hat-909-c1.ogg",
+   "dur": 0.28
+  },
+  {
+   "id": "hat-909-o",
+   "name": "Hat 909 abierto",
+   "cat": "hat",
+   "tags": [
+    "909"
+   ],
+   "file": "hat-909-o.ogg",
+   "dur": 1.4
+  },
+  {
+   "id": "hat-trap-0",
+   "name": "Hat trap 1",
+   "cat": "hat",
+   "tags": [
+    "trap"
+   ],
+   "file": "hat-trap-0.ogg",
+   "dur": 0.08
+  },
+  {
+   "id": "hat-trap-1",
+   "name": "Hat trap 2",
+   "cat": "hat",
+   "tags": [
+    "trap"
+   ],
+   "file": "hat-trap-1.ogg",
+   "dur": 0.12
+  },
+  {
+   "id": "crash",
+   "name": "Crash",
+   "cat": "cymbal",
+   "tags": [],
+   "file": "crash.ogg",
+   "dur": 4.5
+  },
+  {
+   "id": "ride",
+   "name": "Ride",
+   "cat": "cymbal",
+   "tags": [],
+   "file": "ride.ogg",
+   "dur": 6.0
+  },
+  {
+   "id": "tom-808-0",
+   "name": "Tom 808 grave",
+   "cat": "tom",
+   "tags": [
+    "808"
+   ],
+   "file": "tom-808-0.ogg",
+   "dur": 1.5
+  },
+  {
+   "id": "tom-808-1",
+   "name": "Tom 808 medio",
+   "cat": "tom",
+   "tags": [
+    "808"
+   ],
+   "file": "tom-808-1.ogg",
+   "dur": 1.2
+  },
+  {
+   "id": "tom-808-2",
+   "name": "Tom 808 agudo",
+   "cat": "tom",
+   "tags": [
+    "808"
+   ],
+   "file": "tom-808-2.ogg",
+   "dur": 0.96
+  },
+  {
+   "id": "tom-808-3",
+   "name": "Tom 808 más agudo",
+   "cat": "tom",
+   "tags": [
+    "808"
+   ],
+   "file": "tom-808-3.ogg",
+   "dur": 0.75
+  },
+  {
+   "id": "conga-808-0",
+   "name": "Conga 808 1",
+   "cat": "perc",
+   "tags": [
+    "808"
+   ],
+   "file": "conga-808-0.ogg",
+   "dur": 0.54
+  },
+  {
+   "id": "conga-808-1",
+   "name": "Conga 808 2",
+   "cat": "perc",
+   "tags": [
+    "808"
+   ],
+   "file": "conga-808-1.ogg",
+   "dur": 0.54
+  },
+  {
+   "id": "conga-808-2",
+   "name": "Conga 808 3",
+   "cat": "perc",
+   "tags": [
+    "808"
+   ],
+   "file": "conga-808-2.ogg",
+   "dur": 0.54
+  },
+  {
+   "id": "cowbell",
+   "name": "Cencerro 808",
+   "cat": "perc",
+   "tags": [
+    "808"
+   ],
+   "file": "cowbell.ogg",
+   "dur": 0.6
+  },
+  {
+   "id": "clave",
+   "name": "Clave",
+   "cat": "perc",
+   "tags": [],
+   "file": "clave.ogg",
+   "dur": 0.1
+  },
+  {
+   "id": "woodblock",
+   "name": "Bloque",
+   "cat": "perc",
+   "tags": [],
+   "file": "woodblock.ogg",
+   "dur": 0.12
+  },
+  {
+   "id": "shaker",
+   "name": "Shaker",
+   "cat": "perc",
+   "tags": [],
+   "file": "shaker.ogg",
+   "dur": 0.25
+  },
+  {
+   "id": "tamb",
+   "name": "Pandereta",
+   "cat": "perc",
+   "tags": [],
+   "file": "tamb.ogg",
+   "dur": 0.4
+  },
+  {
+   "id": "riser",
+   "name": "Riser",
+   "cat": "fx",
+   "tags": [],
+   "file": "riser.ogg",
+   "dur": 4.0
+  },
+  {
+   "id": "downlifter",
+   "name": "Downlifter",
+   "cat": "fx",
+   "tags": [],
+   "file": "downlifter.ogg",
+   "dur": 2.826
+  },
+  {
+   "id": "impact",
+   "name": "Impacto",
+   "cat": "fx",
+   "tags": [],
+   "file": "impact.ogg",
+   "dur": 5.897
+  },
+  {
+   "id": "revcym",
+   "name": "Platillo al revés",
+   "cat": "fx",
+   "tags": [],
+   "file": "revcym.ogg",
+   "dur": 3.0
+  },
+  {
+   "id": "zap",
+   "name": "Zap",
+   "cat": "fx",
+   "tags": [],
+   "file": "zap.ogg",
+   "dur": 0.25
+  },
+  {
+   "id": "laser",
+   "name": "Láser",
+   "cat": "fx",
+   "tags": [],
+   "file": "laser.ogg",
+   "dur": 0.35
+  }
+ ],
+ "instruments": []
+}

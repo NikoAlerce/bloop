@@ -1,0 +1,880 @@
+{
+ "id": "mundo",
+ "name": "Percusión del mundo",
+ "emoji": "🪘",
+ "desc": "Congas, bongós, cajón, darbuka, shakers, panderetas y más (VCSL, CC0).",
+ "license": "CC0 · github.com/sgossner/VCSL",
+ "sounds": [
+  {
+   "id": "vcsl-bongos-bongoh-hit1-mid",
+   "name": "Bongos · BongoH Hit1 Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-bongos-bongoh-hit1-mid.ogg",
+   "dur": 0.714
+  },
+  {
+   "id": "vcsl-bongos-bongoh-hitmuted1-mid",
+   "name": "Bongos · BongoH HitMuted1 Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-bongos-bongoh-hitmuted1-mid.ogg",
+   "dur": 0.735
+  },
+  {
+   "id": "vcsl-bongos-bongoh-roll-mid",
+   "name": "Bongos · BongoH Roll Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-bongos-bongoh-roll-mid.ogg",
+   "dur": 2.494
+  },
+  {
+   "id": "vcsl-bongos-bongol-hit1-mid",
+   "name": "Bongos · BongoL Hit1 Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-bongos-bongol-hit1-mid.ogg",
+   "dur": 0.778
+  },
+  {
+   "id": "vcsl-bongos-bongol-hitmuted2-mid",
+   "name": "Bongos · BongoL HitMuted2 Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-bongos-bongol-hitmuted2-mid.ogg",
+   "dur": 0.738
+  },
+  {
+   "id": "vcsl-conga-conga-hitfm-sum",
+   "name": "Conga · HitFM Sum",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-conga-conga-hitfm-sum.ogg",
+   "dur": 0.786
+  },
+  {
+   "id": "vcsl-conga-conga-hitn-sum",
+   "name": "Conga · HitN Sum",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-conga-conga-hitn-sum.ogg",
+   "dur": 0.95
+  },
+  {
+   "id": "vcsl-conga-quinto-hitfm1-sum",
+   "name": "Conga · Quinto HitFM1 Sum",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-conga-quinto-hitfm1-sum.ogg",
+   "dur": 0.777
+  },
+  {
+   "id": "vcsl-conga-quinto-hitn-sum",
+   "name": "Conga · Quinto HitN Sum",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-conga-quinto-hitn-sum.ogg",
+   "dur": 0.886
+  },
+  {
+   "id": "vcsl-conga-tumba-hitfm-sum",
+   "name": "Conga · Tumba HitFM Sum",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-conga-tumba-hitfm-sum.ogg",
+   "dur": 0.728
+  },
+  {
+   "id": "vcsl-darbuka-darbuka-1-hit",
+   "name": "Darbuka · 1 hit",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-darbuka-darbuka-1-hit.ogg",
+   "dur": 1.249
+  },
+  {
+   "id": "vcsl-darbuka-darbuka-2-hit",
+   "name": "Darbuka · 2 hit",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-darbuka-darbuka-2-hit.ogg",
+   "dur": 0.478
+  },
+  {
+   "id": "vcsl-darbuka-darbuka-3-hit",
+   "name": "Darbuka · 3 hit",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-darbuka-darbuka-3-hit.ogg",
+   "dur": 0.511
+  },
+  {
+   "id": "vcsl-darbuka-darbuka-4-hit",
+   "name": "Darbuka · 4 hit",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-darbuka-darbuka-4-hit.ogg",
+   "dur": 0.722
+  },
+  {
+   "id": "vcsl-darbuka-darbuka-5-hit",
+   "name": "Darbuka · 5 hit",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-darbuka-darbuka-5-hit.ogg",
+   "dur": 0.56
+  },
+  {
+   "id": "vcsl-frame-drum-hdruml-hand-sum",
+   "name": "Frame Drum · HDrumL Hand Sum",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-frame-drum-hdruml-hand-sum.ogg",
+   "dur": 0.94
+  },
+  {
+   "id": "vcsl-frame-drum-hdruml-hitmuted-sum",
+   "name": "Frame Drum · HDrumL HitMuted Sum",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-frame-drum-hdruml-hitmuted-sum.ogg",
+   "dur": 0.68
+  },
+  {
+   "id": "vcsl-frame-drum-hdruml-hit-sum",
+   "name": "Frame Drum · HDrumL Hit Sum",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-frame-drum-hdruml-hit-sum.ogg",
+   "dur": 1.938
+  },
+  {
+   "id": "vcsl-frame-drum-hdrums-hand-sum",
+   "name": "Frame Drum · HDrumS Hand Sum",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-frame-drum-hdrums-hand-sum.ogg",
+   "dur": 0.679
+  },
+  {
+   "id": "vcsl-frame-drum-hdrums-hitmuted-sum",
+   "name": "Frame Drum · HDrumS HitMuted Sum",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-frame-drum-hdrums-hitmuted-sum.ogg",
+   "dur": 0.672
+  },
+  {
+   "id": "vcsl-cajon-cajon-hit1",
+   "name": "Cajon · hit1",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-cajon-cajon-hit1.ogg",
+   "dur": 0.626
+  },
+  {
+   "id": "vcsl-cajon-cajon-hit1-f",
+   "name": "Cajon · hit1 f",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-cajon-cajon-hit1-f.ogg",
+   "dur": 0.615
+  },
+  {
+   "id": "vcsl-cajon-cajon-hit1-m",
+   "name": "Cajon · hit1 m",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-cajon-cajon-hit1-m.ogg",
+   "dur": 0.872
+  },
+  {
+   "id": "vcsl-cajon-cajon-hit2",
+   "name": "Cajon · hit2",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-cajon-cajon-hit2.ogg",
+   "dur": 0.617
+  },
+  {
+   "id": "vcsl-cajon-cajon-hit2-m",
+   "name": "Cajon · hit2 m",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-cajon-cajon-hit2-m.ogg",
+   "dur": 0.583
+  },
+  {
+   "id": "vcsl-claves-claves1-hit-mid",
+   "name": "Claves · 1 Hit Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-claves-claves1-hit-mid.ogg",
+   "dur": 0.633
+  },
+  {
+   "id": "vcsl-claves-claves2-hit-mid",
+   "name": "Claves · 2 Hit Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-claves-claves2-hit-mid.ogg",
+   "dur": 0.661
+  },
+  {
+   "id": "vcsl-cowbells-cowbell1-hit-mid",
+   "name": "Cowbells · Cowbell1 Hit Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-cowbells-cowbell1-hit-mid.ogg",
+   "dur": 0.718
+  },
+  {
+   "id": "vcsl-cowbells-cowbell1-muted-mid",
+   "name": "Cowbells · Cowbell1 Muted Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-cowbells-cowbell1-muted-mid.ogg",
+   "dur": 0.579
+  },
+  {
+   "id": "vcsl-cowbells-cowbell1-normal-mid",
+   "name": "Cowbells · Cowbell1 Normal Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-cowbells-cowbell1-normal-mid.ogg",
+   "dur": 0.59
+  },
+  {
+   "id": "vcsl-cowbells-cowbell2-double-mid",
+   "name": "Cowbells · Cowbell2 Double Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-cowbells-cowbell2-double-mid.ogg",
+   "dur": 0.637
+  },
+  {
+   "id": "vcsl-cowbells-cowbell2-muted-mid",
+   "name": "Cowbells · Cowbell2 Muted Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-cowbells-cowbell2-muted-mid.ogg",
+   "dur": 0.616
+  },
+  {
+   "id": "vcsl-guiro-guiro-fast-mid",
+   "name": "Guiro · Fast Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-guiro-guiro-fast-mid.ogg",
+   "dur": 1.288
+  },
+  {
+   "id": "vcsl-guiro-guiro-hit-mid",
+   "name": "Guiro · Hit Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-guiro-guiro-hit-mid.ogg",
+   "dur": 1.059
+  },
+  {
+   "id": "vcsl-guiro-guiro-med-mid",
+   "name": "Guiro · Med Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-guiro-guiro-med-mid.ogg",
+   "dur": 1.473
+  },
+  {
+   "id": "vcsl-guiro-guiro-slow-mid",
+   "name": "Guiro · Slow Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-guiro-guiro-slow-mid.ogg",
+   "dur": 2.043
+  },
+  {
+   "id": "vcsl-shaker-small-mid-shakerdouble-down",
+   "name": "Shaker · Mid Double Down",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-shaker-small-mid-shakerdouble-down.ogg",
+   "dur": 0.265
+  },
+  {
+   "id": "vcsl-shaker-small-mid-shakerdouble-u",
+   "name": "Shaker · Mid Double U",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-shaker-small-mid-shakerdouble-u.ogg",
+   "dur": 0.126
+  },
+  {
+   "id": "vcsl-shaker-small-mid-shakerhighfaster-down",
+   "name": "Shaker · Mid HighFaster Down",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-shaker-small-mid-shakerhighfaster-down.ogg",
+   "dur": 0.179
+  },
+  {
+   "id": "vcsl-shaker-small-mid-shakerhighfaster-u",
+   "name": "Shaker · Mid HighFaster U",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-shaker-small-mid-shakerhighfaster-u.ogg",
+   "dur": 0.182
+  },
+  {
+   "id": "vcsl-shaker-small-mid-shakerlowfaster-down",
+   "name": "Shaker · Mid LowFaster Down",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-shaker-small-mid-shakerlowfaster-down.ogg",
+   "dur": 0.169
+  },
+  {
+   "id": "vcsl-shaker-large-lshaker-hit-mid",
+   "name": "Shaker · L Hit Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-shaker-large-lshaker-hit-mid.ogg",
+   "dur": 0.653
+  },
+  {
+   "id": "vcsl-shaker-large-lshaker-shake1d-mid",
+   "name": "Shaker · L Shake1D Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-shaker-large-lshaker-shake1d-mid.ogg",
+   "dur": 1.046
+  },
+  {
+   "id": "vcsl-shaker-large-lshaker-shake1u-mid",
+   "name": "Shaker · L Shake1U Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-shaker-large-lshaker-shake1u-mid.ogg",
+   "dur": 1.285
+  },
+  {
+   "id": "vcsl-tambourine-1-tamb1-hit-mid",
+   "name": "Tambourine 1 · Tamb1 Hit Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-tambourine-1-tamb1-hit-mid.ogg",
+   "dur": 0.839
+  },
+  {
+   "id": "vcsl-tambourine-1-tamb1-roll-mid",
+   "name": "Tambourine 1 · Tamb1 Roll Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-tambourine-1-tamb1-roll-mid.ogg",
+   "dur": 4.0
+  },
+  {
+   "id": "vcsl-tambourine-1-tamb1-shake-mid",
+   "name": "Tambourine 1 · Tamb1 Shake Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-tambourine-1-tamb1-shake-mid.ogg",
+   "dur": 0.879
+  },
+  {
+   "id": "vcsl-tambourine-2-tamb2-hit-mid",
+   "name": "Tambourine 2 · Tamb2 Hit Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-tambourine-2-tamb2-hit-mid.ogg",
+   "dur": 0.528
+  },
+  {
+   "id": "vcsl-tambourine-2-tamb2-roll-mid",
+   "name": "Tambourine 2 · Tamb2 Roll Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-tambourine-2-tamb2-roll-mid.ogg",
+   "dur": 4.0
+  },
+  {
+   "id": "vcsl-tambourine-2-tamb2-shake-mid",
+   "name": "Tambourine 2 · Tamb2 Shake Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-tambourine-2-tamb2-shake-mid.ogg",
+   "dur": 0.658
+  },
+  {
+   "id": "vcsl-triangles-triangle1-hitfm-mid",
+   "name": "Triangles · Triangle1 HitFM Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-triangles-triangle1-hitfm-mid.ogg",
+   "dur": 0.95
+  },
+  {
+   "id": "vcsl-triangles-triangle1-hitm-mid",
+   "name": "Triangles · Triangle1 HitM Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-triangles-triangle1-hitm-mid.ogg",
+   "dur": 0.952
+  },
+  {
+   "id": "vcsl-triangles-triangle1-hit-mid",
+   "name": "Triangles · Triangle1 Hit Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-triangles-triangle1-hit-mid.ogg",
+   "dur": 4.0
+  },
+  {
+   "id": "vcsl-triangles-triangle1-roll-mid",
+   "name": "Triangles · Triangle1 Roll Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-triangles-triangle1-roll-mid.ogg",
+   "dur": 4.0
+  },
+  {
+   "id": "vcsl-triangles-triangle1-hitfm-mid",
+   "name": "Triangles · Triangle1 hitFM Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-triangles-triangle1-hitfm-mid.ogg",
+   "dur": 1.556
+  },
+  {
+   "id": "vcsl-woodblock-wood-clic",
+   "name": "Woodblock · Wood clic",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-woodblock-wood-clic.ogg",
+   "dur": 0.462
+  },
+  {
+   "id": "vcsl-woodblock-wood-clic-m",
+   "name": "Woodblock · Wood clic m",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-woodblock-wood-clic-m.ogg",
+   "dur": 1.386
+  },
+  {
+   "id": "vcsl-woodblock-wood-click",
+   "name": "Woodblock · Wood click",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-woodblock-wood-click.ogg",
+   "dur": 0.429
+  },
+  {
+   "id": "vcsl-woodblock-wood-click-m",
+   "name": "Woodblock · Wood click m",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-woodblock-wood-click-m.ogg",
+   "dur": 0.487
+  },
+  {
+   "id": "vcsl-agogo-bells-agogo-high-mid",
+   "name": "Agogo Bells · Agogo High Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-agogo-bells-agogo-high-mid.ogg",
+   "dur": 0.747
+  },
+  {
+   "id": "vcsl-agogo-bells-agogo-low-mid",
+   "name": "Agogo Bells · Agogo Low Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-agogo-bells-agogo-low-mid.ogg",
+   "dur": 1.698
+  },
+  {
+   "id": "vcsl-cabasa-cabasa1-hit-mid",
+   "name": "Cabasa · 1 Hit Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-cabasa-cabasa1-hit-mid.ogg",
+   "dur": 0.502
+  },
+  {
+   "id": "vcsl-cabasa-cabasa1-rub-mid",
+   "name": "Cabasa · 1 Rub Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-cabasa-cabasa1-rub-mid.ogg",
+   "dur": 0.613
+  },
+  {
+   "id": "vcsl-slit-drum-logdrumhi-medm-sum",
+   "name": "Slit Drum · LogDrumHi MedM Sum",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-slit-drum-logdrumhi-medm-sum.ogg",
+   "dur": 1.156
+  },
+  {
+   "id": "vcsl-slit-drum-logdrumlo-medm-sum",
+   "name": "Slit Drum · LogDrumLo MedM Sum",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-slit-drum-logdrumlo-medm-sum.ogg",
+   "dur": 0.884
+  },
+  {
+   "id": "vcsl-finger-cymbals-fing-cymb",
+   "name": "Finger Cymbals · Fing Cymb",
+   "cat": "cymbal",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-finger-cymbals-fing-cymb.ogg",
+   "dur": 4.0
+  },
+  {
+   "id": "vcsl-sleigh-bells-sleighbells-hit-mid",
+   "name": "Sleigh Bells · Sleighbells Hit Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-sleigh-bells-sleighbells-hit-mid.ogg",
+   "dur": 1.761
+  },
+  {
+   "id": "vcsl-sleigh-bells-sleighbell1-shake",
+   "name": "Sleigh Bells · Sleighbell1 shake",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-sleigh-bells-sleighbell1-shake.ogg",
+   "dur": 4.0
+  },
+  {
+   "id": "vcsl-sleigh-bells-sleighbell2-hit",
+   "name": "Sleigh Bells · Sleighbell2 hit",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-sleigh-bells-sleighbell2-hit.ogg",
+   "dur": 1.557
+  },
+  {
+   "id": "vcsl-sleigh-bells-sleighbell2-shake",
+   "name": "Sleigh Bells · Sleighbell2 shake",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-sleigh-bells-sleighbell2-shake.ogg",
+   "dur": 4.0
+  },
+  {
+   "id": "vcsl-ocean-drum-oceandrum-sus-1-mid",
+   "name": "Ocean Drum · OceanDrum Sus 1 Mid",
+   "cat": "texture",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-ocean-drum-oceandrum-sus-1-mid.ogg",
+   "dur": 4.0
+  },
+  {
+   "id": "vcsl-ocean-drum-oceandrum-sus-2-mid",
+   "name": "Ocean Drum · OceanDrum Sus 2 Mid",
+   "cat": "texture",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-ocean-drum-oceandrum-sus-2-mid.ogg",
+   "dur": 4.0
+  },
+  {
+   "id": "vcsl-ocean-drum-oceandrum-sus-3-mid",
+   "name": "Ocean Drum · OceanDrum Sus 3 Mid",
+   "cat": "texture",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-ocean-drum-oceandrum-sus-3-mid.ogg",
+   "dur": 4.0
+  },
+  {
+   "id": "vcsl-snare-drum-modern-1-snare2-hitns-mid",
+   "name": "Snare Drum · Snare2 HitNS Mid",
+   "cat": "snare",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-snare-drum-modern-1-snare2-hitns-mid.ogg",
+   "dur": 1.026
+  },
+  {
+   "id": "vcsl-snare-drum-modern-1-snare2-hitsn-mid",
+   "name": "Snare Drum · Snare2 HitSN Mid",
+   "cat": "snare",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-snare-drum-modern-1-snare2-hitsn-mid.ogg",
+   "dur": 1.597
+  },
+  {
+   "id": "vcsl-snare-drum-modern-1-snare2-rollns-mid",
+   "name": "Snare Drum · Snare2 rollNS Mid",
+   "cat": "snare",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-snare-drum-modern-1-snare2-rollns-mid.ogg",
+   "dur": 4.0
+  },
+  {
+   "id": "vcsl-snare-drum-modern-1-snare2-rollsn-mid",
+   "name": "Snare Drum · Snare2 rollSN Mid",
+   "cat": "snare",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-snare-drum-modern-1-snare2-rollsn-mid.ogg",
+   "dur": 4.0
+  },
+  {
+   "id": "vcsl-snare-drum-modern-1-snare2-stick-mid",
+   "name": "Snare Drum · Snare2 stick Mid",
+   "cat": "snare",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-snare-drum-modern-1-snare2-stick-mid.ogg",
+   "dur": 0.753
+  },
+  {
+   "id": "vcsl-bass-drum-1-bdrumnew-hit-sum",
+   "name": "Bass Drum 1 · BDrumNew hit Sum",
+   "cat": "kick",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-bass-drum-1-bdrumnew-hit-sum.ogg",
+   "dur": 3.959
+  },
+  {
+   "id": "vcsl-brake-drum-brakedrum1-bowed-mid",
+   "name": "Brake Drum · BrakeDrum1 Bowed Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-brake-drum-brakedrum1-bowed-mid.ogg",
+   "dur": 4.0
+  },
+  {
+   "id": "vcsl-brake-drum-brakedrum1-hammer-mid",
+   "name": "Brake Drum · BrakeDrum1 Hammer Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-brake-drum-brakedrum1-hammer-mid.ogg",
+   "dur": 0.831
+  },
+  {
+   "id": "vcsl-brake-drum-brakedrum1-susp-mid",
+   "name": "Brake Drum · BrakeDrum1 Susp Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-brake-drum-brakedrum1-susp-mid.ogg",
+   "dur": 1.127
+  },
+  {
+   "id": "vcsl-brake-drum-brakedrum1-yarnm-mid",
+   "name": "Brake Drum · BrakeDrum1 YarnM Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-brake-drum-brakedrum1-yarnm-mid.ogg",
+   "dur": 0.932
+  },
+  {
+   "id": "vcsl-brake-drum-brakedrum2-bowed-mid",
+   "name": "Brake Drum · BrakeDrum2 Bowed Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-brake-drum-brakedrum2-bowed-mid.ogg",
+   "dur": 4.0
+  },
+  {
+   "id": "vcsl-anvil-anvil-hit1-mid",
+   "name": "Anvil · Hit1 Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-anvil-anvil-hit1-mid.ogg",
+   "dur": 1.32
+  },
+  {
+   "id": "vcsl-anvil-anvil-hit2-mid",
+   "name": "Anvil · Hit2 Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-anvil-anvil-hit2-mid.ogg",
+   "dur": 1.033
+  },
+  {
+   "id": "vcsl-anvil-anvil-hit3-mid",
+   "name": "Anvil · Hit3 Mid",
+   "cat": "perc",
+   "tags": [
+    "mundo"
+   ],
+   "file": "vcsl-anvil-anvil-hit3-mid.ogg",
+   "dur": 0.676
+  }
+ ],
+ "instruments": []
+}

@@ -1,0 +1,1420 @@
+{
+ "id": "acustico",
+ "name": "Batería real",
+ "emoji": "🥁",
+ "desc": "Bombos, cajas, toms, hats y platillos grabados (Stargate sample pack, CC0).",
+ "license": "CC0 · github.com/stargatedaw/stargate-sample-pack",
+ "sounds": [
+  {
+   "id": "freesound-219157-jagadamba-bongo01",
+   "name": "219157 jagadamba bongo01",
+   "cat": "perc",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-219157-jagadamba-bongo01.ogg",
+   "dur": 0.407
+  },
+  {
+   "id": "freesound-579853-curesforbrokenhearts-lp-matador",
+   "name": "579853 curesforbrokenhearts lp matador bongo drum hembra",
+   "cat": "perc",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-579853-curesforbrokenhearts-lp-matador.ogg",
+   "dur": 0.506
+  },
+  {
+   "id": "freesound-99752-menegass-bongo2",
+   "name": "99752 menegass bongo2",
+   "cat": "perc",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-99752-menegass-bongo2.ogg",
+   "dur": 0.668
+  },
+  {
+   "id": "freesound-99754-menegass-bongo4",
+   "name": "99754 menegass bongo4",
+   "cat": "perc",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-99754-menegass-bongo4.ogg",
+   "dur": 0.592
+  },
+  {
+   "id": "freesound-99755-menegass-bngoh",
+   "name": "99755 menegass bngoh",
+   "cat": "perc",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-99755-menegass-bngoh.ogg",
+   "dur": 0.07
+  },
+  {
+   "id": "freesound-388042-sami-kullstrom-clap",
+   "name": "388042 sami kullstrom clap",
+   "cat": "clap",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-388042-sami-kullstrom-clap.ogg",
+   "dur": 0.347
+  },
+  {
+   "id": "freesound-448221-toxicfilmzsrsounds-hip-hop-clap",
+   "name": "448221 toxicfilmzsrsounds hip hop clap",
+   "cat": "clap",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-448221-toxicfilmzsrsounds-hip-hop-clap.ogg",
+   "dur": 0.076
+  },
+  {
+   "id": "freesound-493707-bastianpusch-handclap01",
+   "name": "493707 bastianpusch handclap01",
+   "cat": "clap",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-493707-bastianpusch-handclap01.ogg",
+   "dur": 0.516
+  },
+  {
+   "id": "freesound-509526-synthnisse-claps",
+   "name": "509526 synthnisse claps",
+   "cat": "clap",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-509526-synthnisse-claps.ogg",
+   "dur": 0.32
+  },
+  {
+   "id": "freesound-339278-cabled-mess-hihat-closed-raw-03",
+   "name": "339278 cabled mess hihat closed raw 03 gate eq",
+   "cat": "cymbal",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-339278-cabled-mess-hihat-closed-raw-03.ogg",
+   "dur": 0.208
+  },
+  {
+   "id": "freesound-439766-twentytwentymusic-electronic-cl",
+   "name": "439766 twentytwentymusic electronic closed hat 9",
+   "cat": "cymbal",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-439766-twentytwentymusic-electronic-cl.ogg",
+   "dur": 0.213
+  },
+  {
+   "id": "freesound-93909-pjcohen-skibacustomhihats1145top",
+   "name": "93909 pjcohen skibacustomhihats1145top1215bottomclosededgeshank",
+   "cat": "cymbal",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-93909-pjcohen-skibacustomhihats1145top.ogg",
+   "dur": 0.285
+  },
+  {
+   "id": "freesound-104210-minorr-crash-paiste-pst5-17-lef",
+   "name": "104210 minorr crash paiste pst5 17 left ff",
+   "cat": "cymbal",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-104210-minorr-crash-paiste-pst5-17-lef.ogg",
+   "dur": 6.0
+  },
+  {
+   "id": "freesound-104217-minorr-crash-zildian-a-custom-1",
+   "name": "104217 minorr crash zildian a custom 16 centr f",
+   "cat": "cymbal",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-104217-minorr-crash-zildian-a-custom-1.ogg",
+   "dur": 5.157
+  },
+  {
+   "id": "freesound-140153-stomachache-analog-cymbal",
+   "name": "140153 stomachache analog cymbal",
+   "cat": "cymbal",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-140153-stomachache-analog-cymbal.ogg",
+   "dur": 3.6
+  },
+  {
+   "id": "freesound-261413-veiler-crash",
+   "name": "261413 veiler crash",
+   "cat": "cymbal",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-261413-veiler-crash.ogg",
+   "dur": 1.982
+  },
+  {
+   "id": "freesound-165027-rodrigo-the-mad-mini-open-hihat",
+   "name": "165027 rodrigo the mad mini open hihat",
+   "cat": "cymbal",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-165027-rodrigo-the-mad-mini-open-hihat.ogg",
+   "dur": 0.12
+  },
+  {
+   "id": "freesound-165028-rodrigo-the-mad-mini-909ish-ope",
+   "name": "165028 rodrigo the mad mini 909ish open hat",
+   "cat": "cymbal",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-165028-rodrigo-the-mad-mini-909ish-ope.ogg",
+   "dur": 0.103
+  },
+  {
+   "id": "freesound-317097-shpira-hat-open3",
+   "name": "317097 shpira hat open3",
+   "cat": "cymbal",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-317097-shpira-hat-open3.ogg",
+   "dur": 0.958
+  },
+  {
+   "id": "freesound-439820-twentytwentymusic-electronic-op",
+   "name": "439820 twentytwentymusic electronic open hat 7",
+   "cat": "cymbal",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-439820-twentytwentymusic-electronic-op.ogg",
+   "dur": 0.224
+  },
+  {
+   "id": "freesound-192512-nabz871-knife-party-like-kick",
+   "name": "192512 nabz871 knife party like kick",
+   "cat": "kick",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-192512-nabz871-knife-party-like-kick.ogg",
+   "dur": 0.411
+  },
+  {
+   "id": "freesound-266764-hard3eat-synth-kick-3",
+   "name": "266764 hard3eat synth kick 3",
+   "cat": "kick",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-266764-hard3eat-synth-kick-3.ogg",
+   "dur": 0.245
+  },
+  {
+   "id": "freesound-347166-dvbeats-kick-drum-1",
+   "name": "347166 dvbeats kick drum 1",
+   "cat": "kick",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-347166-dvbeats-kick-drum-1.ogg",
+   "dur": 0.251
+  },
+  {
+   "id": "freesound-348785-arctis-hardstyle-rawstyle-kick-",
+   "name": "348785 arctis hardstyle rawstyle kick 8",
+   "cat": "kick",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-348785-arctis-hardstyle-rawstyle-kick-.ogg",
+   "dur": 0.786
+  },
+  {
+   "id": "freesound-561593-panxozerok-safari-kick-2",
+   "name": "561593 panxozerok safari kick 2",
+   "cat": "kick",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-561593-panxozerok-safari-kick-2.ogg",
+   "dur": 0.553
+  },
+  {
+   "id": "freesound-455640-uberproduktion-fd808a-rimshot",
+   "name": "455640 uberproduktion fd808a rimshot",
+   "cat": "perc",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-455640-uberproduktion-fd808a-rimshot.ogg",
+   "dur": 0.374
+  },
+  {
+   "id": "freesound-511382-pjhedman-se1-rim",
+   "name": "511382 pjhedman se1 rim",
+   "cat": "perc",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-511382-pjhedman-se1-rim.ogg",
+   "dur": 0.182
+  },
+  {
+   "id": "freesound-533089-sassaby-timbales-high-rimshot-m",
+   "name": "533089 sassaby timbales high rimshot macho",
+   "cat": "perc",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-533089-sassaby-timbales-high-rimshot-m.ogg",
+   "dur": 1.427
+  },
+  {
+   "id": "freesound-573256-sorinious-genious-timpani-rimsh",
+   "name": "573256 sorinious genious timpani rimshot 4",
+   "cat": "perc",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-573256-sorinious-genious-timpani-rimsh.ogg",
+   "dur": 3.292
+  },
+  {
+   "id": "freesound-173087-yellowtree-wood-snare-sample-3",
+   "name": "173087 yellowtree wood snare sample 3",
+   "cat": "snare",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-173087-yellowtree-wood-snare-sample-3.ogg",
+   "dur": 1.027
+  },
+  {
+   "id": "freesound-212211-alexthegr81-tapesnare-18",
+   "name": "212211 alexthegr81 tapesnare 18",
+   "cat": "snare",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-212211-alexthegr81-tapesnare-18.ogg",
+   "dur": 0.475
+  },
+  {
+   "id": "freesound-212233-alexthegr81-tapesnare-5",
+   "name": "212233 alexthegr81 tapesnare 5",
+   "cat": "snare",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-212233-alexthegr81-tapesnare-5.ogg",
+   "dur": 0.135
+  },
+  {
+   "id": "freesound-212234-alexthegr81-tapesnare-21",
+   "name": "212234 alexthegr81 tapesnare 21",
+   "cat": "snare",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-212234-alexthegr81-tapesnare-21.ogg",
+   "dur": 0.575
+  },
+  {
+   "id": "freesound-387186-alexiero-1-ai-snare-20",
+   "name": "387186 alexiero 1 ai snare 20",
+   "cat": "snare",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-387186-alexiero-1-ai-snare-20.ogg",
+   "dur": 0.321
+  },
+  {
+   "id": "freesound-501249-veiler-brian-snare-loud",
+   "name": "501249 veiler brian snare loud",
+   "cat": "snare",
+   "tags": [
+    "freesound"
+   ],
+   "file": "freesound-501249-veiler-brian-snare-loud.ogg",
+   "dur": 0.503
+  },
+  {
+   "id": "fugue-state-audio-distkit-clap",
+   "name": "Distkit clap",
+   "cat": "clap",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-distkit-clap.ogg",
+   "dur": 0.19
+  },
+  {
+   "id": "fugue-state-audio-sdbkit-clap",
+   "name": "Sdbkit clap",
+   "cat": "clap",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-sdbkit-clap.ogg",
+   "dur": 1.042
+  },
+  {
+   "id": "fugue-state-audio-synthkit-clap",
+   "name": "Synthkit clap",
+   "cat": "clap",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-synthkit-clap.ogg",
+   "dur": 0.172
+  },
+  {
+   "id": "fugue-state-audio-x0xproc1-clap",
+   "name": "X0xproc1 clap",
+   "cat": "clap",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc1-clap.ogg",
+   "dur": 0.767
+  },
+  {
+   "id": "fugue-state-audio-x0xproc2-clap",
+   "name": "X0xproc2 clap",
+   "cat": "clap",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc2-clap.ogg",
+   "dur": 0.961
+  },
+  {
+   "id": "fugue-state-audio-distkit-crash",
+   "name": "Distkit crash",
+   "cat": "cymbal",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-distkit-crash.ogg",
+   "dur": 3.51
+  },
+  {
+   "id": "fugue-state-audio-distkit-ride",
+   "name": "Distkit ride",
+   "cat": "cymbal",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-distkit-ride.ogg",
+   "dur": 2.487
+  },
+  {
+   "id": "fugue-state-audio-synthkit-crash",
+   "name": "Synthkit crash",
+   "cat": "cymbal",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-synthkit-crash.ogg",
+   "dur": 1.576
+  },
+  {
+   "id": "fugue-state-audio-synthkit-ride",
+   "name": "Synthkit ride",
+   "cat": "cymbal",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-synthkit-ride.ogg",
+   "dur": 1.671
+  },
+  {
+   "id": "fugue-state-audio-x0xproc1-crash",
+   "name": "X0xproc1 crash",
+   "cat": "cymbal",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc1-crash.ogg",
+   "dur": 1.037
+  },
+  {
+   "id": "fugue-state-audio-x0xproc1-ride",
+   "name": "X0xproc1 ride",
+   "cat": "cymbal",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc1-ride.ogg",
+   "dur": 0.961
+  },
+  {
+   "id": "fugue-state-audio-x0xproc2-cymbal",
+   "name": "X0xproc2 cymbal",
+   "cat": "cymbal",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc2-cymbal.ogg",
+   "dur": 2.728
+  },
+  {
+   "id": "fugue-state-audio-distkit-hatclsd",
+   "name": "Distkit hatclsd",
+   "cat": "hat",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-distkit-hatclsd.ogg",
+   "dur": 0.263
+  },
+  {
+   "id": "fugue-state-audio-distkit-hatopen",
+   "name": "Distkit hatopen",
+   "cat": "hat",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-distkit-hatopen.ogg",
+   "dur": 1.215
+  },
+  {
+   "id": "fugue-state-audio-sdbkit-hatclsd",
+   "name": "Sdbkit hatclsd",
+   "cat": "hat",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-sdbkit-hatclsd.ogg",
+   "dur": 0.161
+  },
+  {
+   "id": "fugue-state-audio-sdbkit-hatopen",
+   "name": "Sdbkit hatopen",
+   "cat": "hat",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-sdbkit-hatopen.ogg",
+   "dur": 1.05
+  },
+  {
+   "id": "fugue-state-audio-synthkit-hatclsd",
+   "name": "Synthkit hatclsd",
+   "cat": "hat",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-synthkit-hatclsd.ogg",
+   "dur": 0.333
+  },
+  {
+   "id": "fugue-state-audio-synthkit-hatopen",
+   "name": "Synthkit hatopen",
+   "cat": "hat",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-synthkit-hatopen.ogg",
+   "dur": 1.109
+  },
+  {
+   "id": "fugue-state-audio-x0xproc1-hatclsd",
+   "name": "X0xproc1 hatclsd",
+   "cat": "hat",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc1-hatclsd.ogg",
+   "dur": 0.192
+  },
+  {
+   "id": "fugue-state-audio-x0xproc1-hatopen",
+   "name": "X0xproc1 hatopen",
+   "cat": "hat",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc1-hatopen.ogg",
+   "dur": 0.527
+  },
+  {
+   "id": "fugue-state-audio-x0xproc2-hatclsd",
+   "name": "X0xproc2 hatclsd",
+   "cat": "hat",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc2-hatclsd.ogg",
+   "dur": 0.123
+  },
+  {
+   "id": "fugue-state-audio-x0xproc2-hatopen",
+   "name": "X0xproc2 hatopen",
+   "cat": "hat",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc2-hatopen.ogg",
+   "dur": 1.236
+  },
+  {
+   "id": "fugue-state-audio-distkit-kick",
+   "name": "Distkit kick",
+   "cat": "kick",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-distkit-kick.ogg",
+   "dur": 0.915
+  },
+  {
+   "id": "fugue-state-audio-sdbkit-kick",
+   "name": "Sdbkit kick",
+   "cat": "kick",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-sdbkit-kick.ogg",
+   "dur": 0.196
+  },
+  {
+   "id": "fugue-state-audio-sdbkit-sub-a",
+   "name": "Sdbkit sub a",
+   "cat": "kick",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-sdbkit-sub-a.ogg",
+   "dur": 1.949
+  },
+  {
+   "id": "fugue-state-audio-synthkit-kick",
+   "name": "Synthkit kick",
+   "cat": "kick",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-synthkit-kick.ogg",
+   "dur": 1.162
+  },
+  {
+   "id": "fugue-state-audio-x0xproc1-kick",
+   "name": "X0xproc1 kick",
+   "cat": "kick",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc1-kick.ogg",
+   "dur": 0.349
+  },
+  {
+   "id": "fugue-state-audio-x0xproc2-kick",
+   "name": "X0xproc2 kick",
+   "cat": "kick",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc2-kick.ogg",
+   "dur": 1.432
+  },
+  {
+   "id": "fugue-state-audio-distkit-claves",
+   "name": "Distkit claves",
+   "cat": "perc",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-distkit-claves.ogg",
+   "dur": 0.028
+  },
+  {
+   "id": "fugue-state-audio-distkit-cowbell",
+   "name": "Distkit cowbell",
+   "cat": "perc",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-distkit-cowbell.ogg",
+   "dur": 0.598
+  },
+  {
+   "id": "fugue-state-audio-distkit-zap",
+   "name": "Distkit zap",
+   "cat": "perc",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-distkit-zap.ogg",
+   "dur": 0.528
+  },
+  {
+   "id": "fugue-state-audio-sdbkit-fmperc",
+   "name": "Sdbkit fmperc",
+   "cat": "perc",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-sdbkit-fmperc.ogg",
+   "dur": 0.438
+  },
+  {
+   "id": "fugue-state-audio-synthkit-8bit",
+   "name": "Synthkit 8bit",
+   "cat": "perc",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-synthkit-8bit.ogg",
+   "dur": 0.245
+  },
+  {
+   "id": "fugue-state-audio-x0xproc1-rimshot",
+   "name": "X0xproc1 rimshot",
+   "cat": "perc",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc1-rimshot.ogg",
+   "dur": 0.146
+  },
+  {
+   "id": "fugue-state-audio-x0xproc2-claves",
+   "name": "X0xproc2 claves",
+   "cat": "perc",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc2-claves.ogg",
+   "dur": 0.086
+  },
+  {
+   "id": "fugue-state-audio-x0xproc2-cowbell",
+   "name": "X0xproc2 cowbell",
+   "cat": "perc",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc2-cowbell.ogg",
+   "dur": 0.539
+  },
+  {
+   "id": "fugue-state-audio-x0xproc2-maracas",
+   "name": "X0xproc2 maracas",
+   "cat": "perc",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc2-maracas.ogg",
+   "dur": 0.062
+  },
+  {
+   "id": "fugue-state-audio-x0xproc2-rimshot",
+   "name": "X0xproc2 rimshot",
+   "cat": "perc",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc2-rimshot.ogg",
+   "dur": 0.052
+  },
+  {
+   "id": "fugue-state-audio-distkit-snare",
+   "name": "Distkit snare",
+   "cat": "snare",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-distkit-snare.ogg",
+   "dur": 0.257
+  },
+  {
+   "id": "fugue-state-audio-sdbkit-snare",
+   "name": "Sdbkit snare",
+   "cat": "snare",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-sdbkit-snare.ogg",
+   "dur": 0.262
+  },
+  {
+   "id": "fugue-state-audio-synthkit-snare",
+   "name": "Synthkit snare",
+   "cat": "snare",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-synthkit-snare.ogg",
+   "dur": 0.231
+  },
+  {
+   "id": "fugue-state-audio-x0xproc1-snare",
+   "name": "X0xproc1 snare",
+   "cat": "snare",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc1-snare.ogg",
+   "dur": 0.417
+  },
+  {
+   "id": "fugue-state-audio-x0xproc2-snare",
+   "name": "X0xproc2 snare",
+   "cat": "snare",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc2-snare.ogg",
+   "dur": 0.321
+  },
+  {
+   "id": "fugue-state-audio-distkit-hitom",
+   "name": "Distkit hitom",
+   "cat": "tom",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-distkit-hitom.ogg",
+   "dur": 0.65
+  },
+  {
+   "id": "fugue-state-audio-distkit-lotom",
+   "name": "Distkit lotom",
+   "cat": "tom",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-distkit-lotom.ogg",
+   "dur": 0.632
+  },
+  {
+   "id": "fugue-state-audio-distkit-midtom",
+   "name": "Distkit midtom",
+   "cat": "tom",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-distkit-midtom.ogg",
+   "dur": 0.651
+  },
+  {
+   "id": "fugue-state-audio-sdbkit-hitom",
+   "name": "Sdbkit hitom",
+   "cat": "tom",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-sdbkit-hitom.ogg",
+   "dur": 0.619
+  },
+  {
+   "id": "fugue-state-audio-sdbkit-lotom",
+   "name": "Sdbkit lotom",
+   "cat": "tom",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-sdbkit-lotom.ogg",
+   "dur": 0.595
+  },
+  {
+   "id": "fugue-state-audio-sdbkit-midtom",
+   "name": "Sdbkit midtom",
+   "cat": "tom",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-sdbkit-midtom.ogg",
+   "dur": 0.584
+  },
+  {
+   "id": "fugue-state-audio-synthkit-hitom",
+   "name": "Synthkit hitom",
+   "cat": "tom",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-synthkit-hitom.ogg",
+   "dur": 0.506
+  },
+  {
+   "id": "fugue-state-audio-synthkit-lotom",
+   "name": "Synthkit lotom",
+   "cat": "tom",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-synthkit-lotom.ogg",
+   "dur": 0.477
+  },
+  {
+   "id": "fugue-state-audio-synthkit-midtom",
+   "name": "Synthkit midtom",
+   "cat": "tom",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-synthkit-midtom.ogg",
+   "dur": 0.49
+  },
+  {
+   "id": "fugue-state-audio-x0xproc1-hitom",
+   "name": "X0xproc1 hitom",
+   "cat": "tom",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc1-hitom.ogg",
+   "dur": 0.598
+  },
+  {
+   "id": "fugue-state-audio-x0xproc1-lotom",
+   "name": "X0xproc1 lotom",
+   "cat": "tom",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc1-lotom.ogg",
+   "dur": 0.685
+  },
+  {
+   "id": "fugue-state-audio-x0xproc1-midtom",
+   "name": "X0xproc1 midtom",
+   "cat": "tom",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc1-midtom.ogg",
+   "dur": 0.704
+  },
+  {
+   "id": "fugue-state-audio-x0xproc2-hitom",
+   "name": "X0xproc2 hitom",
+   "cat": "tom",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc2-hitom.ogg",
+   "dur": 0.374
+  },
+  {
+   "id": "fugue-state-audio-x0xproc2-lotom",
+   "name": "X0xproc2 lotom",
+   "cat": "tom",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc2-lotom.ogg",
+   "dur": 0.732
+  },
+  {
+   "id": "fugue-state-audio-x0xproc2-midtom",
+   "name": "X0xproc2 midtom",
+   "cat": "tom",
+   "tags": [
+    "fugue-state-audio"
+   ],
+   "file": "fugue-state-audio-x0xproc2-midtom.ogg",
+   "dur": 0.478
+  },
+  {
+   "id": "karoryfer-crash-brd-17",
+   "name": "Crash BRD 17",
+   "cat": "cymbal",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-crash-brd-17.ogg",
+   "dur": 6.0
+  },
+  {
+   "id": "karoryfer-crash-ud-16",
+   "name": "Crash UD 16",
+   "cat": "cymbal",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-crash-ud-16.ogg",
+   "dur": 6.0
+  },
+  {
+   "id": "karoryfer-ride-brd-22",
+   "name": "Ride BRD 22",
+   "cat": "cymbal",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-ride-brd-22.ogg",
+   "dur": 6.0
+  },
+  {
+   "id": "karoryfer-ride-ud-20",
+   "name": "Ride UD 20",
+   "cat": "cymbal",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-ride-ud-20.ogg",
+   "dur": 6.0
+  },
+  {
+   "id": "karoryfer-hihat-brd-closed",
+   "name": "Hihat BRD closed",
+   "cat": "hat",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-hihat-brd-closed.ogg",
+   "dur": 0.849
+  },
+  {
+   "id": "karoryfer-hihat-brd-open",
+   "name": "Hihat BRD open",
+   "cat": "hat",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-hihat-brd-open.ogg",
+   "dur": 3.5
+  },
+  {
+   "id": "karoryfer-hihat-brd-tight",
+   "name": "Hihat BRD tight",
+   "cat": "hat",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-hihat-brd-tight.ogg",
+   "dur": 0.556
+  },
+  {
+   "id": "karoryfer-kick-polmuz-mod-20-buzz",
+   "name": "Kick Polmuz mod 20 buzz",
+   "cat": "kick",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-kick-polmuz-mod-20-buzz.ogg",
+   "dur": 1.127
+  },
+  {
+   "id": "karoryfer-kick-polmuz-mod-20-clean",
+   "name": "Kick Polmuz mod 20 clean",
+   "cat": "kick",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-kick-polmuz-mod-20-clean.ogg",
+   "dur": 0.942
+  },
+  {
+   "id": "karoryfer-kick-szpaderski-24-dampened",
+   "name": "Kick Szpaderski 24 dampened",
+   "cat": "kick",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-kick-szpaderski-24-dampened.ogg",
+   "dur": 0.647
+  },
+  {
+   "id": "karoryfer-kick-szpaderski-24-open",
+   "name": "Kick Szpaderski 24 open",
+   "cat": "kick",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-kick-szpaderski-24-open.ogg",
+   "dur": 2.793
+  },
+  {
+   "id": "karoryfer-kick-marching-20-old",
+   "name": "Kick marching 20 old",
+   "cat": "kick",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-kick-marching-20-old.ogg",
+   "dur": 0.884
+  },
+  {
+   "id": "karoryfer-antlers-large-clash",
+   "name": "Antlers large clash",
+   "cat": "perc",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-antlers-large-clash.ogg",
+   "dur": 0.758
+  },
+  {
+   "id": "karoryfer-big-metal-rods",
+   "name": "Big metal rods",
+   "cat": "perc",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-big-metal-rods.ogg",
+   "dur": 0.621
+  },
+  {
+   "id": "karoryfer-bones-down",
+   "name": "Bones down",
+   "cat": "perc",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-bones-down.ogg",
+   "dur": 1.495
+  },
+  {
+   "id": "karoryfer-bones-up",
+   "name": "Bones up",
+   "cat": "perc",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-bones-up.ogg",
+   "dur": 1.617
+  },
+  {
+   "id": "karoryfer-canvas-head-drum-with-jingles-14",
+   "name": "Canvas head drum with jingles 14",
+   "cat": "perc",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-canvas-head-drum-with-jingles-14.ogg",
+   "dur": 1.2
+  },
+  {
+   "id": "karoryfer-chain-drop",
+   "name": "Chain drop",
+   "cat": "perc",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-chain-drop.ogg",
+   "dur": 0.775
+  },
+  {
+   "id": "karoryfer-cow-teeth-drop",
+   "name": "Cow teeth drop",
+   "cat": "perc",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-cow-teeth-drop.ogg",
+   "dur": 1.278
+  },
+  {
+   "id": "karoryfer-frame-drum-16",
+   "name": "Frame drum 16",
+   "cat": "perc",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-frame-drum-16.ogg",
+   "dur": 2.09
+  },
+  {
+   "id": "karoryfer-jewelers-anvil",
+   "name": "Jewelers anvil",
+   "cat": "perc",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-jewelers-anvil.ogg",
+   "dur": 1.164
+  },
+  {
+   "id": "karoryfer-medieval-drum-20",
+   "name": "Medieval drum 20",
+   "cat": "perc",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-medieval-drum-20.ogg",
+   "dur": 2.491
+  },
+  {
+   "id": "karoryfer-medieval-drum-24",
+   "name": "Medieval drum 24",
+   "cat": "perc",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-medieval-drum-24.ogg",
+   "dur": 3.5
+  },
+  {
+   "id": "karoryfer-pitchfork-socket",
+   "name": "Pitchfork socket",
+   "cat": "perc",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-pitchfork-socket.ogg",
+   "dur": 0.737
+  },
+  {
+   "id": "karoryfer-shoemakers-last",
+   "name": "Shoemakers last",
+   "cat": "perc",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-shoemakers-last.ogg",
+   "dur": 0.661
+  },
+  {
+   "id": "karoryfer-sword",
+   "name": "Sword",
+   "cat": "perc",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-sword.ogg",
+   "dur": 1.874
+  },
+  {
+   "id": "karoryfer-snare-10x6",
+   "name": "Snare 10x6",
+   "cat": "snare",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-snare-10x6.ogg",
+   "dur": 1.058
+  },
+  {
+   "id": "karoryfer-snare-12x5",
+   "name": "Snare 12x5",
+   "cat": "snare",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-snare-12x5.ogg",
+   "dur": 1.193
+  },
+  {
+   "id": "karoryfer-snare-16x7",
+   "name": "Snare 16x7",
+   "cat": "snare",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-snare-16x7.ogg",
+   "dur": 1.238
+  },
+  {
+   "id": "karoryfer-snare-pearl-alumunum-14x8",
+   "name": "Snare Pearl alumunum 14x8",
+   "cat": "snare",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-snare-pearl-alumunum-14x8.ogg",
+   "dur": 1.8
+  },
+  {
+   "id": "karoryfer-snare-ziggurat",
+   "name": "Snare ziggurat",
+   "cat": "snare",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-snare-ziggurat.ogg",
+   "dur": 1.481
+  },
+  {
+   "id": "karoryfer-tom-rmif-22",
+   "name": "Tom RMIF 22",
+   "cat": "tom",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-tom-rmif-22.ogg",
+   "dur": 2.613
+  },
+  {
+   "id": "karoryfer-tom-szpaderski-14",
+   "name": "Tom Szpaderski 14",
+   "cat": "tom",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-tom-szpaderski-14.ogg",
+   "dur": 1.826
+  },
+  {
+   "id": "karoryfer-tom-szpaderski-15",
+   "name": "Tom Szpaderski 15",
+   "cat": "tom",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-tom-szpaderski-15.ogg",
+   "dur": 1.771
+  },
+  {
+   "id": "karoryfer-tom-szpaderski-18",
+   "name": "Tom Szpaderski 18",
+   "cat": "tom",
+   "tags": [
+    "karoryfer"
+   ],
+   "file": "karoryfer-tom-szpaderski-18.ogg",
+   "dur": 1.716
+  },
+  {
+   "id": "microlag-clap1",
+   "name": "Clap1",
+   "cat": "perc",
+   "tags": [
+    "microlag"
+   ],
+   "file": "microlag-clap1.ogg",
+   "dur": 0.227
+  },
+  {
+   "id": "microlag-hihat1",
+   "name": "Hihat1",
+   "cat": "perc",
+   "tags": [
+    "microlag"
+   ],
+   "file": "microlag-hihat1.ogg",
+   "dur": 0.064
+  },
+  {
+   "id": "microlag-hihat2",
+   "name": "Hihat2",
+   "cat": "perc",
+   "tags": [
+    "microlag"
+   ],
+   "file": "microlag-hihat2.ogg",
+   "dur": 0.094
+  },
+  {
+   "id": "microlag-kick1",
+   "name": "Kick1",
+   "cat": "perc",
+   "tags": [
+    "microlag"
+   ],
+   "file": "microlag-kick1.ogg",
+   "dur": 0.557
+  },
+  {
+   "id": "microlag-kick2",
+   "name": "Kick2",
+   "cat": "perc",
+   "tags": [
+    "microlag"
+   ],
+   "file": "microlag-kick2.ogg",
+   "dur": 0.251
+  },
+  {
+   "id": "microlag-snare1",
+   "name": "Snare1",
+   "cat": "perc",
+   "tags": [
+    "microlag"
+   ],
+   "file": "microlag-snare1.ogg",
+   "dur": 1.081
+  },
+  {
+   "id": "stargate-hat-1",
+   "name": "Hat 1",
+   "cat": "hat",
+   "tags": [
+    "stargate"
+   ],
+   "file": "stargate-hat-1.ogg",
+   "dur": 0.581
+  },
+  {
+   "id": "stargate-hat-2",
+   "name": "Hat 2",
+   "cat": "hat",
+   "tags": [
+    "stargate"
+   ],
+   "file": "stargate-hat-2.ogg",
+   "dur": 0.476
+  },
+  {
+   "id": "stargate-kick-1-a",
+   "name": "Kick 1 A",
+   "cat": "kick",
+   "tags": [
+    "stargate"
+   ],
+   "file": "stargate-kick-1-a.ogg",
+   "dur": 0.565
+  },
+  {
+   "id": "stargate-kick-1-b",
+   "name": "Kick 1 B",
+   "cat": "kick",
+   "tags": [
+    "stargate"
+   ],
+   "file": "stargate-kick-1-b.ogg",
+   "dur": 0.565
+  },
+  {
+   "id": "stargate-kick-1-c",
+   "name": "Kick 1 C",
+   "cat": "kick",
+   "tags": [
+    "stargate"
+   ],
+   "file": "stargate-kick-1-c.ogg",
+   "dur": 0.565
+  },
+  {
+   "id": "stargate-kick-2-a",
+   "name": "Kick 2 A",
+   "cat": "kick",
+   "tags": [
+    "stargate"
+   ],
+   "file": "stargate-kick-2-a.ogg",
+   "dur": 0.565
+  },
+  {
+   "id": "stargate-kick-2-b",
+   "name": "Kick 2 B",
+   "cat": "kick",
+   "tags": [
+    "stargate"
+   ],
+   "file": "stargate-kick-2-b.ogg",
+   "dur": 0.565
+  }
+ ],
+ "instruments": []
+}

@@ -63,9 +63,32 @@ export class DrumTrack {
     this._drive = -1;
   }
 
-  setBuffer(buf) {
+  setBuffer(buf, root = null) {
+    this.zones = buf ? [{ root, buffer: buf, rev: null }] : [];
     this.buffer = buf;
     this.revBuffer = buf ? reverseBuffer(buf) : null;
+    this.zones.length && (this.zones[0].rev = this.revBuffer);
+  }
+
+  // Instrumento multisampleado: [{root, buffer}] (una zona por nota grabada)
+  setZones(zones) {
+    this.zones = zones.slice().sort((a, b) => a.root - b.root).map(z => ({ ...z, rev: null }));
+    const mid = this.zones[Math.floor(this.zones.length / 2)];
+    this.buffer = mid.buffer;
+    this.revBuffer = null;
+  }
+
+  // Elige la zona y la velocidad de reproducción para una nota
+  pick(p, semis) {
+    if (!this.zones.length) return null;
+    const z0 = this.zones[0];
+    if (this.zones.length === 1 && z0.root == null) {
+      return { z: z0, rate: Math.pow(2, (p.pitch + semis) / 12) };
+    }
+    const target = p.root + semis + p.pitch;
+    let z = z0;
+    for (const c of this.zones) if (Math.abs(c.root - target) < Math.abs(z.root - target)) z = c;
+    return { z, rate: Math.pow(2, (target - z.root) / 12) };
   }
 
   apply(p, audible) {
@@ -98,15 +121,17 @@ export class DrumTrack {
 
   // opt: { slice: índice, hold: true = suena hasta release() (teclado) }
   trigger(time, vel, semis, p, opt = {}) {
-    const buf = p.reverse ? this.revBuffer : this.buffer;
-    if (!buf) return null;
+    const pk = this.pick(p, opt.slice != null ? 0 : semis);
+    if (!pk) return null;
+    const { z, rate } = pk;
+    if (p.reverse && !z.rev) z.rev = reverseBuffer(z.buffer);
+    const buf = p.reverse ? z.rev : z.buffer;
     const reg = regionOf(p, buf, opt.slice);
     if (!reg) return null;
     const ctx = A.ctx;
     if (p.mono && !opt.poly) this.choke(time);
     const src = ctx.createBufferSource();
     src.buffer = buf;
-    const rate = Math.pow(2, (p.pitch + semis) / 12);
     src.playbackRate.value = rate;
     const env = ctx.createGain();
     src.connect(env).connect(this.filter);

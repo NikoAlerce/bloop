@@ -1,0 +1,638 @@
+{
+ "id": "instrumentos",
+ "name": "Instrumentos",
+ "emoji": "🎹",
+ "desc": "Piano, piano FM, vibráfono, kalimba, arpa, contrabajo, cuerdas, flauta y saxo (VCSL / VSCO-2-CE, CC0).",
+ "license": "CC0 · github.com/sgossner/VCSL y github.com/sgossner/VSCO-2-CE",
+ "sounds": [],
+ "instruments": [
+  {
+   "id": "piano",
+   "name": "Piano vertical",
+   "cat": "keys",
+   "tags": [
+    "instrumento"
+   ],
+   "zones": [
+    {
+     "root": 36,
+     "file": "piano-36.ogg"
+    },
+    {
+     "root": 43,
+     "file": "piano-43.ogg"
+    },
+    {
+     "root": 48,
+     "file": "piano-48.ogg"
+    },
+    {
+     "root": 55,
+     "file": "piano-55.ogg"
+    },
+    {
+     "root": 60,
+     "file": "piano-60.ogg"
+    },
+    {
+     "root": 67,
+     "file": "piano-67.ogg"
+    },
+    {
+     "root": 72,
+     "file": "piano-72.ogg"
+    },
+    {
+     "root": 79,
+     "file": "piano-79.ogg"
+    },
+    {
+     "root": 84,
+     "file": "piano-84.ogg"
+    },
+    {
+     "root": 91,
+     "file": "piano-91.ogg"
+    },
+    {
+     "root": 96,
+     "file": "piano-96.ogg"
+    }
+   ]
+  },
+  {
+   "id": "fmpiano",
+   "name": "Piano FM (TX81Z)",
+   "cat": "keys",
+   "tags": [
+    "instrumento"
+   ],
+   "zones": [
+    {
+     "root": 36,
+     "file": "fmpiano-36.ogg"
+    },
+    {
+     "root": 44,
+     "file": "fmpiano-44.ogg"
+    },
+    {
+     "root": 52,
+     "file": "fmpiano-52.ogg"
+    },
+    {
+     "root": 60,
+     "file": "fmpiano-60.ogg"
+    },
+    {
+     "root": 68,
+     "file": "fmpiano-68.ogg"
+    },
+    {
+     "root": 76,
+     "file": "fmpiano-76.ogg"
+    },
+    {
+     "root": 84,
+     "file": "fmpiano-84.ogg"
+    },
+    {
+     "root": 92,
+     "file": "fmpiano-92.ogg"
+    }
+   ]
+  },
+  {
+   "id": "vibes",
+   "name": "Vibráfono",
+   "cat": "keys",
+   "tags": [
+    "instrumento"
+   ],
+   "zones": [
+    {
+     "root": 53,
+     "file": "vibes-53.ogg"
+    },
+    {
+     "root": 57,
+     "file": "vibes-57.ogg"
+    },
+    {
+     "root": 60,
+     "file": "vibes-60.ogg"
+    },
+    {
+     "root": 64,
+     "file": "vibes-64.ogg"
+    },
+    {
+     "root": 67,
+     "file": "vibes-67.ogg"
+    },
+    {
+     "root": 71,
+     "file": "vibes-71.ogg"
+    },
+    {
+     "root": 74,
+     "file": "vibes-74.ogg"
+    },
+    {
+     "root": 77,
+     "file": "vibes-77.ogg"
+    },
+    {
+     "root": 81,
+     "file": "vibes-81.ogg"
+    },
+    {
+     "root": 84,
+     "file": "vibes-84.ogg"
+    },
+    {
+     "root": 88,
+     "file": "vibes-88.ogg"
+    }
+   ]
+  },
+  {
+   "id": "kalimba",
+   "name": "Kalimba",
+   "cat": "keys",
+   "tags": [
+    "instrumento"
+   ],
+   "zones": [
+    {
+     "root": 59,
+     "file": "kalimba-59.ogg"
+    },
+    {
+     "root": 61,
+     "file": "kalimba-61.ogg"
+    },
+    {
+     "root": 63,
+     "file": "kalimba-63.ogg"
+    },
+    {
+     "root": 66,
+     "file": "kalimba-66.ogg"
+    },
+    {
+     "root": 68,
+     "file": "kalimba-68.ogg"
+    },
+    {
+     "root": 71,
+     "file": "kalimba-71.ogg"
+    },
+    {
+     "root": 73,
+     "file": "kalimba-73.ogg"
+    },
+    {
+     "root": 75,
+     "file": "kalimba-75.ogg"
+    },
+    {
+     "root": 78,
+     "file": "kalimba-78.ogg"
+    },
+    {
+     "root": 81,
+     "file": "kalimba-81.ogg"
+    },
+    {
+     "root": 83,
+     "file": "kalimba-83.ogg"
+    }
+   ]
+  },
+  {
+   "id": "marimba",
+   "name": "Marimba",
+   "cat": "keys",
+   "tags": [
+    "instrumento"
+   ],
+   "zones": [
+    {
+     "root": 41,
+     "file": "marimba-41.ogg"
+    },
+    {
+     "root": 48,
+     "file": "marimba-48.ogg"
+    },
+    {
+     "root": 55,
+     "file": "marimba-55.ogg"
+    },
+    {
+     "root": 59,
+     "file": "marimba-59.ogg"
+    },
+    {
+     "root": 65,
+     "file": "marimba-65.ogg"
+    },
+    {
+     "root": 72,
+     "file": "marimba-72.ogg"
+    },
+    {
+     "root": 79,
+     "file": "marimba-79.ogg"
+    },
+    {
+     "root": 83,
+     "file": "marimba-83.ogg"
+    },
+    {
+     "root": 89,
+     "file": "marimba-89.ogg"
+    },
+    {
+     "root": 96,
+     "file": "marimba-96.ogg"
+    }
+   ]
+  },
+  {
+   "id": "glock",
+   "name": "Glockenspiel",
+   "cat": "keys",
+   "tags": [
+    "instrumento"
+   ],
+   "zones": [
+    {
+     "root": 79,
+     "file": "glock-79.ogg"
+    },
+    {
+     "root": 84,
+     "file": "glock-84.ogg"
+    },
+    {
+     "root": 91,
+     "file": "glock-91.ogg"
+    },
+    {
+     "root": 96,
+     "file": "glock-96.ogg"
+    },
+    {
+     "root": 104,
+     "file": "glock-104.ogg"
+    },
+    {
+     "root": 108,
+     "file": "glock-108.ogg"
+    }
+   ]
+  },
+  {
+   "id": "harp",
+   "name": "Arpa",
+   "cat": "strings",
+   "tags": [
+    "instrumento"
+   ],
+   "zones": [
+    {
+     "root": 38,
+     "file": "harp-38.ogg"
+    },
+    {
+     "root": 41,
+     "file": "harp-41.ogg"
+    },
+    {
+     "root": 45,
+     "file": "harp-45.ogg"
+    },
+    {
+     "root": 48,
+     "file": "harp-48.ogg"
+    },
+    {
+     "root": 52,
+     "file": "harp-52.ogg"
+    },
+    {
+     "root": 55,
+     "file": "harp-55.ogg"
+    },
+    {
+     "root": 59,
+     "file": "harp-59.ogg"
+    },
+    {
+     "root": 62,
+     "file": "harp-62.ogg"
+    },
+    {
+     "root": 65,
+     "file": "harp-65.ogg"
+    },
+    {
+     "root": 69,
+     "file": "harp-69.ogg"
+    },
+    {
+     "root": 72,
+     "file": "harp-72.ogg"
+    },
+    {
+     "root": 76,
+     "file": "harp-76.ogg"
+    },
+    {
+     "root": 79,
+     "file": "harp-79.ogg"
+    },
+    {
+     "root": 83,
+     "file": "harp-83.ogg"
+    },
+    {
+     "root": 86,
+     "file": "harp-86.ogg"
+    },
+    {
+     "root": 89,
+     "file": "harp-89.ogg"
+    },
+    {
+     "root": 93,
+     "file": "harp-93.ogg"
+    }
+   ]
+  },
+  {
+   "id": "contrabajo",
+   "name": "Contrabajo pizz",
+   "cat": "bass",
+   "tags": [
+    "instrumento"
+   ],
+   "zones": [
+    {
+     "root": 28,
+     "file": "contrabajo-28.ogg"
+    },
+    {
+     "root": 30,
+     "file": "contrabajo-30.ogg"
+    },
+    {
+     "root": 34,
+     "file": "contrabajo-34.ogg"
+    },
+    {
+     "root": 36,
+     "file": "contrabajo-36.ogg"
+    },
+    {
+     "root": 38,
+     "file": "contrabajo-38.ogg"
+    },
+    {
+     "root": 40,
+     "file": "contrabajo-40.ogg"
+    },
+    {
+     "root": 42,
+     "file": "contrabajo-42.ogg"
+    },
+    {
+     "root": 44,
+     "file": "contrabajo-44.ogg"
+    },
+    {
+     "root": 49,
+     "file": "contrabajo-49.ogg"
+    },
+    {
+     "root": 52,
+     "file": "contrabajo-52.ogg"
+    },
+    {
+     "root": 56,
+     "file": "contrabajo-56.ogg"
+    },
+    {
+     "root": 59,
+     "file": "contrabajo-59.ogg"
+    }
+   ]
+  },
+  {
+   "id": "cello-pizz",
+   "name": "Cellos pizz",
+   "cat": "strings",
+   "tags": [
+    "instrumento"
+   ],
+   "zones": [
+    {
+     "root": 36,
+     "file": "cello-pizz-36.ogg"
+    },
+    {
+     "root": 40,
+     "file": "cello-pizz-40.ogg"
+    },
+    {
+     "root": 43,
+     "file": "cello-pizz-43.ogg"
+    },
+    {
+     "root": 47,
+     "file": "cello-pizz-47.ogg"
+    },
+    {
+     "root": 50,
+     "file": "cello-pizz-50.ogg"
+    },
+    {
+     "root": 53,
+     "file": "cello-pizz-53.ogg"
+    },
+    {
+     "root": 57,
+     "file": "cello-pizz-57.ogg"
+    },
+    {
+     "root": 60,
+     "file": "cello-pizz-60.ogg"
+    },
+    {
+     "root": 64,
+     "file": "cello-pizz-64.ogg"
+    },
+    {
+     "root": 67,
+     "file": "cello-pizz-67.ogg"
+    },
+    {
+     "root": 71,
+     "file": "cello-pizz-71.ogg"
+    }
+   ]
+  },
+  {
+   "id": "violines",
+   "name": "Violines",
+   "cat": "strings",
+   "tags": [
+    "instrumento"
+   ],
+   "zones": [
+    {
+     "root": 55,
+     "file": "violines-55.ogg"
+    },
+    {
+     "root": 59,
+     "file": "violines-59.ogg"
+    },
+    {
+     "root": 62,
+     "file": "violines-62.ogg"
+    },
+    {
+     "root": 66,
+     "file": "violines-66.ogg"
+    },
+    {
+     "root": 69,
+     "file": "violines-69.ogg"
+    },
+    {
+     "root": 72,
+     "file": "violines-72.ogg"
+    },
+    {
+     "root": 76,
+     "file": "violines-76.ogg"
+    },
+    {
+     "root": 79,
+     "file": "violines-79.ogg"
+    },
+    {
+     "root": 83,
+     "file": "violines-83.ogg"
+    },
+    {
+     "root": 86,
+     "file": "violines-86.ogg"
+    }
+   ]
+  },
+  {
+   "id": "flauta",
+   "name": "Flauta",
+   "cat": "winds",
+   "tags": [
+    "instrumento"
+   ],
+   "zones": [
+    {
+     "root": 60,
+     "file": "flauta-60.ogg"
+    },
+    {
+     "root": 64,
+     "file": "flauta-64.ogg"
+    },
+    {
+     "root": 69,
+     "file": "flauta-69.ogg"
+    },
+    {
+     "root": 72,
+     "file": "flauta-72.ogg"
+    },
+    {
+     "root": 76,
+     "file": "flauta-76.ogg"
+    },
+    {
+     "root": 81,
+     "file": "flauta-81.ogg"
+    },
+    {
+     "root": 84,
+     "file": "flauta-84.ogg"
+    },
+    {
+     "root": 88,
+     "file": "flauta-88.ogg"
+    },
+    {
+     "root": 93,
+     "file": "flauta-93.ogg"
+    },
+    {
+     "root": 96,
+     "file": "flauta-96.ogg"
+    }
+   ]
+  },
+  {
+   "id": "saxo",
+   "name": "Saxo tenor",
+   "cat": "winds",
+   "tags": [
+    "instrumento"
+   ],
+   "zones": [
+    {
+     "root": 44,
+     "file": "saxo-44.ogg"
+    },
+    {
+     "root": 48,
+     "file": "saxo-48.ogg"
+    },
+    {
+     "root": 52,
+     "file": "saxo-52.ogg"
+    },
+    {
+     "root": 56,
+     "file": "saxo-56.ogg"
+    },
+    {
+     "root": 60,
+     "file": "saxo-60.ogg"
+    },
+    {
+     "root": 64,
+     "file": "saxo-64.ogg"
+    },
+    {
+     "root": 68,
+     "file": "saxo-68.ogg"
+    },
+    {
+     "root": 72,
+     "file": "saxo-72.ogg"
+    },
+    {
+     "root": 76,
+     "file": "saxo-76.ogg"
+    },
+    {
+     "root": 80,
+     "file": "saxo-80.ogg"
+    }
+   ]
+  }
+ ]
+}

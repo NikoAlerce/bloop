@@ -1,0 +1,370 @@
+{
+ "id": "lofi",
+ "name": "Polvo Lofi",
+ "emoji": "📼",
+ "desc": "Boom bap, lo-fi y chill: bombos y cajas sucias, acordes Rhodes, pads, vinilo y lluvia.",
+ "license": "CC0 · sintetizado por Bloop",
+ "sounds": [
+  {
+   "id": "kick-bb-0",
+   "name": "Bombo boom bap 1",
+   "cat": "kick",
+   "tags": [
+    "boom bap",
+    "lofi"
+   ],
+   "file": "kick-bb-0.ogg",
+   "dur": 0.99
+  },
+  {
+   "id": "kick-bb-1",
+   "name": "Bombo boom bap 2",
+   "cat": "kick",
+   "tags": [
+    "boom bap",
+    "lofi"
+   ],
+   "file": "kick-bb-1.ogg",
+   "dur": 1.024
+  },
+  {
+   "id": "kick-bb-2",
+   "name": "Bombo boom bap 3",
+   "cat": "kick",
+   "tags": [
+    "boom bap",
+    "lofi"
+   ],
+   "file": "kick-bb-2.ogg",
+   "dur": 0.958
+  },
+  {
+   "id": "kick-bb-3",
+   "name": "Bombo boom bap 4",
+   "cat": "kick",
+   "tags": [
+    "boom bap",
+    "lofi"
+   ],
+   "file": "kick-bb-3.ogg",
+   "dur": 1.04
+  },
+  {
+   "id": "kick-lofi-0",
+   "name": "Bombo polvoriento 1",
+   "cat": "kick",
+   "tags": [
+    "lofi"
+   ],
+   "file": "kick-lofi-0.ogg",
+   "dur": 1.25
+  },
+  {
+   "id": "kick-lofi-1",
+   "name": "Bombo polvoriento 2",
+   "cat": "kick",
+   "tags": [
+    "lofi"
+   ],
+   "file": "kick-lofi-1.ogg",
+   "dur": 2.0
+  },
+  {
+   "id": "kick-lofi-2",
+   "name": "Bombo polvoriento 3",
+   "cat": "kick",
+   "tags": [
+    "lofi"
+   ],
+   "file": "kick-lofi-2.ogg",
+   "dur": 2.75
+  },
+  {
+   "id": "snare-bb-0",
+   "name": "Caja boom bap 1",
+   "cat": "snare",
+   "tags": [
+    "boom bap",
+    "lofi"
+   ],
+   "file": "snare-bb-0.ogg",
+   "dur": 1.125
+  },
+  {
+   "id": "snare-bb-1",
+   "name": "Caja boom bap 2",
+   "cat": "snare",
+   "tags": [
+    "boom bap",
+    "lofi"
+   ],
+   "file": "snare-bb-1.ogg",
+   "dur": 1.144
+  },
+  {
+   "id": "snare-bb-2",
+   "name": "Caja boom bap 3",
+   "cat": "snare",
+   "tags": [
+    "boom bap",
+    "lofi"
+   ],
+   "file": "snare-bb-2.ogg",
+   "dur": 1.119
+  },
+  {
+   "id": "snare-bb-3",
+   "name": "Caja boom bap 4",
+   "cat": "snare",
+   "tags": [
+    "boom bap",
+    "lofi"
+   ],
+   "file": "snare-bb-3.ogg",
+   "dur": 1.145
+  },
+  {
+   "id": "rim-lofi-0",
+   "name": "Rim lofi 1",
+   "cat": "perc",
+   "tags": [
+    "lofi"
+   ],
+   "file": "rim-lofi-0.ogg",
+   "dur": 0.08
+  },
+  {
+   "id": "rim-lofi-1",
+   "name": "Rim lofi 2",
+   "cat": "perc",
+   "tags": [
+    "lofi"
+   ],
+   "file": "rim-lofi-1.ogg",
+   "dur": 0.08
+  },
+  {
+   "id": "hat-lofi-0",
+   "name": "Hat lofi 1",
+   "cat": "hat",
+   "tags": [
+    "lofi"
+   ],
+   "file": "hat-lofi-0.ogg",
+   "dur": 0.12
+  },
+  {
+   "id": "hat-lofi-1",
+   "name": "Hat lofi 2",
+   "cat": "hat",
+   "tags": [
+    "lofi"
+   ],
+   "file": "hat-lofi-1.ogg",
+   "dur": 0.2
+  },
+  {
+   "id": "hat-lofi-2",
+   "name": "Hat lofi 3",
+   "cat": "hat",
+   "tags": [
+    "lofi"
+   ],
+   "file": "hat-lofi-2.ogg",
+   "dur": 0.8
+  },
+  {
+   "id": "shaker-lofi",
+   "name": "Shaker lofi",
+   "cat": "perc",
+   "tags": [
+    "lofi"
+   ],
+   "file": "shaker-lofi.ogg",
+   "dur": 0.25
+  },
+  {
+   "id": "snap-lofi",
+   "name": "Chasquido lofi",
+   "cat": "clap",
+   "tags": [
+    "lofi"
+   ],
+   "file": "snap-lofi.ogg",
+   "dur": 0.438
+  },
+  {
+   "id": "chord-ep-0",
+   "name": "Acorde Rhodes m9",
+   "cat": "chord",
+   "tags": [
+    "lofi",
+    "chill"
+   ],
+   "file": "chord-ep-0.ogg",
+   "dur": 4.999,
+   "root": 50
+  },
+  {
+   "id": "chord-ep-1",
+   "name": "Acorde Rhodes maj7",
+   "cat": "chord",
+   "tags": [
+    "lofi",
+    "chill"
+   ],
+   "file": "chord-ep-1.ogg",
+   "dur": 4.999,
+   "root": 53
+  },
+  {
+   "id": "chord-ep-2",
+   "name": "Acorde Rhodes m7",
+   "cat": "chord",
+   "tags": [
+    "lofi",
+    "chill"
+   ],
+   "file": "chord-ep-2.ogg",
+   "dur": 4.999,
+   "root": 45
+  },
+  {
+   "id": "chord-ep-3",
+   "name": "Acorde Rhodes maj9",
+   "cat": "chord",
+   "tags": [
+    "lofi",
+    "chill"
+   ],
+   "file": "chord-ep-3.ogg",
+   "dur": 4.999,
+   "root": 48
+  },
+  {
+   "id": "chord-ep-4",
+   "name": "Acorde Rhodes add9",
+   "cat": "chord",
+   "tags": [
+    "lofi",
+    "chill"
+   ],
+   "file": "chord-ep-4.ogg",
+   "dur": 4.999,
+   "root": 55
+  },
+  {
+   "id": "chord-ep-5",
+   "name": "Acorde Rhodes dom9",
+   "cat": "chord",
+   "tags": [
+    "lofi",
+    "chill"
+   ],
+   "file": "chord-ep-5.ogg",
+   "dur": 4.999,
+   "root": 52
+  },
+  {
+   "id": "chord-ep-6",
+   "name": "Acorde Rhodes m11",
+   "cat": "chord",
+   "tags": [
+    "lofi",
+    "chill"
+   ],
+   "file": "chord-ep-6.ogg",
+   "dur": 4.999,
+   "root": 47
+  },
+  {
+   "id": "chord-ep-7",
+   "name": "Acorde Rhodes sus2",
+   "cat": "chord",
+   "tags": [
+    "lofi",
+    "chill"
+   ],
+   "file": "chord-ep-7.ogg",
+   "dur": 4.999,
+   "root": 50
+  },
+  {
+   "id": "chord-pad-0",
+   "name": "Pad nostalgia m9",
+   "cat": "chord",
+   "tags": [
+    "chill"
+   ],
+   "file": "chord-pad-0.ogg",
+   "dur": 6.282,
+   "root": 48
+  },
+  {
+   "id": "chord-pad-1",
+   "name": "Pad nostalgia maj7",
+   "cat": "chord",
+   "tags": [
+    "chill"
+   ],
+   "file": "chord-pad-1.ogg",
+   "dur": 6.282,
+   "root": 50
+  },
+  {
+   "id": "chord-pad-2",
+   "name": "Pad nostalgia sus2",
+   "cat": "chord",
+   "tags": [
+    "chill"
+   ],
+   "file": "chord-pad-2.ogg",
+   "dur": 6.282,
+   "root": 52
+  },
+  {
+   "id": "vinyl",
+   "name": "Vinilo (loop)",
+   "cat": "texture",
+   "tags": [
+    "lofi"
+   ],
+   "file": "vinyl.ogg",
+   "dur": 8.0,
+   "loop": true
+  },
+  {
+   "id": "rain",
+   "name": "Lluvia (loop)",
+   "cat": "texture",
+   "tags": [
+    "chill"
+   ],
+   "file": "rain.ogg",
+   "dur": 8.0,
+   "loop": true
+  },
+  {
+   "id": "hiss",
+   "name": "Soplido de cinta",
+   "cat": "texture",
+   "tags": [
+    "lofi"
+   ],
+   "file": "hiss.ogg",
+   "dur": 6.0,
+   "loop": true
+  },
+  {
+   "id": "tapestop",
+   "name": "Tape stop",
+   "cat": "fx",
+   "tags": [
+    "lofi"
+   ],
+   "file": "tapestop.ogg",
+   "dur": 1.2
+  }
+ ],
+ "instruments": []
+}

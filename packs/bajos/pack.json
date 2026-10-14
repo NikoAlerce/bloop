@@ -1,0 +1,366 @@
+{
+ "id": "bajos",
+ "name": "Bajos Gordos",
+ "emoji": "🔊",
+ "desc": "808 limpios y sucios, sub, reese, growls y wobbles de dubstep, Rhodes. Para tocar en notas.",
+ "license": "CC0 · sintetizado por Bloop",
+ "sounds": [
+  {
+   "id": "growl-0",
+   "name": "Growl yoi",
+   "cat": "bass",
+   "tags": [
+    "dubstep"
+   ],
+   "file": "growl-0.ogg",
+   "dur": 1.6,
+   "root": 29
+  },
+  {
+   "id": "growl-1",
+   "name": "Growl rasposo",
+   "cat": "bass",
+   "tags": [
+    "dubstep"
+   ],
+   "file": "growl-1.ogg",
+   "dur": 1.6,
+   "root": 29
+  },
+  {
+   "id": "growl-2",
+   "name": "Growl lento",
+   "cat": "bass",
+   "tags": [
+    "dubstep"
+   ],
+   "file": "growl-2.ogg",
+   "dur": 1.599,
+   "root": 29
+  },
+  {
+   "id": "growl-3",
+   "name": "Growl gritón",
+   "cat": "bass",
+   "tags": [
+    "dubstep"
+   ],
+   "file": "growl-3.ogg",
+   "dur": 1.6,
+   "root": 29
+  },
+  {
+   "id": "growl-4",
+   "name": "Growl monstruo",
+   "cat": "bass",
+   "tags": [
+    "dubstep"
+   ],
+   "file": "growl-4.ogg",
+   "dur": 1.6,
+   "root": 29
+  },
+  {
+   "id": "growl-5",
+   "name": "Growl metralla",
+   "cat": "bass",
+   "tags": [
+    "dubstep"
+   ],
+   "file": "growl-5.ogg",
+   "dur": 1.6,
+   "root": 29
+  },
+  {
+   "id": "wobble-4",
+   "name": "Wobble 140 1/4",
+   "cat": "bass",
+   "tags": [
+    "dubstep"
+   ],
+   "file": "wobble-4.ogg",
+   "dur": 1.714,
+   "root": 29,
+   "bpm": 140
+  },
+  {
+   "id": "wobble-8",
+   "name": "Wobble 140 1/8",
+   "cat": "bass",
+   "tags": [
+    "dubstep"
+   ],
+   "file": "wobble-8.ogg",
+   "dur": 1.714,
+   "root": 29,
+   "bpm": 140
+  },
+  {
+   "id": "wobble-12",
+   "name": "Wobble 140 1/12",
+   "cat": "bass",
+   "tags": [
+    "dubstep"
+   ],
+   "file": "wobble-12.ogg",
+   "dur": 1.714,
+   "root": 29,
+   "bpm": 140
+  },
+  {
+   "id": "wobble-16",
+   "name": "Wobble 140 1/16",
+   "cat": "bass",
+   "tags": [
+    "dubstep"
+   ],
+   "file": "wobble-16.ogg",
+   "dur": 1.714,
+   "root": 29,
+   "bpm": 140
+  },
+  {
+   "id": "sub-drop",
+   "name": "Sub drop",
+   "cat": "fx",
+   "tags": [
+    "dubstep",
+    "trap"
+   ],
+   "file": "sub-drop.ogg",
+   "dur": 2.5
+  }
+ ],
+ "instruments": [
+  {
+   "id": "i-808",
+   "name": "808 limpio",
+   "cat": "bass",
+   "tags": [
+    "808",
+    "trap"
+   ],
+   "zones": [
+    {
+     "root": 24,
+     "file": "i-808-24.ogg"
+    },
+    {
+     "root": 30,
+     "file": "i-808-30.ogg"
+    },
+    {
+     "root": 36,
+     "file": "i-808-36.ogg"
+    },
+    {
+     "root": 42,
+     "file": "i-808-42.ogg"
+    },
+    {
+     "root": 48,
+     "file": "i-808-48.ogg"
+    }
+   ]
+  },
+  {
+   "id": "i-808-dirty",
+   "name": "808 sucio",
+   "cat": "bass",
+   "tags": [
+    "808",
+    "trap"
+   ],
+   "zones": [
+    {
+     "root": 24,
+     "file": "i-808-dirty-24.ogg"
+    },
+    {
+     "root": 30,
+     "file": "i-808-dirty-30.ogg"
+    },
+    {
+     "root": 36,
+     "file": "i-808-dirty-36.ogg"
+    },
+    {
+     "root": 42,
+     "file": "i-808-dirty-42.ogg"
+    },
+    {
+     "root": 48,
+     "file": "i-808-dirty-48.ogg"
+    }
+   ]
+  },
+  {
+   "id": "i-808-long",
+   "name": "808 eterno",
+   "cat": "bass",
+   "tags": [
+    "808"
+   ],
+   "zones": [
+    {
+     "root": 24,
+     "file": "i-808-long-24.ogg"
+    },
+    {
+     "root": 30,
+     "file": "i-808-long-30.ogg"
+    },
+    {
+     "root": 36,
+     "file": "i-808-long-36.ogg"
+    },
+    {
+     "root": 42,
+     "file": "i-808-long-42.ogg"
+    },
+    {
+     "root": 48,
+     "file": "i-808-long-48.ogg"
+    }
+   ]
+  },
+  {
+   "id": "i-sub",
+   "name": "Sub puro",
+   "cat": "bass",
+   "tags": [
+    "sub"
+   ],
+   "zones": [
+    {
+     "root": 24,
+     "file": "i-sub-24.ogg"
+    },
+    {
+     "root": 30,
+     "file": "i-sub-30.ogg"
+    },
+    {
+     "root": 36,
+     "file": "i-sub-36.ogg"
+    },
+    {
+     "root": 42,
+     "file": "i-sub-42.ogg"
+    },
+    {
+     "root": 48,
+     "file": "i-sub-48.ogg"
+    }
+   ]
+  },
+  {
+   "id": "i-reese",
+   "name": "Reese oscuro",
+   "cat": "bass",
+   "tags": [
+    "dnb",
+    "dubstep"
+   ],
+   "zones": [
+    {
+     "root": 24,
+     "file": "i-reese-24.ogg"
+    },
+    {
+     "root": 30,
+     "file": "i-reese-30.ogg"
+    },
+    {
+     "root": 36,
+     "file": "i-reese-36.ogg"
+    },
+    {
+     "root": 42,
+     "file": "i-reese-42.ogg"
+    },
+    {
+     "root": 48,
+     "file": "i-reese-48.ogg"
+    }
+   ]
+  },
+  {
+   "id": "i-pluck",
+   "name": "Bajo pluck",
+   "cat": "bass",
+   "tags": [
+    "synth"
+   ],
+   "zones": [
+    {
+     "root": 24,
+     "file": "i-pluck-24.ogg"
+    },
+    {
+     "root": 30,
+     "file": "i-pluck-30.ogg"
+    },
+    {
+     "root": 36,
+     "file": "i-pluck-36.ogg"
+    },
+    {
+     "root": 42,
+     "file": "i-pluck-42.ogg"
+    },
+    {
+     "root": 48,
+     "file": "i-pluck-48.ogg"
+    }
+   ]
+  },
+  {
+   "id": "i-ep",
+   "name": "Rhodes lofi",
+   "cat": "keys",
+   "tags": [
+    "lofi",
+    "chill"
+   ],
+   "zones": [
+    {
+     "root": 36,
+     "file": "i-ep-36.ogg"
+    },
+    {
+     "root": 42,
+     "file": "i-ep-42.ogg"
+    },
+    {
+     "root": 48,
+     "file": "i-ep-48.ogg"
+    },
+    {
+     "root": 54,
+     "file": "i-ep-54.ogg"
+    },
+    {
+     "root": 60,
+     "file": "i-ep-60.ogg"
+    },
+    {
+     "root": 66,
+     "file": "i-ep-66.ogg"
+    },
+    {
+     "root": 72,
+     "file": "i-ep-72.ogg"
+    },
+    {
+     "root": 78,
+     "file": "i-ep-78.ogg"
+    },
+    {
+     "root": 84,
+     "file": "i-ep-84.ogg"
+    }
+   ]
+  }
+ ]
+}

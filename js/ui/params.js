@@ -13,6 +13,7 @@ import {
   soundName, trackName, normalizeTrack, undoTrack,
 } from '../actions.js';
 import { openSampleEditor } from './waveeditor.js';
+import { openBank } from './bank.js';
 
 const pm = v => (v > 0 ? '+' : '') + v;
 const sec = v => v < 1 ? Math.round(v * 1000) + 'ms' : v.toFixed(1) + 's';
@@ -63,6 +64,7 @@ export const SYNTH_SPECS = {
   Mod: [
     ['glide', 'Glide', { max: 0.5, fmt: sec }], ['vib', 'Vibrato', {}],
     ['penv', 'Pitch env', { min: -24, max: 24, step: 1, bipolar: true, def: 0, fmt: pm }],
+    ['lfoAmt', 'Wobble', { def: 0 }],
   ],
   FX: [['chorus', 'Chorus', {}], ['drive', 'Drive', {}], ['rev', 'Reverb', {}], ['dly', 'Delay', {}], ['vol', 'Volumen', {}]],
 };
@@ -140,7 +142,7 @@ export function buildParams() {
 
     const file = h('input', { type: 'file', accept: 'audio/*', hidden: true, onchange: e => { const f = e.target.files[0]; if (f) loadFileToTrack(i, f); } });
     const soundsBtn = h('button', { class: 'sbtn on' }, '🎵 ' + soundName(i));
-    soundsBtn.addEventListener('click', () => openSounds(soundsBtn, i));
+    soundsBtn.addEventListener('click', () => openBank(i));
     const rec = micRecInfo();
     const micBtn = h('button', { class: 'sbtn rec' + (rec ? ' on' : ''), onclick: () => toggleMicRecord(i) }, rec ? '■ Parar' : '🎤 Grabar');
     if (rec) {
@@ -210,6 +212,10 @@ export function buildParams() {
         chips(WAVES, p.wave2, v => { p.wave2 = v; }),
         h('div', { class: 'row', style: { marginTop: '4px', gap: '4px' } },
           toggle('Mono', p.mono, v => { p.mono = v; app.synth.allOff(); }))),
+      h('div', { class: 'knob-group' }, h('div', { class: 'lbl' }, 'Wobble · LFO al filtro (a tempo)'),
+        chips(['1/2', '1/4', '1/4T', '1/8', '1/8T', '1/16', '1/32'], p.lfoDiv, v => { p.lfoDiv = v; }),
+        chips([['sine', '∿'], ['square', '⊓'], ['saw', '⩘']], p.lfoShape, v => { p.lfoShape = v; }),
+        h('div', { class: 'hint' }, 'Subí la perilla Wobble (grupo Mod). Cada nota arranca el wobble desde cerrado.')),
       ...Object.entries(SYNTH_SPECS).map(([g, specs]) => group(g, ...mkKnobs(specs, p, col, 's', 's', applySynth))),
       h('div', { class: 'knob-group' }, h('div', { class: 'lbl' }, 'Color · crush, cinta y gate'),
         h('div', { class: 'row' }, ...mkKnobs(SYNTH_FX, sy.fx, col, 'sfx', 'sfx', applySynth)),

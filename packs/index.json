@@ -1,0 +1,77 @@
+{
+ "version": 1,
+ "packs": [
+  {
+   "id": "base",
+   "name": "Kits Bloop",
+   "emoji": "🫧",
+   "desc": "Los 4 kits que vienen con la app (siempre disponibles, sin descargar).",
+   "license": "CC0 · sintetizado por Bloop",
+   "size": 671320,
+   "count": 32
+  },
+  {
+   "id": "maquinas",
+   "name": "Máquinas Bloop",
+   "emoji": "🎛️",
+   "desc": "Cajas de ritmo 808, 909, trap y dubstep sintetizadas por Bloop, más FX.",
+   "license": "CC0 · sintetizado por Bloop",
+   "size": 1338194,
+   "count": 56
+  },
+  {
+   "id": "lofi",
+   "name": "Polvo Lofi",
+   "emoji": "📼",
+   "desc": "Boom bap, lo-fi y chill: bombos y cajas sucias, acordes Rhodes, pads, vinilo y lluvia.",
+   "license": "CC0 · sintetizado por Bloop",
+   "size": 1938942,
+   "count": 33
+  },
+  {
+   "id": "bajos",
+   "name": "Bajos Gordos",
+   "emoji": "🔊",
+   "desc": "808 limpios y sucios, sub, reese, growls y wobbles de dubstep, Rhodes. Para tocar en notas.",
+   "license": "CC0 · sintetizado por Bloop",
+   "size": 3115333,
+   "count": 18
+  },
+  {
+   "id": "acustico",
+   "name": "Batería real",
+   "emoji": "🥁",
+   "desc": "Bombos, cajas, toms, hats y platillos grabados (Stargate sample pack, CC0).",
+   "license": "CC0 · github.com/stargatedaw/stargate-sample-pack",
+   "size": 2327616,
+   "count": 141
+  },
+  {
+   "id": "mundo",
+   "name": "Percusión del mundo",
+   "emoji": "🪘",
+   "desc": "Congas, bongós, cajón, darbuka, shakers, panderetas y más (VCSL, CC0).",
+   "license": "CC0 · github.com/sgossner/VCSL",
+   "size": 2139424,
+   "count": 87
+  },
+  {
+   "id": "instrumentos",
+   "name": "Instrumentos",
+   "emoji": "🎹",
+   "desc": "Piano, piano FM, vibráfono, kalimba, arpa, contrabajo, cuerdas, flauta y saxo (VCSL / VSCO-2-CE, CC0).",
+   "license": "CC0 · github.com/sgossner/VCSL y github.com/sgossner/VSCO-2-CE",
+   "size": 7934253,
+   "count": 12
+  },
+  {
+   "id": "loops",
+   "name": "Loops, voces y FX",
+   "emoji": "🔁",
+   "desc": "Loops de batería, bajo, guitarra y acordes con su tempo, voces y sonidos encontrados (Stargate, CC0).",
+   "license": "CC0 · github.com/stargatedaw/stargate-sample-pack",
+   "size": 6178608,
+   "count": 57
+  }
+ ]
+}

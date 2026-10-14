@@ -125,6 +125,28 @@ export class Looper {
     app.emit('loops'); app.emit('loop-saved', this.i);
   }
 
+  // Carga un loop del banco. Se ajusta a la cantidad entera de compases más cercana
+  // (con varispeed), así queda siempre en tiempo con la batería.
+  loadBuffer(buf, bpm) {
+    const prev = this.snapshot();
+    this.cancel();
+    this.stopSrc();
+    const tempo = bpm || app.state.bpm;
+    this.bars = Math.max(1, Math.round(buf.duration * tempo / 240));
+    this.recBpm = this.bars * 240 / buf.duration;
+    this.raw = buf;
+    this.region = [0, buf.duration];
+    this.fadeIn = 0.003; this.fadeOut = 0.003;
+    this.free = false;
+    this.state = 'playing';
+    app.state.patterns.forEach(p => { p.loops[this.i] = true; });
+    this.render();
+    if (app.seq.playing) { this.origin = app.seq.nextBarTime(); this.play(); }
+    this.out.gain.setTargetAtTime(this.volume, A.ctx.currentTime, 0.01);
+    this.pushUndo('Cargar loop', prev);
+    app.emit('loops'); app.emit('loop-saved', this.i);
+  }
+
   // Construye el buffer que suena: región + fades
   render() {
     if (!this.raw) { this.buffer = null; this.peaks = null; return; }

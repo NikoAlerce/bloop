@@ -9,7 +9,8 @@ import { seq } from './sequencer.js';
 import {
   defaultState, migrateState, kvGet, kvSet, kvDel, kvKeys, storeToBuffer, bufferToStore, serializeState, NUM_LOOPS,
 } from './state.js';
-import { applyMix, applySynth, selectTrack, hitLive, noteOn, noteOff } from './actions.js';
+import { applyMix, applySynth, selectTrack, hitLive, noteOn, noteOff, restoreBankSound } from './actions.js';
+import { bank } from './bank.js';
 import { input } from './input.js';
 import { buildTopbar } from './ui/topbar.js';
 import { buildTracks } from './ui/tracks.js';
@@ -37,10 +38,12 @@ async function boot() {
     msg.textContent = 'despertando el audio…';
     await initAudio();
     msg.textContent = 'cocinando sonidos…';
-    app.kits = await generateKits();
+    await bank.init();
+    app.kits = await bank.loadKits().catch(e => { console.warn(e); return null; }) || await generateKits();
     await loadProject();
     applyDisplay();
     buildAudio();
+    await restoreBankTracks();
     await restoreLoops();
     await input.init();
     buildUI();
@@ -83,18 +86,35 @@ function buildAudio() {
   app.tracks = s.tracks.map((t, i) => {
     const tr = new DrumTrack(i);
     const snd = t.sound;
-    tr.setBuffer(snd.custom ? app.customSamples.get(snd.custom) : app.kits[snd.kit].sounds[snd.idx].buffer);
+    const kit = app.kits[snd.kit] || app.kits[0];
+    tr.setBuffer(snd.custom ? app.customSamples.get(snd.custom) : (kit.sounds[snd.idx] || kit.sounds[i]).buffer);
     return tr;
   });
   app.synth = new Synth();
   app.synth.setParams(s.synth.params);
   app.synth.onNote = (midi, on, time) => seq.uiQueue.push({ time, type: 'note', midi, on });
+  app.synth.getBpm = () => app.state.bpm;
   app.loopers = Array.from({ length: NUM_LOOPS }, (_, i) => new Looper(i));
   A.master.gain.value = s.master;
   A.reverbReturn.gain.value = s.revLevel;
   setDelay(s.bpm, s.delayDiv, s.delayFb);
   setMonitor(false);
   applyMix();
+}
+
+// Pistas con sonidos del banco: si el pack ya no está, vuelve al sonido del kit
+async function restoreBankTracks() {
+  const s = app.state;
+  for (let i = 0; i < 8; i++) {
+    const snd = s.tracks[i].sound;
+    if (!snd.bank) continue;
+    try { await restoreBankSound(i); }
+    catch (e) {
+      s.tracks[i].sound = { kit: s.kit, idx: i };
+      app.tracks[i].setBuffer(app.kits[s.kit].sounds[i].buffer);
+      toast(`Falta el pack de «${snd.name}»: la pista ${i + 1} volvió al kit`);
+    }
+  }
 }
 
 async function restoreLoops() {

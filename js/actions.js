@@ -3,12 +3,13 @@ import { app } from './app.js';
 import {
   A, setDelay, capture, encodeWav, getMic, trimAndNormalize, normalizeBuffer, peakOf,
 } from './audio/engine.js';
-import { kvSet, kvKeys, kvDel, bufferToStore, serializeState } from './state.js';
+import { kvSet, kvKeys, kvDel, bufferToStore, serializeState, fxParams } from './state.js';
 import { PRESETS } from './audio/presets.js';
 import { toast, clamp } from './ui/util.js';
 import { undo } from './undo.js';
 import { snap } from './scales.js';
 import { zip, unzip, download } from './zip.js';
+import { bank } from './bank.js';
 
 const st = () => app.state;
 const stamp = () => new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
@@ -41,7 +42,7 @@ export function selectTrack(i) {
 
 export function soundName(i) {
   const snd = st().tracks[i].sound;
-  if (snd.custom) return snd.name || 'Sample';
+  if (snd.custom || snd.bank) return snd.name || 'Sample';
   return app.kits[snd.kit]?.sounds[snd.idx]?.name || '—';
 }
 export function trackName(i) {
@@ -51,13 +52,13 @@ export function trackName(i) {
 
 // ---------- Sonidos de pista (con deshacer) ----------
 function trackSnapshot(i) {
-  const t = st().tracks[i];
-  return { sound: { ...t.sound }, name: t.name, params: JSON.parse(JSON.stringify(t.params)), buffer: app.tracks[i].buffer };
+  const t = st().tracks[i], tr = app.tracks[i];
+  return { sound: { ...t.sound }, name: t.name, params: JSON.parse(JSON.stringify(t.params)), buffer: tr.buffer, revBuffer: tr.revBuffer, zones: tr.zones };
 }
 function trackRestore(i, s) {
-  const t = st().tracks[i];
+  const t = st().tracks[i], tr = app.tracks[i];
   t.sound = { ...s.sound }; t.name = s.name; t.params = JSON.parse(JSON.stringify(s.params));
-  app.tracks[i].setBuffer(s.buffer);
+  Object.assign(tr, { buffer: s.buffer, revBuffer: s.revBuffer, zones: s.zones });
   if (s.sound.custom && s.buffer) app.customSamples.set(s.sound.custom, s.buffer);
   applyTrack(i);
   app.emit('sound', i);
@@ -71,7 +72,7 @@ export function setKitSound(i, kit, idx, withUndo = true) {
   const t = st().tracks[i];
   t.sound = { kit, idx };
   t.name = '';
-  Object.assign(t.params, { start: 0, end: 1, slices: [], sliceMode: false });
+  Object.assign(t.params, { start: 0, end: 1, slices: [], sliceMode: false, root: 60 });
   app.tracks[i].setBuffer(app.kits[kit].sounds[idx].buffer);
   app.emit('sound', i);
 }
@@ -90,10 +91,53 @@ export async function setCustomSample(i, buf, name, resetRegion = true) {
   const t = st().tracks[i];
   t.sound = { custom: id, name };
   t.name = '';
-  if (resetRegion) Object.assign(t.params, { start: 0, end: 1, slices: [], sliceMode: false, fadeIn: 0, fadeOut: 0 });
+  if (resetRegion) Object.assign(t.params, { start: 0, end: 1, slices: [], sliceMode: false, fadeIn: 0, fadeOut: 0, root: 60 });
   app.tracks[i].setBuffer(buf);
   app.emit('sound', i);
   await kvSet('sample:' + id, bufferToStore(buf, { name }));
+}
+
+// Nota base para tocar un instrumento desde los pasos (paso sin afinar = esta nota)
+function homeNote(item, zones) {
+  const want = item.cat === 'bass' ? 36 : 60;
+  const lo = zones[0].root, hi = zones[zones.length - 1].root;
+  let n = Math.min(hi, Math.max(lo, want));
+  n -= ((n % 12) + 12) % 12;          // al Do más cercano hacia abajo
+  return Math.max(lo - 12, n);
+}
+
+// Pone un sonido o instrumento del banco en una pista
+export async function setBankSound(i, pack, id) {
+  const { item, buffer, zones } = await bank.load(pack, id);
+  undoTrack(i, 'Sonido');
+  const t = st().tracks[i], p = t.params;
+  t.sound = { bank: pack, id, name: item.name };
+  t.name = '';
+  Object.assign(p, { start: 0, end: 1, slices: [], sliceMode: false, fadeIn: 0, fadeOut: 0, reverse: false, pitch: 0 });
+  if (zones) {
+    app.tracks[i].setZones(zones);
+    p.root = homeNote(item, zones);
+    p.mono = false;
+  } else {
+    app.tracks[i].setBuffer(buffer, item.root ?? null);
+    p.root = item.root ?? 60;
+  }
+  applyTrack(i);
+  app.emit('sound', i);
+}
+
+// Carga una pista desde una referencia guardada (al abrir el proyecto)
+export async function restoreBankSound(i) {
+  const snd = st().tracks[i].sound;
+  const { item, buffer, zones } = await bank.load(snd.bank, snd.id);
+  if (zones) app.tracks[i].setZones(zones);
+  else app.tracks[i].setBuffer(buffer, item.root ?? null);
+}
+
+export async function loadBankToLoop(li, pack, id) {
+  const { item, buffer } = await bank.load(pack, id);
+  app.loopers[li].loadBuffer(buffer, item.bpm);
+  toast(`🔁 «${item.name}» en el loop ${li + 1}`);
 }
 
 export async function normalizeTrack(i) {
@@ -156,6 +200,7 @@ export function setPreset(k) {
   const s = st().synth;
   s.preset = k;
   s.params = { ...PRESETS[k].params };
+  s.fx = { ...fxParams(), ...(PRESETS[k].fx || {}) };
   app.synth.allOff();
   app.synth.setParams(s.params);
   applySynth();
@@ -260,7 +305,7 @@ export async function exportProject() {
 
 export async function importProject(file) {
   try {
-    const entries = unzip(await file.arrayBuffer());
+    const entries = await unzip(await file.arrayBuffer());
     const meta = entries.find(e => e.name === 'project.json');
     if (!meta) throw new Error('no es un proyecto de Bloop');
     const pj = JSON.parse(new TextDecoder().decode(meta.data));
