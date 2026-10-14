@@ -47,6 +47,8 @@ y abrir http://localhost:5173 (o doble clic en `Abrir Bloop.bat`).
 
 ## Instalarlo en la tablet (offline)
 
+**URL: https://nikoalerce.github.io/bloop/**
+
 Android exige **HTTPS** para el audio avanzado (AudioWorklet), el micrófono y el modo offline,
 así que la app tiene que publicarse una vez en un hosting HTTPS (GitHub Pages, Netlify, Cloudflare Pages…).
 Después: abrir la URL en Chrome en la tablet → menú ⋮ → **Instalar app / Agregar a pantalla principal**.
