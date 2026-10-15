@@ -287,6 +287,7 @@ export async function calibrateLatency() {
 // ---------- Grabación ----------
 const recNodes = new Map();
 const pending = new Map();
+const peeks = new Map();
 let jobId = 0;
 
 function recNodeFor(src) {
@@ -299,6 +300,7 @@ function recNodeFor(src) {
     src.connect(n);
     n.connect(A.silent);
     n.port.onmessage = (e) => {
+      if (e.data.peek) { const p = peeks.get(e.data.id); if (p) { peeks.delete(e.data.id); p(e.data); } return; }
       const cb = pending.get(e.data.id);
       if (cb) { pending.delete(e.data.id); cb(e.data); }
     };
@@ -325,6 +327,12 @@ export function capture(src, startTime, seconds) {
     promise,
     stop: () => n.port.postMessage({ type: 'stop', id }),
     stopAt: t => n.port.postMessage({ type: 'stopAt', id, frame: Math.round(t * sr) }),
+    // Lo grabado hasta ahora, sin cortar la grabación
+    peek: () => new Promise(res => { peeks.set(id, res); n.port.postMessage({ type: 'peek', id }); }).then(({ L, R }) => {
+      const b = A.ctx.createBuffer(2, Math.max(1, L.length), sr);
+      b.copyToChannel(L, 0); b.copyToChannel(R, 1);
+      return b;
+    }),
   };
 }
 

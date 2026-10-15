@@ -42,6 +42,8 @@ export function showHelp() {
         li('Tocá un loop para mutearlo. ＋ graba otra capa. ', b('Mantené apretado'), ' (o ✎) para editarlo sobre la onda mientras suena.'),
         li(b('✎'), ' abre el editor: arrastrá sobre la onda para seleccionar y usá ', b('✂ Cortar, ⧉ Copiar, 📋 Pegar, ⧺ Duplicar, 🔇 Silenciar'), ' (para ruidos: deja el hueco y sigue en tiempo), ', b('🗑 Borrar'), ' o ', b('⇆ Al revés'), '. Lo copiado se puede pegar en otro loop o mandar a un pad. Si el loop queda con un largo raro, ', b('⏱ Cuadrar al compás'), ' lo vuelve a poner en tiempo.'),
         li(b('🥁 Pads'), ' (arriba): los 8 sonidos como pads gigantes con los loops al lado, para tocar la batería en vez de secuenciarla. Grabala en un loop con fuente 🎹 o en los pasos con ⏺. Si todo está parado, antes de grabar hay una ', b('cuenta regresiva'), ' (⏱: sin cuenta, 1 o 2 compases).'),
+        li(b('🎹 Teclado'), ' (arriba): loops arriba y el teclado grande abajo, para grabar melodías y bajos en loops.'),
+        li('Con fuente 🎹, lo que tocás se acomoda solo en la grilla según la ', b('Q'), ' de arriba (100% = justo en el tiempo, menos = conserva tu groove). Un golpe tocado apenas antes del 1 no se pierde.'),
         li('Hay 8 loops en dos páginas (A y B).'),
       ),
       h('h3', {}, 'Scenes y canción'),

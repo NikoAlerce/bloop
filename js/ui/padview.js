@@ -9,9 +9,12 @@ import { openBank } from './bank.js';
 import { openSampleEditor } from './waveeditor.js';
 import { COUNT_OPTS } from './countin.js';
 
+// Vistas: 'main' (todo) · 'pads' (drum machine + loops) · 'keys' (loops arriba + teclado abajo)
 export function setView(v) {
   app.state.view = v;
-  document.getElementById('app').classList.toggle('pads-mode', v === 'pads');
+  const el = document.getElementById('app');
+  el.classList.toggle('pads-mode', v === 'pads');
+  el.classList.toggle('keys-mode', v === 'keys');
   app.emit('view');
 }
 

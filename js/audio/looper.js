@@ -3,6 +3,7 @@
 // recortada y con fades que suena. Así recortar y deshacer no destruyen nada.
 import { A, capture, getMic, sliceBuffer, liveSource, holdParam } from './engine.js';
 import { stretchBuffer } from './stretch.js';
+import { buildLoop, liveLog } from './loopbuild.js';
 import { app } from '../app.js';
 import { undo } from '../undo.js';
 import { setBpm } from '../actions.js';
@@ -76,13 +77,42 @@ export class Looper {
     this.recStart = t0; this.recLen = len;
     this.recBpm = app.state.bpm;
     this.state = 'armed';
-    const job = this.job = capture(node, t0 + this.latency(), len);
+    const lat = this.latency();
+    if (this.source !== 'keys') {
+      const job = this.job = capture(node, t0 + lat, len);
+      app.emit('loops');
+      const buf = await job.promise;
+      if (this.job !== job) return;
+      this.job = null;
+      if (buf.length < len * A.ctx.sampleRate * 0.9) { this.state = 'empty'; app.emit('loops'); return; }
+      this.setRecorded(buf, t0);
+      return;
+    }
+    // Solo lo que tocás: graba un poco antes y después del loop para no perder el golpe
+    // del "1" tocado apenas antes, ni las colas; después lo acomoda en la grilla.
+    const step = seq.stepDur, pre = Math.min(0.3, 2 * step), post = Math.min(0.5, 4 * step);
+    const job = this.job = capture(node, t0 + lat - pre, pre + len + post);
     app.emit('loops');
-    const buf = await job.promise;
+    const build = cap => {
+      const q = app.state.recQuant, arp = app.state.synth.arp.on;
+      const hits = liveLog.filter(t => t > t0 + lat - pre - 1 && t < t0 + lat + len + post + 1).map(t => t - (t0 + lat));
+      return buildLoop(cap, { pre, len, step, hits, amount: q.on && !arp ? q.amount : 0 });
+    };
+    // La primera vuelta tiene que sonar justo al terminar de grabar: se arma una versión
+    // provisoria un instante antes del final y después se cambia por la definitiva.
+    const peekAt = t0 + len - 0.15;
+    setTimeout(async () => {
+      if (this.job !== job) return;
+      const cap = await job.peek();
+      if (this.job !== job || cap.length < pre * A.ctx.sampleRate) return;
+      this.buffer = build(cap); this.bufBpm = this.recBpm; this.origin = t0;
+      this.play();
+    }, Math.max(0, (peekAt - A.ctx.currentTime) * 1000));
+    const cap = await job.promise;
     if (this.job !== job) return;
     this.job = null;
-    if (buf.length < len * A.ctx.sampleRate * 0.9) { this.state = 'empty'; app.emit('loops'); return; }
-    this.setRecorded(buf, t0);
+    if (cap.length < (pre + len) * A.ctx.sampleRate * 0.9) { this.stopSrc(); this.state = 'empty'; app.emit('loops'); return; }
+    this.setRecorded(build(cap), t0);
   }
 
   // Libre: empieza al tocar y termina al volver a tocar
@@ -291,6 +321,7 @@ export class Looper {
 
   cancel() {
     if (this.job) { const j = this.job; this.job = null; j.stop(); }
+    if (!this.raw) { this.stopSrc(); this.buffer = null; }
     this.state = this.raw ? (this.state === 'muted' ? 'muted' : 'playing') : 'empty';
     this.overdubbing = false;
     app.emit('loops');

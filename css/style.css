@@ -622,3 +622,21 @@ body.eco .bigpad { transition: none; }
 .countin.beat { animation: countbeat 0.25s ease-out; }
 @keyframes countbeat { from { transform: translate(-50%, -50%) scale(1.12); } }
 .pv-head .pill.on { background: var(--ink); color: var(--bg); }
+
+/* ============ Modo Teclado: loops arriba, teclado abajo ============ */
+#app.keys-mode .tracks, #app.keys-mode .center, #app.keys-mode .padview { display: none; }
+#app.keys-mode .stage { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+#app.keys-mode .perf { height: auto; }
+#app.keys-mode .loops { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); }
+#app.keys-mode .dock { height: clamp(250px, 52vh, 560px); }
+#app.keys-mode .dock-tabs .dock-tab { min-height: 40px; }
+@media (orientation: portrait) and (max-width: 1000px) {
+  #app.keys-mode .stage { grid-template-rows: minmax(0, 1fr); }
+  #app.keys-mode .dock { height: 46vh; }
+}
+@media (max-width: 1240px) {
+  .tb-btn.view { padding: 0 8px; min-width: 38px; justify-content: center; }
+}
+@media (max-width: 1200px) {
+  .logo { display: none; }
+}

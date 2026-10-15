@@ -4,6 +4,7 @@ import { buildKeyboard } from './keyboard.js';
 import { buildParams } from './params.js';
 import { buildFx } from './fx.js';
 import { openMixer } from './mixer.js';
+import { app } from '../app.js';
 
 export function buildDock(el) {
   const kb = buildKeyboard();
@@ -29,6 +30,8 @@ export function buildDock(el) {
   tabs.append(h('button', { class: 'dock-tab', onclick: openMixer }, h('div', {}, '🎚️', h('span', {}, 'Mixer'))));
   el.append(tabs, holder);
   show('keys');
+  // En el modo Teclado el dock muestra siempre las teclas
+  app.on('view', () => { if (app.state.view === 'keys' && current !== 'keys') show('keys'); });
   return {
     keyboard: kb,
     show,

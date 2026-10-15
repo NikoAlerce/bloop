@@ -1,4 +1,5 @@
 // Acciones de alto nivel que usan varias partes de la UI.
+import { logLive } from './audio/loopbuild.js';
 import { app } from './app.js';
 import {
   A, setDelay, capture, encodeWav, getMic, trimAndNormalize, normalizeBuffer, peakOf,
@@ -167,6 +168,7 @@ export function audition(i, vel = 0.9) {
   app.seq.hit(i, A.ctx.currentTime + 0.005, vel);
 }
 export function hitLive(i, vel = 0.9) {
+  logLive(A.ctx.currentTime + 0.005);
   app.seq.hit(i, A.ctx.currentTime + 0.005, vel, 0, true);
   app.seq.recordHit(i, vel);
 }
@@ -184,6 +186,7 @@ export function noteOn(midi, vel = 0.8) {
     if (old) app.tracks[old.track].release(old.voice);
     const opt = { poly: true, hold: true, live: true };
     if (p.sliceMode && p.slices.length) opt.slice = k;
+    logLive(A.ctx.currentTime + 0.003);
     const v = app.tracks[i].trigger(A.ctx.currentTime + 0.003, vel, p.sliceMode ? 0 : k, p, opt);
     held.set(midi, { track: i, voice: v });
     app.seq.uiQueue.push({ time: 0, type: 'hit', track: i, vel });
@@ -191,7 +194,7 @@ export function noteOn(midi, vel = 0.8) {
     return;
   }
   if (st().synth.arp.on) app.seq.arpAdd(midi);
-  else { app.synth.noteOn(midi, vel); app.seq.recordNoteOn(midi, vel); }
+  else { logLive(A.ctx.currentTime); app.synth.noteOn(midi, vel); app.seq.recordNoteOn(midi, vel); }
 }
 export function noteOff(midi) {
   midi = snap(midi);

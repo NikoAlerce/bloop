@@ -67,12 +67,16 @@ export function buildTopbar(el) {
   const updUndo = () => { undoBtn.disabled = !undo.canUndo; redoBtn.disabled = !undo.canRedo; };
   app.on('undo-change', updUndo); updUndo();
 
-  // Modo Pads (drum machine a pantalla completa con los loops)
-  const toggleView = () => setView(s.view === 'pads' ? 'main' : 'pads');
+  // Vistas: Pads (drum machine + loops) y Teclado (loops arriba + teclado abajo)
+  const toggleView = v => setView(s.view === v ? 'main' : v);
   const viewBtn = h('button', { class: 'tb-btn view', title: 'Modo Pads: pads gigantes + loops' }, '🥁', h('span', {}, 'Pads'));
-  viewBtn.addEventListener('click', toggleView);
-  input.target('act:view', { label: 'Modo Pads', kind: 'button', el: viewBtn, press: toggleView });
-  app.on('view', () => viewBtn.classList.toggle('on', s.view === 'pads'));
+  const keysBtn = h('button', { class: 'tb-btn view', title: 'Modo Teclado: loops arriba + teclado abajo' }, '🎹', h('span', {}, 'Teclado'));
+  viewBtn.addEventListener('click', () => toggleView('pads'));
+  keysBtn.addEventListener('click', () => toggleView('keys'));
+  input.target('act:view', { label: 'Modo Pads', kind: 'button', el: viewBtn, press: () => toggleView('pads') });
+  input.target('act:viewkeys', { label: 'Modo Teclado', kind: 'button', el: keysBtn, press: () => toggleView('keys') });
+  const updView = () => { viewBtn.classList.toggle('on', s.view === 'pads'); keysBtn.classList.toggle('on', s.view === 'keys'); };
+  app.on('view', updView);
 
   // Patrones / scenes
   let copyMode = false;
@@ -139,7 +143,7 @@ export function buildTopbar(el) {
     h('div', { class: 'logo' }, logo, h('span', {}, 'bloop')),
     h('div', { class: 'tb-group' }, play, rec, qBtn, metro),
     h('div', { class: 'tb-group' }, bpm, tap, swing.el),
-    h('div', { class: 'tb-group' }, viewBtn, undoBtn, redoBtn),
+    h('div', { class: 'tb-group' }, viewBtn, keysBtn, undoBtn, redoBtn),
     h('div', { class: 'tb-group' }, pats, patMenu, songBtn),
     h('div', { class: 'tb-spacer' }),
     h('div', { class: 'tb-group' }, ctrlBtn, master.el, meter, menu),

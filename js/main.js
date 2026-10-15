@@ -256,7 +256,7 @@ function buildUI() {
   buildCountIn();
   const loopsFrame = buildLoops($('perf'));
   ui.dock = buildDock($('dock'));
-  setView(app.state.view === 'pads' ? 'pads' : 'main');
+  setView(['pads', 'keys'].includes(app.state.view) ? app.state.view : 'main');
   registerParamTargets();
   registerMixerTargets();
   registerGlobals();

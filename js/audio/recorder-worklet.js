@@ -14,6 +14,12 @@ class BloopRecorder extends AudioWorkletProcessor {
       } else if (m.type === 'stopAt') {
         const j = this.jobs.find(x => x.id === m.id);
         if (j) j.len = Math.max(0, Math.min(j.len, m.frame - j.start));
+      } else if (m.type === 'peek') {
+        // Copia de lo grabado hasta ahora (la grabación sigue)
+        const j = this.jobs.find(x => x.id === m.id);
+        const n = j ? Math.min(j.pos, j.len) : 0;
+        const L = j ? j.L.slice(0, n) : new Float32Array(0), R = j ? j.R.slice(0, n) : new Float32Array(0);
+        this.port.postMessage({ id: m.id, peek: true, L, R }, [L.buffer, R.buffer]);
       } else if (m.type === 'stop') {
         const j = this.jobs.find(x => x.id === m.id);
         if (j) this.finish(j);
