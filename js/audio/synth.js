@@ -45,10 +45,11 @@ class SynthStrip {
     this._drive = -1;
   }
 
-  apply(p, audible, fx) {
+  apply(p, audible, fx, level = 1) {
     const now = A.ctx.currentTime, T = 0.02;
     if (fx) this.fx.apply(fx);
-    this.vol.gain.setTargetAtTime(audible ? p.vol * p.vol * 1.4 : 0, now, T);
+    // p.vol = volumen del preset · level = fader del canal en el mixer
+    this.vol.gain.setTargetAtTime(audible ? p.vol * p.vol * 1.4 * level : 0, now, T);
     this.revSend.gain.setTargetAtTime(p.rev * p.rev, now, T);
     this.dlySend.gain.setTargetAtTime(p.dly * p.dly, now, T);
     this.wet.gain.setTargetAtTime(p.chorus * 0.9, now, T);
@@ -88,7 +89,7 @@ export class Synth {
   get live() {
     if (!this.liveStrip) {
       this.liveStrip = new SynthStrip(this.tap, true);
-      if (this._apply) this.liveStrip.apply(this.p, ...this._apply);
+      if (this._apply) this.liveStrip.apply(this.p, ...this._apply, this.level ?? 1);
     }
     return this.liveStrip;
   }
@@ -99,8 +100,8 @@ export class Synth {
   apply(audible, fx) {
     const p = this.p, now = A.ctx.currentTime;
     this._apply = [audible, fx];
-    this.main.apply(p, audible, fx);
-    if (this.liveStrip) this.liveStrip.apply(p, audible, fx);
+    this.main.apply(p, audible, fx, this.level ?? 1);
+    if (this.liveStrip) this.liveStrip.apply(p, audible, fx, this.level ?? 1);
     // Las voces sonando siguen al filtro (para poder "abrir" un pad en vivo)
     for (const v of this.voices) {
       if (v.released) continue;

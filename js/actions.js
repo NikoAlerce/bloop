@@ -15,7 +15,12 @@ const st = () => app.state;
 const stamp = () => new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
 
 export function applyTrack(i) { app.tracks[i].apply(st().tracks[i].params, app.audible(i)); }
-export function applySynth() { app.synth.apply(app.audible(8), st().synth.fx); }
+// Fader del canal del synth en el mixer: 0.8 = ganancia unitaria, 1 = +4 dB
+export const faderGain = v => (v / 0.8) ** 2;
+export function applySynth() {
+  app.synth.level = faderGain(st().synth.mixLevel ?? 0.8);
+  app.synth.apply(app.audible(8), st().synth.fx);
+}
 export function applyMix() {
   for (let i = 0; i < 8; i++) applyTrack(i);
   applySynth();

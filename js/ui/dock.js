@@ -3,6 +3,7 @@ import { h } from './util.js';
 import { buildKeyboard } from './keyboard.js';
 import { buildParams } from './params.js';
 import { buildFx } from './fx.js';
+import { openMixer } from './mixer.js';
 
 export function buildDock(el) {
   const kb = buildKeyboard();
@@ -24,6 +25,8 @@ export function buildDock(el) {
     btns[k] = h('button', { class: 'dock-tab', onclick: () => show(k) }, h('div', {}, ic, h('span', {}, lbl)));
     tabs.append(btns[k]);
   });
+  // El mixer se abre a pantalla completa
+  tabs.append(h('button', { class: 'dock-tab', onclick: openMixer }, h('div', {}, '🎚️', h('span', {}, 'Mixer'))));
   el.append(tabs, holder);
   show('keys');
   return {

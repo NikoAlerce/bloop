@@ -37,7 +37,7 @@ export function defaultState() {
     version: 1,
     bpm: 118, swing: 0.15, metronome: false, master: 0.8,
     kit: 0, current: 0, queued: null, selected: 0,
-    delayDiv: '3/16', delayFb: 0.42, revLevel: 0.8,
+    delayDiv: '3/16', delayFb: 0.42, revLevel: 0.8, dlyLevel: 0.75,
     settings: {
       micLatency: 30, inputId: '', monitor: false, recThresh: 0.03,
       theme: 'dark', eco: false,

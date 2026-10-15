@@ -18,6 +18,7 @@ import { buildGrid } from './ui/grid.js';
 import { buildLoops } from './ui/loops.js';
 import { buildDock } from './ui/dock.js';
 import { registerParamTargets } from './ui/params.js';
+import { registerMixerTargets } from './ui/mixer.js';
 import { buildLearnBar } from './ui/controllers.js';
 import { toast } from './ui/util.js';
 
@@ -133,6 +134,7 @@ function buildAudio() {
   app.loopers = Array.from({ length: NUM_LOOPS }, (_, i) => new Looper(i));
   A.master.gain.value = s.master;
   A.reverbReturn.gain.value = s.revLevel;
+  A.delayReturn.gain.value = s.dlyLevel ?? 0.75;
   setDelay(s.bpm, s.delayDiv, s.delayFb);
   s.settings.monitor = false; // el monitoreo (y el micrófono) nunca arrancan prendidos
   setMonitor(false);
@@ -235,6 +237,7 @@ function buildUI() {
   const loopsFrame = buildLoops($('perf'));
   ui.dock = buildDock($('dock'));
   registerParamTargets();
+  registerMixerTargets();
   registerGlobals();
   buildLearnBar();
   input.markMapped();
