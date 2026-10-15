@@ -1,5 +1,5 @@
-// 8 loopers circulares estilo Loopy (2 páginas de 4). Tocá para grabar / mutear,
-// mantené apretado para abrir el editor de onda.
+// 8 loopers circulares estilo Loopy (2 páginas de 4). Tocá para grabar / mutear;
+// ✎ (o mantener apretado) abre el editor de onda.
 import { app } from '../app.js';
 import { A, inputLevel, closeMic } from '../audio/engine.js';
 import { LOOP_COLORS } from '../state.js';
@@ -33,9 +33,10 @@ export function buildLoops(el) {
     const cv = h('canvas');
     const src = h('button', { title: 'Fuente: micrófono, lo que tocás o todo' });
     const od = h('button', { title: 'Overdub: otra capa encima' }, '＋');
+    const edit = h('button', { class: 'edit', title: 'Editar la onda: recortar, cortar, copiar, pegar, silenciar' }, '✎');
     const del = h('button', { class: 'del', title: 'Borrar loop (se puede deshacer)' }, '🗑');
     const more = h('button', { title: 'Opciones' }, '•••');
-    const wrap = h('div', { class: 'loop' }, cv, h('div', { class: 'loop-ctrls' }, src, od, del, more));
+    const wrap = h('div', { class: 'loop' }, cv, h('div', { class: 'loop-ctrls' }, src, od, edit, del, more));
     wrap.style.setProperty('--c', col);
 
     // Tocar = grabar/mutear; mantener apretado = editor
@@ -58,6 +59,7 @@ export function buildLoops(el) {
       app.emit('toast', SRC_NAME[lp.source]);
     });
     od.addEventListener('click', () => lp.overdub());
+    edit.addEventListener('click', () => { selectLoop(i); openLoopEditor(lp); });
     del.addEventListener('click', () => { lp.clear(); app.emit('toast', `🗑 Loop ${i + 1} borrado · ↶ para deshacer`); });
     more.addEventListener('click', () => {
       popover(more, [
@@ -81,7 +83,7 @@ export function buildLoops(el) {
       // Botones según el estado: vacío → fuente; con audio → overdub y editor
       src.textContent = SRC_ICON[lp.source] || '🎤';
       src.hidden = !!lp.raw;
-      od.hidden = !lp.raw; del.hidden = !lp.raw;
+      od.hidden = !lp.raw; del.hidden = !lp.raw; edit.hidden = !lp.raw;
       src.disabled = lp.state !== 'empty';
       od.disabled = lp.overdubbing;
       od.classList.toggle('on', lp.overdubbing);

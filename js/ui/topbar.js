@@ -10,6 +10,7 @@ import { input } from '../input.js';
 import { openControllers } from './controllers.js';
 import { openInputSettings } from './settings.js';
 import { openSong } from './song.js';
+import { setView } from './padview.js';
 
 const ICON = {
   play: '<svg viewBox="0 0 24 24"><path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.7l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>',
@@ -64,6 +65,13 @@ export function buildTopbar(el) {
   input.target('act:redo', { label: 'Rehacer', kind: 'button', el: redoBtn, press: () => undo.redo() });
   const updUndo = () => { undoBtn.disabled = !undo.canUndo; redoBtn.disabled = !undo.canRedo; };
   app.on('undo-change', updUndo); updUndo();
+
+  // Modo Pads (drum machine a pantalla completa con los loops)
+  const toggleView = () => setView(s.view === 'pads' ? 'main' : 'pads');
+  const viewBtn = h('button', { class: 'tb-btn view', title: 'Modo Pads: pads gigantes + loops' }, '🥁', h('span', {}, 'Pads'));
+  viewBtn.addEventListener('click', toggleView);
+  input.target('act:view', { label: 'Modo Pads', kind: 'button', el: viewBtn, press: toggleView });
+  app.on('view', () => viewBtn.classList.toggle('on', s.view === 'pads'));
 
   // Patrones / scenes
   let copyMode = false;
@@ -130,7 +138,7 @@ export function buildTopbar(el) {
     h('div', { class: 'logo' }, logo, h('span', {}, 'bloop')),
     h('div', { class: 'tb-group' }, play, rec, qBtn, metro),
     h('div', { class: 'tb-group' }, bpm, tap, swing.el),
-    h('div', { class: 'tb-group' }, undoBtn, redoBtn),
+    h('div', { class: 'tb-group' }, viewBtn, undoBtn, redoBtn),
     h('div', { class: 'tb-group' }, pats, patMenu, songBtn),
     h('div', { class: 'tb-spacer' }),
     h('div', { class: 'tb-group' }, ctrlBtn, master.el, meter, menu),

@@ -354,6 +354,34 @@ export class Looper {
     app.emit('loops'); app.emit('loop-saved', this.i);
   }
 
+  // Reemplaza la grabación por una versión editada (cortar, pegar, silenciar…). Se puede deshacer.
+  applyEdit(raw, region, label) {
+    const prev = this.snapshot();
+    this.raw = raw;
+    this.region = [Math.max(0, region[0]), Math.min(raw.duration, Math.max(region[0] + 0.01, region[1]))];
+    this.bars = Math.max(1, Math.round(this.regionBeats / 4));
+    this.render();
+    if (this.src) this.play();
+    this.pushUndo(label, prev);
+    app.emit('loops'); app.emit('loop-saved', this.i);
+  }
+  get regionBeats() { return (this.region[1] - this.region[0]) * this.recBpm / 60; }
+
+  // Si después de editar el loop no dura compases enteros, lo estira (o encoge) al más cercano
+  // para que vuelva a quedar en tiempo con la batería. El tono se mantiene.
+  squareToBars(n = Math.max(1, Math.round(this.regionBeats / 4))) {
+    if (!this.raw) return 0;
+    const prev = this.snapshot();
+    const dur = this.region[1] - this.region[0];
+    this.recBpm = n * 240 / dur;
+    this.bars = n;
+    this.render();
+    if (this.src) this.play();
+    this.pushUndo('Cuadrar', prev);
+    app.emit('loops'); app.emit('loop-saved', this.i);
+    return n;
+  }
+
   // ---------- Deshacer ----------
   snapshot() {
     return {

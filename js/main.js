@@ -17,6 +17,7 @@ import { buildTracks } from './ui/tracks.js';
 import { buildGrid } from './ui/grid.js';
 import { buildLoops } from './ui/loops.js';
 import { buildDock } from './ui/dock.js';
+import { buildPadView, setView } from './ui/padview.js';
 import { registerParamTargets } from './ui/params.js';
 import { registerMixerTargets } from './ui/mixer.js';
 import { buildLearnBar } from './ui/controllers.js';
@@ -250,8 +251,10 @@ function buildUI() {
   const topFrame = buildTopbar($('topbar'));
   ui.tracks = buildTracks($('tracks'));
   ui.grid = buildGrid($('gridHead'), $('gridWrap'));
+  ui.pads = buildPadView($('padView'));
   const loopsFrame = buildLoops($('perf'));
   ui.dock = buildDock($('dock'));
+  setView(app.state.view === 'pads' ? 'pads' : 'main');
   registerParamTargets();
   registerMixerTargets();
   registerGlobals();
@@ -281,7 +284,7 @@ function buildUI() {
       for (const ev of q) {
         if (ev.time > t) { keep.push(ev); continue; }
         if (ev.type === 'step') ui.grid.setPlayhead(ev.eff);
-        else if (ev.type === 'hit') ui.tracks.flash(ev.track);
+        else if (ev.type === 'hit') { ui.tracks.flash(ev.track); ui.pads.flash(ev.track); }
         else if (ev.type === 'note') ui.dock.keyboard.setLit(ev.midi, ev.on);
       }
       seq.uiQueue = keep;
