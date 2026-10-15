@@ -21,10 +21,10 @@ export function buildLoops(el) {
   const meter = h('div', { class: 'in-meter', title: 'Micrófono abierto · tocá para cerrarlo' }, meterFill);
   const micBox = h('div', { class: 'mic-on', title: 'Micrófono abierto · tocá para cerrarlo', hidden: true }, h('span', {}, '🎤'), meter);
   micBox.addEventListener('click', () => { if (A.micStream && !app.loopers.some(l => l.job && l.source === 'mic')) { closeMic(); app.emit('toast', '🎤 Micrófono cerrado'); } });
-  el.append(
+  el.append(h('div', { class: 'loops-heads' },
     h('div', { class: 'loops-head' }, h('span', { class: 'panel-title' }, 'Loops'), dots, h('div', { style: { flex: 1 } }), micBox),
     h('div', { class: 'loops-head' }, pageChips, modeChips),
-  );
+  ));
   const grid = h('div', { class: 'loops' });
   el.append(grid);
 
@@ -97,17 +97,23 @@ export function buildLoops(el) {
 
   function selectLoop(i) {
     s.selLoop = i;
-    if (Math.floor(i / 4) !== s.loopPage) { s.loopPage = Math.floor(i / 4); pageChips.set(s.loopPage); layout(); }
+    if (!showAll() && Math.floor(i / 4) !== s.loopPage) { s.loopPage = Math.floor(i / 4); pageChips.set(s.loopPage); layout(); }
     items.forEach(it => it.update());
   }
+  // En el modo Teclado se ven los 8 loops (dos filas); si no, de a 4 por página
+  const showAll = () => s.view === 'keys';
+  const visible = () => (showAll() ? items : items.slice(s.loopPage * 4, s.loopPage * 4 + 4));
   function layout() {
+    pageChips.hidden = showAll();
+    grid.classList.toggle('all8', showAll());
     grid.innerHTML = '';
-    items.slice(s.loopPage * 4, s.loopPage * 4 + 4).forEach(it => grid.append(it.wrap));
+    visible().forEach(it => grid.append(it.wrap));
     items.forEach(it => it.update());
   }
   layout();
   app.on('loops', () => items.forEach(it => it.update()));
   app.on('loop-select', selectLoop);
+  app.on('view', layout);
 
   return function draw(time) {
     const lvl = inputLevel();
@@ -116,7 +122,7 @@ export function buildLoops(el) {
     meterFill.style.width = Math.min(100, Math.sqrt(lvl) * 100) + '%';
     meterFill.classList.toggle('clip', lvl > 0.97);
     const now = A.ctx.currentTime;
-    for (const it of items.slice(s.loopPage * 4, s.loopPage * 4 + 4)) {
+    for (const it of visible()) {
       const { lp, cv, ctx: g, col } = it;
       const r0 = cv.getBoundingClientRect();
       const dpr = devicePixelRatio || 1;

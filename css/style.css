@@ -627,16 +627,26 @@ body.eco .bigpad { transition: none; }
 #app.keys-mode .tracks, #app.keys-mode .center, #app.keys-mode .padview { display: none; }
 #app.keys-mode .stage { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
 #app.keys-mode .perf { height: auto; }
-#app.keys-mode .loops { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); }
-#app.keys-mode .dock { height: clamp(250px, 52vh, 560px); }
+#app.keys-mode .loops { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); }
+#app.keys-mode .dock { height: clamp(210px, 37vh, 380px); }
 #app.keys-mode .dock-tabs .dock-tab { min-height: 40px; }
 @media (orientation: portrait) and (max-width: 1000px) {
   #app.keys-mode .stage { grid-template-rows: minmax(0, 1fr); }
-  #app.keys-mode .dock { height: 46vh; }
+  #app.keys-mode .dock { height: 34vh; }
 }
 @media (max-width: 1240px) {
   .tb-btn.view { padding: 0 8px; min-width: 38px; justify-content: center; }
 }
 @media (max-width: 1200px) {
   .logo { display: none; }
+}
+/* Modo Teclado: 8 loops con los botones al costado del círculo (círculos más grandes) */
+#app.keys-mode .loops-heads { display: flex; align-items: center; gap: 12px; }
+#app.keys-mode .loops-heads .loops-head { margin-bottom: 6px; }
+#app.keys-mode .loops-heads .loops-head:first-child { flex: 1; }
+@media (orientation: landscape) {
+  #app.keys-mode .loop { flex-direction: row; gap: 6px; }
+  #app.keys-mode .loop canvas { height: 100%; }
+  #app.keys-mode .loop-ctrls { width: auto; display: grid; grid-template-columns: repeat(2, 40px); gap: 5px; align-content: center; }
+  #app.keys-mode .loop-ctrls button { width: 40px; height: 40px; }
 }
