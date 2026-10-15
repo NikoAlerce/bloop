@@ -18,7 +18,9 @@ export async function initAudio() {
   const AC = window.AudioContext || window.webkitAudioContext;
   A.mode = audioMode();
   const ctx = A.ctx = new AC({ latencyHint: A.mode === 'stable' ? 'balanced' : 'interactive' });
-  if (ctx.state !== 'running') await ctx.resume();
+  // Si Android tarda en dar el audio (otra app lo tiene, etc.) no nos quedamos esperando:
+  // se reintenta con el próximo toque en pantalla.
+  if (ctx.state !== 'running') await Promise.race([ctx.resume(), new Promise(r => setTimeout(r, 1500))]);
   // Latencia leída siempre en vivo (al arrancar suele informar un valor menor al real)
   Object.defineProperty(A, 'outLat', { configurable: true, get: () => (ctx.outputLatency || 0) + (ctx.baseLatency || 0) });
   const gain = (v = 1) => { const n = ctx.createGain(); n.gain.value = v; return n; };

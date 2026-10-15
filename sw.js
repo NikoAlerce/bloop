@@ -1,6 +1,6 @@
 // Service worker: la app funciona sin internet y se actualiza sola al abrirla.
 // VERSION y FILES los escribe tools/stamp.py (no editar a mano).
-const VERSION = 'bloop-2026-10-14-ccc042e4';
+const VERSION = 'bloop-2026-10-14-dd8bbfe8';
 const FILES = [
   './',
   'index.html',
@@ -73,20 +73,9 @@ self.addEventListener('activate', e => {
   );
 });
 
-// Estrategia: RED PRIMERO al abrir (así siempre arranca la última versión) y copia offline si no hay red.
-// Para no mezclar versiones, se decide una vez por apertura: si la página vino de la red, todo
-// lo demás también; si vino de la caché (sin internet o red muy lenta), todo sale de la caché.
-let online = false;
-const NAV_TIMEOUT = 3500, ASSET_TIMEOUT = 10000;
-
-function fromNetwork(req, cache, timeout) {
-  const net = fetch(req.mode === 'navigate' ? req.url : req, { cache: 'no-cache' }).then(res => {
-    if (res.ok) cache.put(req, res.clone());
-    return res;
-  });
-  return Promise.race([net, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), timeout))]);
-}
-
+// Estrategia: CACHÉ DE LA VERSIÓN COMPLETA. Cada versión se descarga entera al instalarse
+// (atómica), así nunca se mezclan archivos de dos versiones. Cuando hay una versión nueva, este
+// service worker se reemplaza y la página se recarga sola (ver main.js).
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
@@ -94,24 +83,14 @@ self.addEventListener('fetch', e => {
   if (url.origin !== location.origin) return;
   // Los packs descargables se guardan en la base de datos de la app: no duplicarlos en caché
   if (url.pathname.includes('/packs/') && !url.pathname.includes('/packs/base/')) return;
+  // version.json: siempre de la red (sirve para saber si hay novedades)
+  if (url.pathname.endsWith('/version.json')) {
+    e.respondWith(fetch(req, { cache: 'no-store' }).catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || new Response('{}'))));
+    return;
+  }
   e.respondWith((async () => {
     const cache = await caches.open(VERSION);
-    const cached = () => cache.match(req, { ignoreSearch: true });
-    const isNav = req.mode === 'navigate';
-    if (isNav || url.pathname.endsWith('/version.json')) {
-      try {
-        const res = await fromNetwork(req, cache, NAV_TIMEOUT);
-        if (isNav) online = res.ok;
-        return res;
-      } catch (err) {
-        if (isNav) online = false;
-        return (await cached()) || new Response('offline', { status: 503 });
-      }
-    }
-    if (online) {
-      try { return await fromNetwork(req, cache, ASSET_TIMEOUT); } catch (err) { /* sigue con la caché */ }
-    }
-    const hit = await cached();
+    const hit = await cache.match(req.mode === 'navigate' ? 'index.html' : req, { ignoreSearch: true });
     if (hit) return hit;
     try { return await fetch(req); } catch (err) { return new Response('offline', { status: 503 }); }
   })());

@@ -38,6 +38,35 @@
   </div>
 
   <div id="toasts"></div>
+  <script>
+    // Salvavidas: si el código de la app no carga, tocar "empezar" muestra qué pasó y permite
+    // reparar (borra solo la copia guardada de la app; los proyectos y samples quedan intactos).
+    (function () {
+      var msg = document.getElementById('splashMsg');
+      var errors = [];
+      function show(t) { if (msg && document.getElementById('splash')) msg.textContent = t; }
+      window.addEventListener('error', function (e) { errors.push(e.message || String(e)); });
+      window.addEventListener('unhandledrejection', function (e) { errors.push(String(e.reason && e.reason.message || e.reason)); });
+      window.bloopRepair = function () {
+        show('Reparando…');
+        var jobs = [];
+        if (navigator.serviceWorker) jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }));
+        if (window.caches) jobs.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }));
+        Promise.all(jobs).then(function () { location.reload(); }, function () { location.reload(); });
+      };
+      document.getElementById('startBtn').addEventListener('click', function () {
+        if (window.__bloopReady) return; // la app cargó bien: arranca main.js
+        show('La app no terminó de cargar' + (errors.length ? ': ' + errors[0] : '') + '.');
+        if (!document.getElementById('repairBtn')) {
+          var b = document.createElement('button');
+          b.id = 'repairBtn'; b.className = 'big-btn'; b.style.fontSize = '16px'; b.style.padding = '12px 24px';
+          b.textContent = '🛠 Reparar y recargar';
+          b.onclick = window.bloopRepair;
+          msg.parentNode.appendChild(b);
+        }
+      });
+    })();
+  </script>
   <script type="module" src="js/main.js"></script>
 </body>
 </html>

@@ -25,48 +25,62 @@ import { toast } from './ui/util.js';
 const $ = id => document.getElementById(id);
 
 // Service worker (offline). En localhost se omite para no cachear mientras se desarrolla (?sw=1 lo fuerza).
-if ('serviceWorker' in navigator && (location.hostname !== 'localhost' || location.search.includes('sw=1'))) {
-  // updateViaCache 'none': el navegador siempre busca un sw.js nuevo, sin usar su caché HTTP
-  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
-}
+// Si este módulo se evaluó, todos los archivos cargaron bien (el salvavidas de index.html lo mira)
+window.__bloopReady = true;
 
-// ---------- Actualización automática ----------
-// Se recuerda la versión con la que arrancó la app. Al volver a la app (Android la deja viva en
-// segundo plano), si hay una versión publicada más nueva: si no está sonando nada, guarda y
-// recarga sola; si está sonando, avisa con un botón para no cortar lo que estás tocando.
-async function fetchVersion() {
-  try { return (await (await fetch('version.json', { cache: 'no-store' })).json()).version; } catch (e) { return null; }
+// ---------- Service worker y actualizaciones ----------
+// Cada versión se guarda completa en el dispositivo. Al abrir con internet se busca una nueva;
+// si aparece, se instala entera en segundo plano y:
+//  - en la pantalla de inicio: se recarga sola ya actualizada;
+//  - usando la app: avisa, y se aplica al volver a Bloop (si no está sonando nada).
+let swReg = null, updateReady = false;
+const busy = () => app.seq?.playing || app.loopers?.some(l => l.state === 'armed' || l.state === 'recording' || l.overdubbing);
+if ('serviceWorker' in navigator && (location.hostname !== 'localhost' || location.search.includes('sw=1'))) {
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+    .then(r => { swReg = r; r.update().catch(() => {}); }).catch(() => {});
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController) return; // primera instalación: nada que actualizar
+    if (!app.booting && !app.booted) { location.reload(); return; }
+    updateReady = true;
+    showUpdateBanner();
+  });
 }
 let updateBanner = null;
-async function checkUpdate() {
-  if (!app.version || document.hidden) return;
-  const v = await fetchVersion();
-  if (!v || v === app.version) return;
-  const busy = app.seq?.playing || app.loopers?.some(l => l.state === 'armed' || l.state === 'recording' || l.overdubbing);
-  if (!app.booted || !busy) { applyUpdate(); return; }
-  if (updateBanner) return;
+function showUpdateBanner() {
+  if (updateBanner || !app.booted) return;
   updateBanner = document.createElement('div');
   updateBanner.className = 'update-banner';
-  updateBanner.innerHTML = '<span>✨ Hay una versión nueva de Bloop</span>';
+  updateBanner.innerHTML = '<span>✨ Versión nueva lista</span>';
   const b = document.createElement('button');
   b.className = 'sbtn on'; b.textContent = 'Actualizar ahora';
   b.onclick = applyUpdate;
-  updateBanner.append(b);
+  const x = document.createElement('button');
+  x.className = 'sbtn'; x.textContent = 'Después';
+  x.onclick = () => { updateBanner.remove(); };
+  updateBanner.append(b, x);
   document.body.append(updateBanner);
 }
-async function applyUpdate() {
+function applyUpdate() {
   if (app.booted) { save(); resetting = true; }
-  try { const reg = await navigator.serviceWorker?.getRegistration(); await reg?.update(); } catch (e) { /* */ }
   location.reload();
 }
-fetchVersion().then(v => { app.version = v; });
-document.addEventListener('visibilitychange', () => { if (!document.hidden) checkUpdate(); });
-setInterval(checkUpdate, 20 * 60 * 1000);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  if (updateReady && app.booted && !busy()) { applyUpdate(); return; }
+  swReg?.update().catch(() => {});
+});
+// Versión en uso (la de la caché que está sirviendo la app)
+(window.caches ? caches.keys() : Promise.resolve([])).then(ks => {
+  const k = ks.find(x => x.startsWith('bloop-'));
+  app.version = k ? k.replace('bloop-', '') : 'local';
+}).catch(() => { app.version = 'local'; });
 
 $('startBtn').addEventListener('click', boot, { once: true });
 
 async function boot() {
   const msg = $('splashMsg');
+  app.booting = true;
   try {
     // Que Android no borre los proyectos guardados si le falta espacio
     navigator.storage?.persist?.().catch(() => {});
@@ -86,7 +100,8 @@ async function boot() {
     startAutosave();
     $('splash').remove();
     $('app').hidden = false;
-    app.booted = true;
+    app.booted = true; app.booting = false;
+    if (updateReady) showUpdateBanner();
     window.dispatchEvent(new Event('resize'));
   } catch (e) {
     console.error(e);
