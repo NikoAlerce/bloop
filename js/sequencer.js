@@ -72,7 +72,7 @@ export const seq = {
       o.frequency.value = k % 4 === 0 ? 1600 : 1050;
       g.gain.setValueAtTime(0.0001, tt); g.gain.exponentialRampToValueAtTime(0.4, tt + 0.001);
       g.gain.exponentialRampToValueAtTime(0.0001, tt + 0.05);
-      o.connect(g).connect(A.sum); o.start(tt); o.stop(tt + 0.06);
+      o.connect(g).connect(A.clickBus); o.start(tt); o.stop(tt + 0.06);
       this.countClicks.push(o);
     }
     const t0 = t + n * beat;
@@ -179,7 +179,7 @@ export const seq = {
       }
     }
 
-    if (st.metronome && this.g % 4 === 0) metroClick(A.ctx, A.sum, t, this.g % 16 === 0);
+    if (st.metronome && this.g % 4 === 0) metroClick(A.ctx, A.clickBus, t, this.g % 16 === 0);
 
     this.history.push({ t, eff });
     if (this.history.length > 12) this.history.shift();

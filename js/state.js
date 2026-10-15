@@ -39,7 +39,7 @@ export function defaultState() {
     kit: 0, current: 0, queued: null, selected: 0,
     delayDiv: '3/16', delayFb: 0.42, revLevel: 0.8, dlyLevel: 0.75,
     settings: {
-      micLatency: 30, inputId: '', monitor: false, recThresh: 0.03,
+      micLatency: 30, inputId: '', monitor: false, recThresh: 0.03, show: false, showMon: 0.8, showClick: 0.7,
       theme: 'dark', eco: false,
     },
     recQuant: { on: true, amount: 1, grid: '1/16' },

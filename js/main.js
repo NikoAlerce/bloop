@@ -1,5 +1,5 @@
 import { app } from './app.js';
-import { A, initAudio, setDelay, setMonitor } from './audio/engine.js';
+import { A, initAudio, setDelay, setMonitor, setShow } from './audio/engine.js';
 import { generateKits } from './audio/drums.js';
 import { DrumTrack } from './audio/sampler.js';
 import { Synth } from './audio/synth.js';
@@ -155,6 +155,7 @@ function buildAudio() {
   setDelay(s.bpm, s.delayDiv, s.delayFb);
   s.settings.monitor = false; // el monitoreo (y el micrófono) nunca arrancan prendidos
   setMonitor(false);
+  setShow(!!s.settings.show, s.settings.showMon ?? 0.8, s.settings.showClick ?? 0.7);
   applyMix();
 }
 

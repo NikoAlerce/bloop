@@ -58,6 +58,9 @@ export async function initAudio() {
   A.sum.connect(A.comp).connect(A.master).connect(A.limiter).connect(A.safety).connect(A.analyser).connect(ctx.destination);
   A.silent = gain(0);
   A.silent.connect(ctx.destination);
+  // Clicks (metrónomo y cuenta regresiva): en el modo show van solo a los auriculares
+  A.clickBus = gain(1);
+  A.clickBus.connect(A.sum);
 
   // Reverb (IR generada)
   A.reverbIn = gain(1);
@@ -103,6 +106,24 @@ export async function initAudio() {
   A.micNode.connect(A.micMeter);
   A.monitor = gain(0);
   A.micNode.connect(A.monitor).connect(A.sum);
+
+  // Modo show: la salida estéreo se usa como dos salidas mono.
+  // Izquierda = público (mezcla, sin click) · Derecha = tus auriculares (mezcla + click, con su volumen)
+  A.showSplit = ctx.createChannelSplitter(2);
+  A.showPub = gain(0.5);  // (L + R) / 2
+  A.showMon = gain(0.5);
+  A.showMonVol = gain(0.8);
+  A.showClick = gain(0.7);
+  A.showMonSum = gain(1);
+  A.showMerge = ctx.createChannelMerger(2);
+  A.showSplit.connect(A.showPub, 0); A.showSplit.connect(A.showPub, 1);
+  A.showSplit.connect(A.showMon, 0); A.showSplit.connect(A.showMon, 1);
+  A.showMon.connect(A.showMonVol).connect(A.showMonSum);
+  A.showClick.connect(A.showMonSum);
+  A.showPub.connect(A.showMerge, 0, 0);
+  A.showMonSum.connect(A.showMerge, 0, 1);
+  A.showMerge.connect(ctx.destination);
+  A.showOn = false;
 
   await ctx.audioWorklet.addModule('js/audio/recorder-worklet.js');
   await ctx.audioWorklet.addModule('js/audio/crush-worklet.js');
@@ -238,6 +259,36 @@ export async function listInputs() {
   const devs = await navigator.mediaDevices.enumerateDevices();
   return devs.filter(d => d.kind === 'audioinput');
 }
+// Modo show (ver arriba). mon/click: volúmenes de los auriculares y del click (0..1)
+export function setShow(on, mon = 0.8, click = 0.7) {
+  const t = A.ctx.currentTime;
+  A.showMonVol.gain.setTargetAtTime((mon / 0.8) ** 2, t, 0.02);
+  A.showClick.gain.setTargetAtTime(click, t, 0.02);
+  if (on === A.showOn) return;
+  A.showOn = on;
+  A.analyser.disconnect();
+  A.clickBus.disconnect();
+  A.monitor.disconnect();
+  if (on) {
+    A.analyser.connect(A.showSplit);
+    A.clickBus.connect(A.showClick);
+    A.monitor.connect(A.showMonSum);   // el micrófono, si lo monitoreás, solo en tus auriculares
+  } else {
+    A.analyser.connect(A.ctx.destination);
+    A.clickBus.connect(A.sum);
+    A.monitor.connect(A.sum);
+  }
+}
+
+// Pitido de prueba en un solo lado (0 = izquierda/público, 1 = derecha/auriculares)
+export function showTestTone(side) {
+  const t = A.ctx.currentTime + 0.02, o = A.ctx.createOscillator(), g = A.ctx.createGain();
+  o.frequency.value = side ? 880 : 440;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.25, t + 0.02);
+  g.gain.setValueAtTime(0.25, t + 0.5); g.gain.linearRampToValueAtTime(0, t + 0.6);
+  o.connect(g).connect(A.showMerge, 0, side); o.start(t); o.stop(t + 0.65);
+}
+
 export function setMonitor(on) {
   A.monitorOn = on;
   A.monitor.gain.setTargetAtTime(on ? 1 : 0, A.ctx.currentTime, 0.02);

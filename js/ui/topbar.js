@@ -1,5 +1,5 @@
 import { app } from '../app.js';
-import { A, audioMode, setAudioMode } from '../audio/engine.js';
+import { A, audioMode, setAudioMode, setShow, showTestTone } from '../audio/engine.js';
 import { h, popover, closePopover, toast, slider, toggle, chips } from './util.js';
 import { knob } from './knob.js';
 import { setBpm, loadKit, exportWav, exportStems, exportProject, importProject } from '../actions.js';
@@ -214,6 +214,7 @@ export function toggleFullscreen() {
 
 function openMenu(anchor) {
   const s = app.state;
+  const applyShow = () => setShow(!!s.settings.show, s.settings.showMon ?? 0.8, s.settings.showClick ?? 0.7);
   const file = h('input', { type: 'file', accept: '.bloop,.zip,application/zip,application/octet-stream', hidden: true, onchange: e => { const f = e.target.files[0]; if (f && confirm('¿Reemplazar el proyecto actual por el del archivo?')) { closePopover(); importProject(f); } } });
   popover(anchor, [
     h('h4', {}, 'Bloop'),
@@ -228,6 +229,17 @@ function openMenu(anchor) {
     chips([['stable', '🛡️ Estable (tablet)'], ['fast', '⚡ Baja latencia']], audioMode(), v => { setAudioMode(v); toast('Se aplica la próxima vez que abras Bloop'); }),
     h('div', { class: 'hint' }, `Latencia actual: ${Math.round(((A.ctx.baseLatency || 0) + (A.ctx.outputLatency || 0)) * 1000)} ms. Si el sonido se corta o chisporrotea, usá Estable y el modo 🔋 Ahorro.`),
     h('button', { class: 'menu-item', onclick: () => { closePopover(); openInputSettings(anchor); } }, '🎤 Entrada de audio, latencia y monitoreo'),
+    h('div', { class: 'lbl' }, '🎧 Modo show (en vivo)'),
+    toggle('🎧 Izquierda: público · Derecha: mis auriculares', !!s.settings.show, v => {
+      s.settings.show = v; applyShow();
+      toast(v ? '🎧 Modo show: el click y tu volumen de auriculares van solo por la derecha' : 'Salida estéreo normal');
+    }),
+    slider({ label: 'Volumen de mis auriculares', value: s.settings.showMon ?? 0.8, fmt: v => Math.round(v * 100) + '%', onInput: v => { s.settings.showMon = v; applyShow(); } }),
+    slider({ label: 'Volumen del click (solo auriculares)', value: s.settings.showClick ?? 0.7, fmt: v => Math.round(v * 100) + '%', onInput: v => { s.settings.showClick = v; applyShow(); } }),
+    h('div', { class: 'btn-row' },
+      h('button', { class: 'sbtn', onclick: () => showTestTone(0) }, '🔊 Probar público (izq.)'),
+      h('button', { class: 'sbtn', onclick: () => showTestTone(1) }, '🎧 Probar auriculares (der.)')),
+    h('div', { class: 'hint' }, 'Usá un cable 3,5 mm a 2 RCA: blanco (izquierda) al parlante o consola, rojo (derecha) a tus auriculares. Cada lado sale en mono. El metrónomo y la cuenta regresiva suenan solo en tus auriculares.'),
     h('div', { class: 'lbl' }, 'Cargar kit completo'),
     h('div', { class: 'btn-row' }, ...app.kits.map((k, i) => h('button', { class: 'sbtn', onclick: () => { closePopover(); loadKit(i); } }, k.name))),
     h('div', { class: 'lbl' }, 'Exportar mezcla (WAV)'),
