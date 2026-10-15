@@ -16,11 +16,13 @@ export function logLive(t) {
 
 /**
  * cap: AudioBuffer grabado desde (inicio del loop − pre) · pre/len/step en segundos
- * hits: posiciones (s) de cada golpe relativas al inicio del loop · amount: 0..1 (0 = no mueve)
+ * hits: posiciones (s) de cada golpe relativas al inicio del loop
+ * place: posición (s) → dónde debe quedar (s), o null para no mover nada
+ * edge: cuánto antes del 1 (o del final) un golpe todavía cuenta como el 1 (media grilla)
  */
-export function buildLoop(cap, { pre, len, step, hits, amount }) {
+export function buildLoop(cap, { pre, len, hits, place, edge = 0.06 }) {
   const sr = cap.sampleRate, P = Math.round(pre * sr), N = Math.max(1, Math.round(len * sr));
-  const S = Math.round(step * sr), half = S / 2, F = Math.round(0.003 * sr);
+  const half = Math.round(edge * sr), F = Math.round(0.003 * sr);
   const out = A.ctx.createBuffer(2, N, sr);
   const src = [cap.getChannelData(0), cap.getChannelData(Math.min(1, cap.numberOfChannels - 1))];
   const dst = [out.getChannelData(0), out.getChannelData(1)];
@@ -59,8 +61,7 @@ export function buildLoop(cap, { pre, len, step, hits, amount }) {
   if (valid[0] > 0) put(Math.max(0, before != null ? before + 2 * F : 0), valid[0], 0, before != null, true);
   for (let k = 0; k < valid.length; k++) {
     const o = valid[k], next = k + 1 < valid.length ? valid[k + 1] : endSrc;
-    const q = Math.round(o / S) * S;
-    const shift = Math.round((q - o) * amount);
+    const shift = place ? Math.round(place(o / sr) * sr) - o : 0;
     put(o - 2 * F, next, shift, true, true);
   }
   return out;

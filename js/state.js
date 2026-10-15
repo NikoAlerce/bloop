@@ -42,7 +42,7 @@ export function defaultState() {
       micLatency: 30, inputId: '', monitor: false, recThresh: 0.03,
       theme: 'dark', eco: false,
     },
-    recQuant: { on: true, amount: 1 },
+    recQuant: { on: true, amount: 1, grid: '1/16' },
     loopFree: false, selLoop: 0, loopPage: 0, loopScenes: true, loopScenesV2: true,
     view: 'main', padVel: 'touch', countIn: 1,
     kbTarget: 'synth', kbMode: 'piano', kbOctaves: 3, scale: { root: 9, type: 'chromatic' },

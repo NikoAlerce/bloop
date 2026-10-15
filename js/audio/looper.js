@@ -4,6 +4,7 @@
 import { A, capture, getMic, sliceBuffer, liveSource, holdParam } from './engine.js';
 import { stretchBuffer } from './stretch.js';
 import { buildLoop, liveLog } from './loopbuild.js';
+import { quantize, GRIDS } from '../quant.js';
 import { app } from '../app.js';
 import { undo } from '../undo.js';
 import { setBpm } from '../actions.js';
@@ -90,13 +91,16 @@ export class Looper {
     }
     // Solo lo que tocás: graba un poco antes y después del loop para no perder el golpe
     // del "1" tocado apenas antes, ni las colas; después lo acomoda en la grilla.
-    const step = seq.stepDur, pre = Math.min(0.3, 2 * step), post = Math.min(0.5, 4 * step);
+    const step = seq.stepDur, pre = Math.min(0.5, 2.5 * step), post = Math.min(0.5, 4 * step);
     const job = this.job = capture(node, t0 + lat - pre, pre + len + post);
     app.emit('loops');
     const build = cap => {
       const q = app.state.recQuant, arp = app.state.synth.arp.on;
       const hits = liveLog.filter(t => t > t0 + lat - pre - 1 && t < t0 + lat + len + post + 1).map(t => t - (t0 + lat));
-      return buildLoop(cap, { pre, len, step, hits, amount: q.on && !arp ? q.amount : 0 });
+      // Cada golpe va a la grilla elegida (con el swing de la batería)
+      const place = q.on && !arp ? x => quantize(x / step, q, app.state.swing).swung * step : null;
+      const edge = Math.min(pre, ((place ? GRIDS[q.grid] || 1 : 1) * step) / 2);
+      return buildLoop(cap, { pre, len, hits, place, edge });
     };
     // La primera vuelta tiene que sonar justo al terminar de grabar: se arma una versión
     // provisoria un instante antes del final y después se cambia por la definitiva.

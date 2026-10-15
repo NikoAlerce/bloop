@@ -4,6 +4,7 @@ import { metroClick } from './audio/drums.js';
 import { app } from './app.js';
 import { mkStep, isPatternEmpty } from './state.js';
 import { undo } from './undo.js';
+import { quantize } from './quant.js';
 
 const LOOK = 0.22;
 const ARP_RATE = { '1/8': 2, '1/16': 1, '1/16T': 2 / 3, '1/32': 0.5 };
@@ -205,9 +206,11 @@ export const seq = {
     let best = null;
     for (const h of this.history) if (!best || Math.abs(h.t - now) < Math.abs(best.t - now)) best = h;
     if (!best) return null;
-    const off = Math.max(-0.5, Math.min(0.5, (now - best.t) / this.stepDur));
-    const q = app.state.recQuant;
-    return { ...best, nudge: q.on ? Math.round(off * (1 - q.amount) * 100) / 100 : Math.round(off * 100) / 100 };
+    // Posición continua en pasos → grilla elegida (1/4 … 1/32, tresillos) respetando el swing
+    const p = best.eff + (now - best.t) / this.stepDur;
+    const f = quantize(p, app.state.recQuant, app.state.swing).straight;
+    const eff = Math.round(f);
+    return { ...best, eff, nudge: Math.round(Math.max(-0.5, Math.min(0.5, f - eff)) * 100) / 100 };
   },
 
   // ---- Grabación en vivo ----
@@ -216,7 +219,7 @@ export const seq = {
     const h = this.nearestStep(); if (!h) return;
     undo.pattern('Grabación', 'rec');
     const tp = app.pattern.tracks[i];
-    const s = h.eff % tp.len;
+    const s = ((h.eff % tp.len) + tp.len) % tp.len;
     tp.steps[s] = { ...mkStep(vel), pitch: semis, nudge: h.nudge };
     app.emit('pattern-edit');
   },
@@ -226,7 +229,7 @@ export const seq = {
     const h = this.nearestStep(); if (!h) return;
     undo.pattern('Grabación', 'rec');
     const ps = app.pattern.synth;
-    const step = h.eff % ps.len;
+    const step = ((h.eff % ps.len) + ps.len) % ps.len;
     ps.notes = ps.notes.filter(n => !(n.step === step && n.midi === midi));
     const note = { step, midi, len: 1, vel: Math.round(vel * 100) / 100, nudge: h.nudge, recAt: h.t };
     ps.notes.push(note);
