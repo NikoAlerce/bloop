@@ -68,6 +68,7 @@ export function buildLoops(el) {
         chips([['mic', '🎤 Micrófono'], ['keys', '🎹 Solo lo que toco'], ['groove', '🥁 Todo']], lp.source, v => { lp.source = v; update(); }),
         h('div', { class: 'hint' }, '🎹 graba solo lo que tocás en vivo (teclado, MIDI y pads), sin la base. 🥁 graba todo lo que suena.'),
         slider({ label: 'Volumen', value: lp.volume, color: col, fmt: fmtPct, onInput: v => { lp.setVolume(v); app.emit('loop-saved', i); } }),
+        toggle('🎵 Mantener el tono al cambiar BPM', lp.keepPitch, v => { lp.setKeepPitch(v); app.emit('toast', v ? '🎵 Cambia la velocidad sin cambiar el tono' : '📼 Como cinta: al cambiar el BPM cambia también el tono'); }),
         toggle('🎬 Las escenas manejan los loops', s.loopScenes !== false, v => { s.loopScenes = v; app.emit('toast', v ? 'Cada escena recuerda qué loops suenan' : 'Cambiar de escena ya no toca los loops'); }),
         h('div', { class: 'hint' }, 'Un loop nuevo suena solo en la escena donde lo grabaste. Para sumarlo a otra escena, andá a esa escena y tocalo.'),
         h('button', { class: 'menu-item', onclick: () => { closePopover(); openLoopEditor(lp); } }, '✎ Editar onda'),

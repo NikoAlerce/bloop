@@ -346,7 +346,7 @@ export async function exportProject() {
   const loops = [];
   for (const lp of app.loopers) {
     if (!lp.raw) continue;
-    loops.push({ i: lp.i, region: lp.region, fadeIn: lp.fadeIn, fadeOut: lp.fadeOut, bars: lp.bars, recBpm: lp.recBpm, free: lp.free, source: lp.source, volume: lp.volume, muted: lp.state === 'muted' });
+    loops.push({ i: lp.i, region: lp.region, fadeIn: lp.fadeIn, fadeOut: lp.fadeOut, bars: lp.bars, recBpm: lp.recBpm, free: lp.free, source: lp.source, volume: lp.volume, muted: lp.state === 'muted', keepPitch: lp.keepPitch });
     files.push({ name: `loops/${lp.i}.wav`, data: new Uint8Array(await encodeWav(lp.raw, true).arrayBuffer()) });
   }
   for (const t of st().tracks) {

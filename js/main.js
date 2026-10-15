@@ -180,13 +180,14 @@ async function restoreLoops() {
     lp.volume = o.volume ?? 0.9;
     lp.region = o.region || [0, lp.raw.duration];
     lp.fadeIn = o.fadeIn ?? 0.003; lp.fadeOut = o.fadeOut ?? 0.003; lp.free = !!o.free;
+    lp.keepPitch = o.keepPitch ?? true;
     lp.render();
     lp.state = app.pattern.loops[lp.i] ? 'playing' : 'muted';
     lp.out.gain.value = lp.state === 'muted' ? 0 : lp.volume;
   }
   const save = i => {
     const lp = app.loopers[i];
-    if (lp.raw) kvSet('loop:' + i, bufferToStore(lp.raw, { recBpm: lp.recBpm, bars: lp.bars, source: lp.source, volume: lp.volume, region: lp.region, fadeIn: lp.fadeIn, fadeOut: lp.fadeOut, free: lp.free }));
+    if (lp.raw) kvSet('loop:' + i, bufferToStore(lp.raw, { recBpm: lp.recBpm, bars: lp.bars, source: lp.source, volume: lp.volume, region: lp.region, fadeIn: lp.fadeIn, fadeOut: lp.fadeOut, free: lp.free, keepPitch: lp.keepPitch }));
   };
   const t = {};
   app.on('loop-saved', i => { clearTimeout(t[i]); t[i] = setTimeout(() => save(i), 600); });
