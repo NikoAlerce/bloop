@@ -146,7 +146,7 @@ export function buildLoops(el) {
         text('+', R * 0.5, ink(0.4), -R * 0.08);
         text(s.loopFree ? 'libre' : `${lp.bars} comp.`, Math.max(9 * dpr, R * 0.14), ink(0.4), R * 0.38);
       } else if (st === 'armed') {
-        const left = lp.recStart - now, beats = Math.ceil(left / (app.seq.stepDur * 4));
+        const left = lp.recStart - (now - A.outLat), beats = Math.ceil(left / (app.seq.stepDur * 4) - 0.001);
         ring(1, Math.floor(time * 4) % 2 ? col : ink(0.15), 4 * dpr);
         text(Math.max(1, beats), R * 0.55);
       } else if (st === 'recording') {

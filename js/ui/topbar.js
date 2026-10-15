@@ -11,6 +11,7 @@ import { openControllers } from './controllers.js';
 import { openInputSettings } from './settings.js';
 import { openSong } from './song.js';
 import { setView } from './padview.js';
+import { COUNT_OPTS } from './countin.js';
 
 const ICON = {
   play: '<svg viewBox="0 0 24 24"><path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.7l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>',
@@ -153,6 +154,9 @@ export function buildTopbar(el) {
       toggle(q.on ? 'Cuantizar: sí' : 'Cuantizar: no', q.on, v => { q.on = v; anchor.focus(); updQ(); closePopover(); openQuant(anchor); }),
       slider({ label: 'Intensidad', value: q.amount, step: 0.05, fmt: v => Math.round(v * 100) + '%', onInput: v => { q.amount = v; updQ(); } }),
       h('div', { class: 'hint' }, '100% = todo cae justo en la grilla. Menos = conserva parte de tu groove. Sin cuantizar se guarda el micro-timing real de cada golpe y nota.'),
+      h('div', { class: 'lbl' }, '⏱ Cuenta regresiva'),
+      chips(COUNT_OPTS, s.countIn ?? 1, v => { s.countIn = +v; app.emit('countin-opt'); }),
+      h('div', { class: 'hint' }, 'Con todo parado, al grabar un loop (o dar play con ⏺ activado) suenan clicks antes de empezar.'),
     ]);
   }
 

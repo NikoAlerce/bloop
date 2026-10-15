@@ -68,7 +68,8 @@ export class Looper {
     let node;
     try { node = await this.sourceNode(); } catch (e) { app.emit('toast', '🎤 No pude acceder a la entrada de audio'); return; }
     const seq = app.seq;
-    if (!seq.playing) seq.start();
+    // Con el transporte parado: cuenta regresiva y la grabación arranca en el compás 1
+    if (!seq.playing) seq.startCounted();
     const t0 = seq.nextBarTime();
     const len = this.bars * 16 * seq.stepDur;
     this.free = false;

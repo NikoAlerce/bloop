@@ -610,3 +610,15 @@ body.eco .bigpad { transition: none; }
 .we-tools .chips .chip { height: 44px; }
 .sbtn.good { background: color-mix(in srgb, #7cf0b0 30%, var(--panel2)); }
 .sbtn.warn { background: #fecb57; color: #15121b; }
+
+/* Cuenta regresiva */
+.countin { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 46; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  width: 210px; height: 210px; border-radius: 50%; justify-content: center; background: color-mix(in srgb, var(--card) 82%, transparent); border: 4px solid var(--ink); box-shadow: 0 20px 70px rgba(0, 0, 0, 0.45); }
+.countin[hidden] { display: none; }
+.countin b { font-size: 110px; line-height: 1; font-weight: 800; }
+.countin small { font-size: 14px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--ink2); }
+.countin.rec { border-color: var(--rec); }
+.countin.rec b { color: var(--rec); }
+.countin.beat { animation: countbeat 0.25s ease-out; }
+@keyframes countbeat { from { transform: translate(-50%, -50%) scale(1.12); } }
+.pv-head .pill.on { background: var(--ink); color: var(--bg); }

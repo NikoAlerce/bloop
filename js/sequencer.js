@@ -40,6 +40,11 @@ export const seq = {
     if (!this.playing) return;
     this.playing = false;
     this.stutter = null;
+    if (this.countIn) {
+      this.countIn = null;
+      for (const o of this.countClicks) { try { o.stop(); } catch (e) { /* */ } }
+      this.countClicks = [];
+    }
     app.state.queued = null;
     app.synth.allOff();
     app.loopers.forEach(l => l.onTransportStop());
@@ -49,7 +54,32 @@ export const seq = {
     app.emit('transport'); app.emit('pattern');
   },
 
-  toggle() { this.playing ? this.stop() : this.start(); },
+  toggle() { this.playing ? this.stop() : this.recording ? this.startCounted() : this.start(); },
+
+  // Arranca después de una cuenta regresiva (clicks de metrónomo) si está configurada.
+  // Devuelve el momento en que empieza el compás 1. Si ya suena, el próximo compás.
+  countIn: null,           // {t, t0, n, beat} mientras cuenta
+  countClicks: [],
+  startCounted() {
+    if (this.playing) return this.nextBarTime();
+    const bars = app.state.countIn ?? 1;
+    if (!bars) { this.start(); return this.startTime; }
+    const ctx = A.ctx, beat = this.stepDur * 4, n = bars * 4, t = ctx.currentTime + 0.12;
+    this.countClicks = [];
+    for (let k = 0; k < n; k++) {
+      const tt = t + k * beat, o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = k % 4 === 0 ? 1600 : 1050;
+      g.gain.setValueAtTime(0.0001, tt); g.gain.exponentialRampToValueAtTime(0.4, tt + 0.001);
+      g.gain.exponentialRampToValueAtTime(0.0001, tt + 0.05);
+      o.connect(g).connect(A.sum); o.start(tt); o.stop(tt + 0.06);
+      this.countClicks.push(o);
+    }
+    const t0 = t + n * beat;
+    this.countIn = { t, t0, n, beat };
+    this.start(t0);
+    app.emit('countin', this.countIn);
+    return t0;
+  },
 
   nextBarTime() {
     const bd = this.stepDur * 16, now = A.ctx.currentTime;
@@ -83,6 +113,7 @@ export const seq = {
 
   tick() {
     const horizon = A.ctx.currentTime + LOOK;
+    if (this.countIn && A.ctx.currentTime > this.countIn.t0 + 0.5) this.countIn = null;
     if (this.playing) {
       while (this.nextTime < horizon) {
         this.scheduleStep(this.nextTime);
@@ -169,6 +200,8 @@ export const seq = {
     // Lo que se ESCUCHABA en el instante del toque (no cuando el código lo procesa)
     const ts = app.lastInputTs && performance.now() - app.lastInputTs < 400 ? app.lastInputTs : undefined;
     const now = heardTime(ts);
+    // Lo que se toca durante la cuenta regresiva no se graba (salvo lo que cae justo en el 1)
+    if (this.countIn && now < this.countIn.t0 - this.stepDur / 2) return null;
     let best = null;
     for (const h of this.history) if (!best || Math.abs(h.t - now) < Math.abs(best.t - now)) best = h;
     if (!best) return null;

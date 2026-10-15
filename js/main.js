@@ -18,6 +18,7 @@ import { buildGrid } from './ui/grid.js';
 import { buildLoops } from './ui/loops.js';
 import { buildDock } from './ui/dock.js';
 import { buildPadView, setView } from './ui/padview.js';
+import { buildCountIn } from './ui/countin.js';
 import { registerParamTargets } from './ui/params.js';
 import { registerMixerTargets } from './ui/mixer.js';
 import { buildLearnBar } from './ui/controllers.js';
@@ -252,6 +253,7 @@ function buildUI() {
   ui.tracks = buildTracks($('tracks'));
   ui.grid = buildGrid($('gridHead'), $('gridWrap'));
   ui.pads = buildPadView($('padView'));
+  buildCountIn();
   const loopsFrame = buildLoops($('perf'));
   ui.dock = buildDock($('dock'));
   setView(app.state.view === 'pads' ? 'pads' : 'main');

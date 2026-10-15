@@ -44,7 +44,7 @@ export function defaultState() {
     },
     recQuant: { on: true, amount: 1 },
     loopFree: false, selLoop: 0, loopPage: 0, loopScenes: true, loopScenesV2: true,
-    view: 'main', padVel: 'touch',
+    view: 'main', padVel: 'touch', countIn: 1,
     kbTarget: 'synth', kbMode: 'piano', kbOctaves: 3, scale: { root: 9, type: 'chromatic' },
     song: { on: false, chain: [{ pat: 0, bars: 4 }, { pat: 1, bars: 4 }] },
     tracks: Array.from({ length: 8 }, (_, i) => ({
