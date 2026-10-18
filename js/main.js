@@ -154,6 +154,9 @@ function buildAudio() {
   A.delayReturn.gain.value = s.dlyLevel ?? 0.75;
   setDelay(s.bpm, s.delayDiv, s.delayFb);
   s.settings.monitor = false; // el monitoreo (y el micrófono) nunca arrancan prendidos
+  // Si la demora del micrófono nunca se midió, una estimación (en Android suele ser bastante
+  // más que la salida sola). La cuenta regresiva de un loop de 🎤 la mide de verdad.
+  if (!s.settings.micMeasured) s.settings.micLatency = Math.round(Math.min(300, Math.max(100, A.outLat * 2000 + 40)));
   setMonitor(false);
   setShow(!!s.settings.show, s.settings.showMon ?? 0.8, s.settings.showClick ?? 0.7);
   applyMix();

@@ -45,7 +45,7 @@ export async function openInputSettings(anchor) {
     const ms = await calibrateLatency().catch(() => null);
     calBtn.disabled = false; calBtn.textContent = '🎯 Calibrar automáticamente';
     if (ms == null) { toast('No escuché los clicks: subí el volumen y acercá la tablet'); return; }
-    s.micLatency = ms; latSlider.set(ms);
+    s.micLatency = ms; s.micMeasured = true; latSlider.set(ms);
     toast(`⏱ Latencia medida: ${ms} ms`);
   });
 

@@ -5,7 +5,7 @@
 //  - Golpes cortos (pads): se corta el audio en cada golpe y se corre a su lugar.
 //  - Notas (synth, sampler en notas): se re-tocan con el mismo sonido en su lugar exacto,
 //    así las notas largas, acordes y colas quedan enteros y suena lo que tocaste.
-import { A, heardTime, capture, makePrint } from './engine.js';
+import { A, heardTime, capture, makePrint, detectTransients } from './engine.js';
 import { Synth } from './synth.js';
 import { TrackStrip } from './sampler.js';
 import { app } from '../app.js';
@@ -28,7 +28,7 @@ export const isNote = e => e.type === 'son' || e.type === 'pon';
  * place: posición (s) → dónde debe quedar (s); null = donde lo tocaste
  * edge: cuánto antes del 1 (o del final) un golpe todavía cuenta como el 1
  */
-export function buildLoop(cap, { pre, len, hits, place, edge = 0.06 }) {
+export function buildLoop(cap, { pre, len, hits, place, edge = 0.06, tail = Infinity }) {
   const sr = cap.sampleRate, P = Math.round(pre * sr), N = Math.max(1, Math.round(len * sr));
   const F = Math.round(0.003 * sr);
   const out = A.ctx.createBuffer(2, N, sr);
@@ -44,7 +44,7 @@ export function buildLoop(cap, { pre, len, hits, place, edge = 0.06 }) {
   const firstAfter = on.find(x => x.want >= len + edge);     // lo tocado después: no entra
   const before = on.filter(x => x.want < -edge).pop();      // lo tocado antes: no entra
   const S = x => Math.round(x * sr);
-  const endSrc = Math.min(capLen - P, firstAfter ? S(firstAfter.at) : Infinity);
+  const endSrc = Math.min(capLen - P, firstAfter ? S(firstAfter.at) : Infinity, S(len + tail));
 
   // Copia el tramo [a, b) del audio (posiciones del loop, en muestras) corrido "shift"
   const put = (a, b, shift, fadeIn, fadeOut) => {
@@ -176,4 +176,62 @@ export function collectNotes(evs, { start, len, place, edge, capEnd }) {
     notes.push({ ...e, at, dur });
   });
   return notes;
+}
+
+// ---------- Micrófono ----------
+// Golpes en un audio grabado: posición (s) del comienzo real de cada uno
+export function audioOnsets(buf) {
+  const sr = buf.sampleRate, d = buf.getChannelData(0);
+  const pos = detectTransients(buf, 0.55, 160).map(p => Math.round(p * d.length));
+  const out = [];
+  for (const p0 of pos) {
+    const end = Math.min(d.length, p0 + Math.round(0.04 * sr));
+    let pk = 0;
+    for (let i = p0; i < end; i++) pk = Math.max(pk, Math.abs(d[i]));
+    if (pk < 0.02) continue;
+    let st = Math.max(0, p0 - Math.round(0.01 * sr));
+    for (let i = st; i < end; i++) if (Math.abs(d[i]) >= pk * 0.3) { st = i; break; }
+    if (!out.length || st - out[out.length - 1] > 0.05 * sr) out.push(st);
+  }
+  return out.map(x => x / sr);
+}
+
+// ¿Son golpes (percusión) o algo sostenido (voz, un instrumento que suena largo)?
+// En los golpes el sonido cae bastante antes del golpe siguiente.
+export function isPercussive(buf, onsets) {
+  const d = buf.getChannelData(0), sr = buf.sampleRate, W = Math.round(0.01 * sr);
+  const rms = a => { let e = 0; for (let i = Math.max(0, a); i < a + W && i < d.length; i++) e += d[i] * d[i]; return Math.sqrt(e / W); };
+  let ok = 0, n = 0;
+  for (let k = 0; k < onsets.length - 1; k++) {
+    const a = Math.round(onsets[k] * sr), b = Math.round(onsets[k + 1] * sr);
+    if (b - a < 5 * W) continue;
+    let peak = 0;
+    for (let i = a; i < a + 3 * W; i += W) peak = Math.max(peak, rms(i));
+    n++;
+    if (rms(b - 2 * W) < peak * 0.35) ok++;
+  }
+  return n >= 2 && ok / n >= 0.6;
+}
+
+// Demora real del micrófono medida con los clicks de la cuenta regresiva:
+// cuánto tarda cada click en salir por el parlante y volver por el micrófono.
+export function measureClicks(buf, { n, beat }) {
+  const d = buf.getChannelData(0), sr = buf.sampleRate;
+  const abs = Array.from(d, Math.abs).sort((a, b) => a - b);
+  const floor = abs[Math.floor(abs.length * 0.5)] || 0;
+  const res = [];
+  for (let k = 0; k < n; k++) {
+    const a = Math.floor(k * beat * sr), b = Math.min(d.length, a + Math.floor(Math.min(0.5, beat * 0.9) * sr));
+    let pk = 0;
+    for (let i = a; i < b; i++) pk = Math.max(pk, Math.abs(d[i]));
+    if (pk < Math.max(0.01, floor * 6)) continue;
+    const th = Math.max(floor * 4, pk * 0.35);
+    for (let i = a; i < b; i++) if (Math.abs(d[i]) >= th) { res.push((i - a) / sr); break; }
+  }
+  if (res.length < 3) return null;
+  res.sort((x, y) => x - y);
+  const mid = res.slice(Math.floor(res.length / 2) - 1, Math.floor(res.length / 2) + 2);
+  if (mid[mid.length - 1] - mid[0] > 0.02) return null;   // no coincide: algo más sonó
+  const v = res[Math.floor(res.length / 2)];
+  return v > 0.003 && v < 0.6 ? v : null;
 }

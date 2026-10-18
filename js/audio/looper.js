@@ -3,7 +3,7 @@
 // recortada y con fades que suena. Así recortar y deshacer no destruyen nada.
 import { A, capture, getMic, sliceBuffer, liveSource, holdParam, heardTime } from './engine.js';
 import { stretchBuffer } from './stretch.js';
-import { buildLoop, liveLog, isOn, isNote, soundSnapshot, renderNotes, collectNotes } from './loopbuild.js';
+import { buildLoop, liveLog, isOn, isNote, soundSnapshot, renderNotes, collectNotes, audioOnsets, isPercussive, measureClicks } from './loopbuild.js';
 import { quantize, GRIDS } from '../quant.js';
 import { app } from '../app.js';
 import { undo } from '../undo.js';
@@ -91,6 +91,7 @@ export class Looper {
     this.recBpm = app.state.bpm;
     this.state = 'armed';
     const lat = this.latency();
+    if (this.source === 'mic') return this.armMic(node, t0, len);
     if (this.source !== 'keys') {
       const job = this.job = capture(node, t0 + lat, len);
       app.emit('loops');
@@ -127,6 +128,48 @@ export class Looper {
       this.buffer = build(cap); this.bufBpm = this.recBpm; this.origin = this.recStart;
       this.play();
     }, Math.max(0, (at - A.ctx.currentTime) * 1000));
+  }
+
+  // ---------- Micrófono al compás ----------
+  // Graba con margen antes y después; la demora real del micrófono se mide con los clicks de
+  // la cuenta regresiva (si hubo) y recién al final se decide dónde empieza el loop.
+  // Si lo grabado son golpes (percusión) y la Q está prendida, cada golpe va a la grilla.
+  async armMic(node, t0, len) {
+    const seq = app.seq, st = app.state.settings;
+    const ci = seq.countIn && Math.abs(seq.countIn.t0 - t0) < 0.01 ? seq.countIn : null;
+    const measuring = ci ? capture(node, ci.t, ci.n * ci.beat + 0.05).promise.then(b => measureClicks(b, ci)) : null;
+    if (!ci && !st.micMeasured) app.emit('toast', '🎤 Tip: grabá con todo parado la primera vez; la cuenta regresiva mide la demora del micrófono');
+    const pre = 0.3, MAXLAT = 0.6;
+    const capStart = t0 - pre;
+    const job = this.job = capture(node, capStart, pre + len + MAXLAT + 0.3);
+    app.emit('loops');
+    const slice = (cap, lat) => sliceBuffer(cap, (t0 + lat - capStart) * cap.sampleRate, (t0 + lat - capStart + len) * cap.sampleRate);
+    this.peekPlay(job, t0 + len - 0.05, cap => slice(cap, (st.micLatency || 0) / 1000));
+    const cap = await job.promise;
+    if (this.job !== job) return;
+    this.job = null;
+    let lat = (st.micLatency || 0) / 1000;
+    const measured = measuring ? await measuring.catch(() => null) : null;
+    if (measured != null) {
+      const ms = Math.round(measured * 1000);
+      if (!st.micMeasured || Math.abs(ms - st.micLatency) > 8) app.emit('toast', `🎯 Demora del micrófono medida: ${ms} ms`);
+      st.micLatency = ms; st.micMeasured = true;
+      lat = measured;
+    }
+    if (cap.length < (t0 + lat - capStart + len) * cap.sampleRate * 0.98) { this.stopSrc(); this.state = 'empty'; app.emit('loops'); return; }
+    const q = app.state.recQuant;
+    let buf = null;
+    if (q.on) {
+      const startAt = t0 + lat - capStart;      // dónde empieza el loop dentro de lo grabado
+      const step = seq.stepDur, edge = ((GRIDS[q.grid] || 1) * step) / 2;
+      const ons = audioOnsets(cap).map(x => x - startAt).filter(x => x > -pre + 0.01);
+      const inLoop = ons.filter(x => x >= -edge && x < len + edge);
+      if (inLoop.length >= 2 && isPercussive(cap, ons.map(x => x + startAt))) {
+        const place = x => quantize(x / step, q, app.state.swing).swung * step;
+        buf = buildLoop(cap, { pre: startAt, len, hits: ons.map(at => ({ at, want: at })), place, edge: Math.min(edge, startAt), tail: 0.25 });
+      }
+    }
+    this.setRecorded(buf || slice(cap, lat), t0);
   }
 
   // ---------- "Lo que tocás" (🎹) ----------
