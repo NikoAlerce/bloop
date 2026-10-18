@@ -174,31 +174,42 @@ export function setDelay(bpm, div, fb) {
   }
 }
 
-// Fuente "🎹 Solo lo que toco": lo tocado en vivo + su propia reverb y delay (iguales a los
-// generales), sin la base. Se arma la primera vez que se usa.
-export function liveSource() {
-  if (A.liveRec) return A.liveRec;
+// Cadena "impresa": entrada seca + su propia reverb y delay (iguales a los generales).
+// La usan la fuente "🎹 Solo lo que toco" y el re-tocado de notas cuantizadas.
+export function makePrint() {
   const ctx = A.ctx;
   const g = (v = 1) => { const n = ctx.createGain(); n.gain.value = v; return n; };
-  A.liveRec = g(1);
-  A.liveBus.connect(A.liveRec);
+  const bus = g(1), revIn = g(1), dlyIn = g(1), out = g(1);
+  bus.connect(out);
   const pre = ctx.createDelay(0.1); pre.delayTime.value = 0.02;
   const conv = ctx.createConvolver(); conv.buffer = A.convolver.buffer;
-  const revRet = g(1);
-  A.liveRevIn.connect(pre).connect(conv).connect(revRet).connect(A.liveRec);
-  revRet.gain.value = A.reverbReturn.gain.value;
-  A.liveRevRet = revRet;
+  const revRet = g(A.reverbReturn.gain.value);
+  revIn.connect(pre).connect(conv).connect(revRet).connect(out);
   const dL = ctx.createDelay(3), dR = ctx.createDelay(3);
   dL.delayTime.value = dR.delayTime.value = A.delayTime || 0.375;
   const fb = g(A.baseFb);
   const tone = ctx.createBiquadFilter(); tone.type = 'lowpass'; tone.frequency.value = 3600;
   const lowcut = ctx.createBiquadFilter(); lowcut.type = 'highpass'; lowcut.frequency.value = 180;
   const merger = ctx.createChannelMerger(2);
-  A.liveDlyIn.connect(dL); dL.connect(dR);
+  dlyIn.connect(dL); dL.connect(dR);
   dR.connect(tone).connect(lowcut).connect(fb).connect(dL);
   dL.connect(merger, 0, 0); dR.connect(merger, 0, 1);
-  merger.connect(g(A.delayReturn.gain.value)).connect(A.liveRec);
-  A.pdL = dL; A.pdR = dR; A.pFb = fb;
+  merger.connect(g(A.delayReturn.gain.value)).connect(out);
+  const dispose = () => { [bus, revIn, dlyIn, out, fb, dL, dR, conv].forEach(n => { try { n.disconnect(); } catch (e) { /* */ } }); };
+  return { bus, revIn, dlyIn, out, revRet, dL, dR, fb, dispose };
+}
+
+// Fuente "🎹 Solo lo que toco": lo tocado en vivo + su propia reverb y delay, sin la base.
+// Se arma la primera vez que se usa.
+export function liveSource() {
+  if (A.liveRec) return A.liveRec;
+  const pr = makePrint();
+  A.liveBus.connect(pr.bus);
+  A.liveRevIn.connect(pr.revIn);
+  A.liveDlyIn.connect(pr.dlyIn);
+  A.liveRec = pr.out;
+  A.liveRevRet = pr.revRet;
+  A.pdL = pr.dL; A.pdR = pr.dR; A.pFb = pr.fb;
   return A.liveRec;
 }
 

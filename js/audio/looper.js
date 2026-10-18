@@ -1,13 +1,25 @@
 // Looper. Estados: empty → armed → recording → playing ⇄ muted
 // "raw" es la grabación original (nunca se modifica en el lugar); "buffer" es la región
 // recortada y con fades que suena. Así recortar y deshacer no destruyen nada.
-import { A, capture, getMic, sliceBuffer, liveSource, holdParam } from './engine.js';
+import { A, capture, getMic, sliceBuffer, liveSource, holdParam, heardTime } from './engine.js';
 import { stretchBuffer } from './stretch.js';
-import { buildLoop, liveLog } from './loopbuild.js';
+import { buildLoop, liveLog, isOn, isNote, soundSnapshot, renderNotes, collectNotes } from './loopbuild.js';
 import { quantize, GRIDS } from '../quant.js';
 import { app } from '../app.js';
 import { undo } from '../undo.js';
 import { setBpm } from '../actions.js';
+
+// Tempo para un loop de largo L: la cantidad de compases que da el BPM más "normal"
+function bestTempo(L) {
+  let best = null;
+  for (const n of [1, 2, 4, 8, 16]) {
+    const bpm = n * 240 / L;
+    if (bpm >= 40 && bpm <= 220 && (!best || Math.abs(bpm - 118) < Math.abs(best.bpm - 118))) best = { n, bpm };
+  }
+  return best;
+}
+// Hora del último toque, si es de recién (si no, "ahora")
+const freshTs = () => { const ts = app.lastInputTs; return ts && performance.now() - ts < 120 ? ts : undefined; };
 
 export class Looper {
   constructor(i) {
@@ -92,31 +104,71 @@ export class Looper {
     // Solo lo que tocás: graba un poco antes y después del loop para no perder el golpe
     // del "1" tocado apenas antes, ni las colas; después lo acomoda en la grilla.
     const step = seq.stepDur, pre = Math.min(0.5, 2.5 * step), post = Math.min(0.5, 4 * step);
-    const job = this.job = capture(node, t0 + lat - pre, pre + len + post);
+    const capStart = t0 + lat - pre;
+    const job = this.job = capture(node, capStart, pre + len + post);
     app.emit('loops');
-    const build = cap => {
-      const q = app.state.recQuant, arp = app.state.synth.arp.on;
-      const hits = liveLog.filter(t => t > t0 + lat - pre - 1 && t < t0 + lat + len + post + 1).map(t => t - (t0 + lat));
-      // Cada golpe va a la grilla elegida (con el swing de la batería)
-      const place = q.on && !arp ? x => quantize(x / step, q, app.state.swing).swung * step : null;
-      const edge = Math.min(pre, ((place ? GRIDS[q.grid] || 1 : 1) * step) / 2);
-      return buildLoop(cap, { pre, len, hits, place, edge });
-    };
     // La primera vuelta tiene que sonar justo al terminar de grabar: se arma una versión
     // provisoria un instante antes del final y después se cambia por la definitiva.
-    const peekAt = t0 + len - 0.15;
-    setTimeout(async () => {
-      if (this.job !== job) return;
-      const cap = await job.peek();
-      if (this.job !== job || cap.length < pre * A.ctx.sampleRate) return;
-      this.buffer = build(cap); this.bufBpm = this.recBpm; this.origin = t0;
-      this.play();
-    }, Math.max(0, (peekAt - A.ctx.currentTime) * 1000));
+    this.peekPlay(job, t0 + len - 0.15, cap => this.keysBuild(cap, { start: t0, len, capStart }).buf);
     const cap = await job.promise;
     if (this.job !== job) return;
     this.job = null;
     if (cap.length < (pre + len) * A.ctx.sampleRate * 0.9) { this.stopSrc(); this.state = 'empty'; app.emit('loops'); return; }
-    this.setRecorded(build(cap), t0);
+    this.finishKeys(cap, { start: t0, len, capStart });
+  }
+
+  // Un instante antes de terminar la grabación arma una versión provisoria con lo grabado
+  // hasta ahí, para que la primera vuelta suene a tiempo (después llega la definitiva).
+  peekPlay(job, at, build) {
+    setTimeout(async () => {
+      if (this.job !== job) return;
+      const cap = await job.peek();
+      if (this.job !== job || cap.length < 0.2 * A.ctx.sampleRate) return;
+      this.buffer = build(cap); this.bufBpm = this.recBpm; this.origin = this.recStart;
+      this.play();
+    }, Math.max(0, (at - A.ctx.currentTime) * 1000));
+  }
+
+  // ---------- "Lo que tocás" (🎹) ----------
+  // Arma el loop: los golpes se corren a su lugar cortando el audio; si hay notas (synth,
+  // sampler en notas) esta versión no las mueve y después se re-tocan en su lugar exacto.
+  keysBuild(cap, { start, len, capStart }) {
+    const lat = this.latency(), step = app.seq.stepDur, q = app.state.recQuant;
+    const arp = app.state.synth.arp.on;
+    const evs = liveLog.filter(e => e.t > capStart - 3 && e.t < capStart + cap.duration + 0.5);
+    const place = q.on && !arp ? x => quantize(x / step, q, app.state.swing).swung * step : null;
+    const pre = start + lat - capStart;
+    const edge = Math.min(Math.max(0, pre), ((place ? GRIDS[q.grid] || 1 : 1) * step) / 2);
+    const hasNotes = !arp && evs.some(e => isNote(e) && e.h - start >= -edge && e.h - start < len + edge);
+    const hits = evs.filter(isOn).map(e => {
+      const at = e.t - (start + lat);
+      return { at, want: hasNotes ? at : e.h - start };
+    });
+    const buf = buildLoop(cap, { pre, len, hits, place: hasNotes ? null : place, edge });
+    return { buf, hasNotes, evs, place, edge };
+  }
+
+  finishKeys(cap, { start, len, capStart }) {
+    const r = this.keysBuild(cap, { start, len, capStart });
+    this.setRecorded(r.buf, start);
+    if (r.hasNotes) this.rerender(r, start, len, capStart + cap.duration);
+  }
+
+  // Re-toca las notas en su lugar con el sonido que tenían al grabar y reemplaza el audio
+  async rerender({ evs, place, edge }, start, len, capEnd) {
+    const notes = collectNotes(evs, { start, len, place, edge, capEnd });
+    if (!notes.length) return;
+    const snap = soundSnapshot();
+    const rawRef = this.raw;
+    app.emit('toast', place ? '🎹 Acomodando las notas al tiempo…' : '🎹 Acomodando las notas…');
+    const buf = await renderNotes(notes, { len, snap });
+    if (this.raw !== rawRef) return;   // se borró o se editó mientras tanto
+    this.raw = buf;
+    this.region = [0, buf.duration];
+    this.render();
+    if (this.src) this.play();
+    app.emit('loops'); app.emit('loop-saved', this.i);
+    app.emit('toast', '🎹 Listo: las notas quedaron en su lugar');
   }
 
   // Libre: empieza al tocar y termina al volver a tocar
@@ -127,29 +179,34 @@ export class Looper {
     this.free = true;
     this.recStart = t0; this.recLen = 0;
     this.state = 'recording';
-    const job = this.job = capture(node, t0 + this.latency(), 180);
+    // Con 🎹 también graba un poco antes (para lo tocado junto con el toque de empezar) y
+    // marca el inicio en "tiempo de la música": lo que se escuchaba al tocar.
+    const keys = this.source === 'keys', lat = this.latency();
+    const pre = keys ? 0.3 + lat : 0;
+    const capStart = t0 + lat - pre;
+    this.freePost = keys ? 0.3 : 0;
+    if (keys) { this.recStartH = heardTime(freshTs()); this.freeCapStart = capStart; }
+    const job = this.job = capture(node, capStart, 180);
     app.emit('loops');
     const buf = await job.promise;
     if (this.job !== job) return;
     this.job = null;
-    if (buf.duration < 0.15) { this.state = 'empty'; app.emit('toast', 'Loop muy corto'); app.emit('loops'); return; }
-    this.setRecorded(buf, t0);
+    if (buf.duration < 0.15 + pre) { this.state = 'empty'; app.emit('toast', 'Loop muy corto'); app.emit('loops'); return; }
+    if (keys && this.recLen > 0) this.finishKeys(buf, { start: this.recStart, len: this.recLen, capStart });
+    else this.setRecorded(buf, t0);
   }
 
   stopFree() {
     if (!this.job) return;
-    const tEnd = A.ctx.currentTime + 0.02;
-    const L = tEnd - this.recStart;
-    if (L < 0.15) { this.cancel(); return; }
-    const seq = app.seq;
+    const now = A.ctx.currentTime, tEnd = now + 0.02;
+    const seq = app.seq, lat = this.latency();
     // El primer loop libre define el tempo si no suena nada más
     const alone = !app.loopers.some(l => l !== this && l.hasAudio) && !seq.playing;
+    if (this.source === 'keys') return this.stopFreeKeys(alone, now, lat);
+    const L = tEnd - this.recStart;
+    if (L < 0.15) { this.cancel(); return; }
     if (alone) {
-      let best = null;
-      for (const n of [1, 2, 4, 8, 16]) {
-        const bpm = n * 240 / L;
-        if (bpm >= 40 && bpm <= 220 && (!best || Math.abs(bpm - 118) < Math.abs(best.bpm - 118))) best = { n, bpm };
-      }
+      const best = bestTempo(L);
       if (best) {
         setBpm(best.bpm, true);
         this.bars = best.n;
@@ -158,7 +215,7 @@ export class Looper {
       }
       this.recBpm = app.state.bpm;
       this.recLen = L;
-      this.job.stopAt(tEnd + this.latency());
+      this.job.stopAt(tEnd + lat);
       return;
     }
     // Ya hay tempo: el largo se ajusta a compases enteros para que el loop quede en tiempo
@@ -166,11 +223,52 @@ export class Looper {
     const n = Math.max(1, Math.round(L / bar));
     const end = this.recStart + n * bar;
     this.bars = n;
-    if (!seq.playing) seq.start(Math.max(A.ctx.currentTime + 0.02, end));
+    if (!seq.playing) seq.start(Math.max(now + 0.02, end));
     this.recBpm = app.state.bpm;
     this.recLen = n * bar;
-    this.job.stopAt(end + this.latency());
-    if (end > A.ctx.currentTime + 0.05) app.emit('toast', `〰 Cerrando el loop en ${n} compás${n > 1 ? 'es' : ''}`);
+    this.job.stopAt(end + lat);
+    if (end > now + 0.05) app.emit('toast', `〰 Cerrando el loop en ${n} compás${n > 1 ? 'es' : ''}`);
+  }
+
+  // Libre con 🎹: todo medido en "tiempo de la música" (lo que se escuchaba en cada toque)
+  stopFreeKeys(alone, now, lat) {
+    const seq = app.seq;
+    const endH = heardTime(freshTs());
+    let start = this.recStartH ?? this.recStart;
+    if (alone) {
+      // Sin tempo todavía: el loop arranca en lo primero que tocaste (aunque haya sido un poco
+      // después del toque de empezar) y termina en el toque de cerrar
+      const first = liveLog.find(e => isOn(e) && e.h >= start - 0.15 && e.h <= start + 0.8);
+      if (first) start = first.h;
+      const L = endH - start;
+      if (L < 0.15) { this.cancel(); return; }
+      const best = bestTempo(L);
+      this.recStart = start; this.recLen = L;
+      if (best) {
+        setBpm(best.bpm, true);
+        this.bars = best.n;
+        // La batería entra en el próximo compás del loop
+        const barLen = L / best.n;
+        seq.start(start + barLen * Math.ceil((now + 0.03 - start) / barLen));
+        app.emit('toast', `⏱ Tempo del loop: ${best.bpm.toFixed(1)} BPM`);
+      }
+      this.recBpm = app.state.bpm;
+      this.job.stopAt(start + L + lat + this.freePost);
+      this.peekPlay(this.job, now, cap => this.keysBuild(cap, { start, len: L, capStart: this.freeCapStart }).buf);
+      return;
+    }
+    // Ya hay tempo: el inicio se acomoda al tiempo más cercano y el largo a compases enteros
+    const beat = 4 * seq.stepDur, bar = 4 * beat;
+    if (seq.playing) start = seq.barTime + Math.round((start - seq.barTime) / beat) * beat;
+    const n = Math.max(1, Math.round((endH - start) / bar));
+    const end = start + n * bar;
+    this.recStart = start; this.bars = n;
+    this.recBpm = app.state.bpm;
+    this.recLen = n * bar;
+    if (!seq.playing) seq.start(Math.max(now + 0.02, end));
+    this.job.stopAt(end + lat + this.freePost);
+    this.peekPlay(this.job, end - 0.12, cap => this.keysBuild(cap, { start, len: n * bar, capStart: this.freeCapStart }).buf);
+    if (end > now + 0.05) app.emit('toast', `〰 Cerrando el loop en ${n} compás${n > 1 ? 'es' : ''}`);
   }
 
   setRecorded(buf, origin) {

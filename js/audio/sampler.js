@@ -49,8 +49,9 @@ export function regionOf(p, buf, slice) {
 // Canal de una pista: filtro DJ → drive → color → volumen → paneo → envíos.
 // Hay uno para la base (pasos del secuenciador) y otro, creado al primer uso, para lo que se
 // toca en vivo (pads y teclado en modo Sampler), que también alimenta "🎹 Solo lo que toco".
-class TrackStrip {
-  constructor(tap, live) {
+export class TrackStrip {
+  // sink: cadena propia (re-tocado de notas) en vez de la mezcla general
+  constructor(tap, live, sink = null) {
     const ctx = A.ctx;
     this.filter = ctx.createBiquadFilter();
     this.shaper = ctx.createWaveShaper();
@@ -62,7 +63,15 @@ class TrackStrip {
     this.dly = ctx.createGain(); this.dly.gain.value = 0;
     this.pre = ctx.createGain();
     this.filter.connect(this.pre).connect(this.shaper).connect(this.fx.input);
-    this.fx.output.connect(this.gain).connect(this.pan).connect(A.mixBus);
+    this.fx.output.connect(this.gain).connect(this.pan);
+    if (sink) {
+      this.pan.connect(sink.bus);
+      this.pan.connect(this.rev).connect(sink.revIn);
+      this.pan.connect(this.dly).connect(sink.dlyIn);
+      this._drive = -1;
+      return;
+    }
+    this.pan.connect(A.mixBus);
     this.pan.connect(tap);
     this.pan.connect(this.rev).connect(A.reverbIn);
     this.pan.connect(this.dly).connect(A.delayIn);
@@ -73,6 +82,8 @@ class TrackStrip {
     }
     this._drive = -1;
   }
+
+  dispose() { [this.pan, this.rev, this.dly].forEach(n => n.disconnect()); }
 
   apply(p, audible) {
     const now = A.ctx.currentTime, T = 0.015;
@@ -153,8 +164,8 @@ export class DrumTrack {
     if (this.liveStrip) this.liveStrip.apply(p, audible);
   }
 
-  choke(time) {
-    for (const v of this.voices) {
+  choke(time, pool = this.voices) {
+    for (const v of pool) {
       if (v.end <= time) continue;
       // Congelar el volumen en el valor que tiene en ese instante y apagarlo suave.
       // (cancelScheduledValues solo borraba la caída y el volumen saltaba al máximo: click)
@@ -175,12 +186,14 @@ export class DrumTrack {
     const reg = regionOf(p, buf, opt.slice);
     if (!reg) return null;
     const ctx = A.ctx;
-    if (p.mono && !opt.poly) this.choke(time);
+    // opt.dest/opt.pool: re-tocado de notas por un canal aparte (no toca lo que suena en vivo)
+    const pool = opt.pool || this.voices;
+    if (p.mono && !opt.poly) this.choke(time, pool);
     const src = ctx.createBufferSource();
     src.buffer = buf;
     src.playbackRate.value = rate;
     const env = ctx.createGain();
-    src.connect(env).connect(opt.live ? this.live.filter : this.main.filter);
+    src.connect(env).connect(opt.dest ? opt.dest.filter : opt.live ? this.live.filter : this.main.filter);
 
     const [a, b] = reg;
     const len = (b - a) / rate;
@@ -204,11 +217,11 @@ export class DrumTrack {
     src.start(time, a, b - a);
     src.stop(end + 0.02);
     const v = { src, env, end };
-    this.voices.push(v);
+    pool.push(v);
     src.onended = () => {
       env.disconnect();
-      const k = this.voices.indexOf(v);
-      if (k >= 0) this.voices.splice(k, 1);
+      const k = pool.indexOf(v);
+      if (k >= 0) pool.splice(k, 1);
     };
     return v;
   }

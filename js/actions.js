@@ -168,7 +168,7 @@ export function audition(i, vel = 0.9) {
   app.seq.hit(i, A.ctx.currentTime + 0.005, vel);
 }
 export function hitLive(i, vel = 0.9) {
-  logLive(A.ctx.currentTime + 0.005);
+  logLive(A.ctx.currentTime + 0.005, { type: 'hit', i, vel });
   app.seq.hit(i, A.ctx.currentTime + 0.005, vel, 0, true);
   app.seq.recordHit(i, vel);
 }
@@ -186,7 +186,7 @@ export function noteOn(midi, vel = 0.8) {
     if (old) app.tracks[old.track].release(old.voice);
     const opt = { poly: true, hold: true, live: true };
     if (p.sliceMode && p.slices.length) opt.slice = k;
-    logLive(A.ctx.currentTime + 0.003);
+    logLive(A.ctx.currentTime + 0.003, { type: 'pon', i, k, vel, midi });
     const v = app.tracks[i].trigger(A.ctx.currentTime + 0.003, vel, p.sliceMode ? 0 : k, p, opt);
     held.set(midi, { track: i, voice: v });
     app.seq.uiQueue.push({ time: 0, type: 'hit', track: i, vel });
@@ -194,14 +194,14 @@ export function noteOn(midi, vel = 0.8) {
     return;
   }
   if (st().synth.arp.on) app.seq.arpAdd(midi);
-  else { logLive(A.ctx.currentTime); app.synth.noteOn(midi, vel); app.seq.recordNoteOn(midi, vel); }
+  else { logLive(A.ctx.currentTime, { type: 'son', midi, vel }); app.synth.noteOn(midi, vel); app.seq.recordNoteOn(midi, vel); }
 }
 export function noteOff(midi) {
   midi = snap(midi);
   const h = held.get(midi);
-  if (h) { app.tracks[h.track].release(h.voice); held.delete(midi); return; }
+  if (h) { logLive(A.ctx.currentTime, { type: 'poff', i: h.track, midi }); app.tracks[h.track].release(h.voice); held.delete(midi); return; }
   if (st().synth.arp.on) app.seq.arpRemove(midi);
-  else { app.synth.noteOff(midi); app.seq.recordNoteOff(midi); }
+  else { logLive(A.ctx.currentTime, { type: 'soff', midi }); app.synth.noteOff(midi); app.seq.recordNoteOff(midi); }
 }
 
 // ---------- Presets del synth (de fábrica y propios) ----------

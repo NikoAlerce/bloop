@@ -11,7 +11,7 @@ const MAX_VOICES = 10;
 // Hay uno para la base (notas del secuenciador) y otro, creado al primer uso, para lo que se
 // toca en vivo: suenan igual, pero el de vivo también alimenta la fuente "🎹 Solo lo que toco".
 class SynthStrip {
-  constructor(tap, live) {
+  constructor(tap, live, sink = null) {
     const ctx = A.ctx;
     const g = (v = 1) => { const n = ctx.createGain(); n.gain.value = v; return n; };
     this.input = g(0.32);
@@ -24,6 +24,7 @@ class SynthStrip {
     const lfo = ctx.createOscillator(); lfo.frequency.value = 0.33;
     const lg = g(0.0025), lgi = g(-0.0025);
     lfo.connect(lg).connect(cL.delayTime); lfo.connect(lgi).connect(cR.delayTime); lfo.start();
+    this.lfo = lfo;
     const pL = ctx.createStereoPanner(), pR = ctx.createStereoPanner(); pL.pan.value = -0.9; pR.pan.value = 0.9;
     this.fx = new TrackFx();
     this.pre = g(1);
@@ -33,6 +34,13 @@ class SynthStrip {
     this.shaper.connect(cR).connect(pR).connect(this.wet);
     this.wet.connect(this.fx.input);
     this.fx.output.connect(this.vol);
+    this._drive = -1;
+    if (sink) {
+      this.vol.connect(sink.bus);
+      this.vol.connect(this.revSend).connect(sink.revIn);
+      this.vol.connect(this.dlySend).connect(sink.dlyIn);
+      return;
+    }
     this.vol.connect(A.mixBus);
     this.vol.connect(tap);
     this.vol.connect(this.revSend).connect(A.reverbIn);
@@ -44,6 +52,8 @@ class SynthStrip {
     }
     this._drive = -1;
   }
+
+  dispose() { this.lfo.stop(); [this.vol, this.revSend, this.dlySend].forEach(n => n.disconnect()); }
 
   apply(p, audible, fx, level = 1) {
     const now = A.ctx.currentTime, T = 0.02;
@@ -65,9 +75,11 @@ class SynthStrip {
 }
 
 export class Synth {
-  constructor() {
+  // sink: un synth aparte que suena solo hacia esa cadena (re-tocado de notas cuantizadas)
+  constructor(sink = null) {
     this.tap = A.ctx.createGain();     // punto de toma para stems (base + vivo)
-    this.main = new SynthStrip(this.tap, false);
+    this.main = new SynthStrip(this.tap, false, sink);
+    this.isRender = !!sink;
     this.liveStrip = null;
     this.vol = this.tap;
     this.fx = this.main.fx;
@@ -124,7 +136,7 @@ export class Synth {
     const filt = ctx.createBiquadFilter(); filt.type = 'lowpass';
     filt.Q.value = 0.5 + p.reso * p.reso * 22;
     const mix = ctx.createGain();
-    mix.connect(filt).connect(out).connect(live ? this.live.input : this.main.input);
+    mix.connect(filt).connect(out).connect(live && !this.isRender ? this.live.input : this.main.input);
 
     const srcs = [], fosc = []; // fosc: osciladores con frecuencia relativa
     const n = Math.max(1, Math.round(p.unison));
