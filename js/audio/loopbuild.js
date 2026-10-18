@@ -28,9 +28,9 @@ export const isNote = e => e.type === 'son' || e.type === 'pon';
  * place: posición (s) → dónde debe quedar (s); null = donde lo tocaste
  * edge: cuánto antes del 1 (o del final) un golpe todavía cuenta como el 1
  */
-export function buildLoop(cap, { pre, len, hits, place, edge = 0.06, tail = Infinity }) {
+export function buildLoop(cap, { pre, len, hits, place, edge = 0.06, tail = Infinity, lead = 0.006 }) {
   const sr = cap.sampleRate, P = Math.round(pre * sr), N = Math.max(1, Math.round(len * sr));
-  const F = Math.round(0.003 * sr);
+  const F = Math.round(0.003 * sr), LD = Math.max(2 * F, Math.round(lead * sr));
   const out = A.ctx.createBuffer(2, N, sr);
   const src = [cap.getChannelData(0), cap.getChannelData(Math.min(1, cap.numberOfChannels - 1))];
   const dst = [out.getChannelData(0), out.getChannelData(1)];
@@ -65,11 +65,13 @@ export function buildLoop(cap, { pre, len, hits, place, edge = 0.06, tail = Infi
   }
   // Cada tramo va de un golpe al siguiente; el crossfade queda justo ANTES de cada golpe
   const v0 = S(valid[0].at);
-  if (v0 > 0) put(Math.max(0, before ? S(before.at) + 2 * F : 0), v0, 0, !!before, true);
+  if (v0 - LD + 2 * F > 0) put(Math.max(0, before ? S(before.at) + 2 * F : 0), v0 - LD + 2 * F, 0, !!before, true);
   for (let k = 0; k < valid.length; k++) {
-    const o = S(valid[k].at), next = k + 1 < valid.length ? S(valid[k + 1].at) : endSrc;
+    // El tramo arranca un poco antes del golpe (para no perder el comienzo del ataque) y
+    // termina con un fundido corto justo antes del margen del golpe siguiente
+    const o = S(valid[k].at), next = k + 1 < valid.length ? S(valid[k + 1].at) - LD + 2 * F : endSrc;
     const target = place ? place(valid[k].want) : valid[k].want;
-    put(o - 2 * F, next, S(target) - o, true, true);
+    put(o - LD, Math.max(o - LD + 4 * F, next), S(target) - o, true, true);
   }
   return out;
 }
@@ -189,8 +191,13 @@ export function audioOnsets(buf) {
     let pk = 0;
     for (let i = p0; i < end; i++) pk = Math.max(pk, Math.abs(d[i]));
     if (pk < 0.02) continue;
-    let st = Math.max(0, p0 - Math.round(0.01 * sr));
-    for (let i = st; i < end; i++) if (Math.abs(d[i]) >= pk * 0.3) { st = i; break; }
+    // ruido justo antes, para encontrar el comienzo real (no el pico) del golpe
+    const a0 = Math.max(0, p0 - Math.round(0.03 * sr));
+    let noise = 0;
+    for (let i = a0; i < Math.max(a0 + 1, p0 - Math.round(0.015 * sr)); i++) noise = Math.max(noise, Math.abs(d[i]));
+    let st = Math.max(0, p0 - Math.round(0.015 * sr));
+    const th = Math.max(noise * 2.5, pk * 0.12);
+    for (let i = st; i < end; i++) if (Math.abs(d[i]) >= th) { st = i; break; }
     if (!out.length || st - out[out.length - 1] > 0.05 * sr) out.push(st);
   }
   return out.map(x => x / sr);
@@ -234,4 +241,16 @@ export function measureClicks(buf, { n, beat }) {
   if (mid[mid.length - 1] - mid[0] > 0.02) return null;   // no coincide: algo más sonó
   const v = res[Math.floor(res.length / 2)];
   return v > 0.003 && v < 0.6 ? v : null;
+}
+
+// Corrimiento general de un grupo de golpes respecto de la grilla de 1/16 (lo que haya
+// quedado de demora o la tendencia a tocar un poquito antes del click). Devuelve segundos.
+export function globalOffset(ons, step) {
+  if (ons.length < 3) return 0;
+  const maxD = Math.min(0.05, step * 0.45);
+  const cost = dl => ons.reduce((a, x) => { const r = (x - dl) / step; const e = (r - Math.round(r)) * step; return a + e * e; }, 0);
+  let best = 0, bc = cost(0);
+  for (let dl = -maxD; dl <= maxD; dl += 0.001) { const c = cost(dl); if (c < bc) { bc = c; best = dl; } }
+  // solo si mejora claro (si no, los golpes no siguen la grilla y no hay nada que corregir)
+  return Math.abs(best) > 0.004 && bc < cost(0) * 0.7 ? best : 0;
 }

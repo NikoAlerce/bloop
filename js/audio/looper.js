@@ -3,7 +3,7 @@
 // recortada y con fades que suena. Así recortar y deshacer no destruyen nada.
 import { A, capture, getMic, sliceBuffer, liveSource, holdParam, heardTime } from './engine.js';
 import { stretchBuffer } from './stretch.js';
-import { buildLoop, liveLog, isOn, isNote, soundSnapshot, renderNotes, collectNotes, audioOnsets, isPercussive, measureClicks } from './loopbuild.js';
+import { buildLoop, liveLog, isOn, isNote, soundSnapshot, renderNotes, collectNotes, audioOnsets, isPercussive, measureClicks, globalOffset } from './loopbuild.js';
 import { quantize, GRIDS } from '../quant.js';
 import { app } from '../app.js';
 import { undo } from '../undo.js';
@@ -165,8 +165,10 @@ export class Looper {
       const ons = audioOnsets(cap).map(x => x - startAt).filter(x => x > -pre + 0.01);
       const inLoop = ons.filter(x => x >= -edge && x < len + edge);
       if (inLoop.length >= 2 && isPercussive(cap, ons.map(x => x + startAt))) {
+        // Primero se saca el corrimiento general (si todos quedaron un poco corridos igual)
+        const off = globalOffset(inLoop, step);
         const place = x => quantize(x / step, q, app.state.swing).swung * step;
-        buf = buildLoop(cap, { pre: startAt, len, hits: ons.map(at => ({ at, want: at })), place, edge: Math.min(edge, startAt), tail: 0.25 });
+        buf = buildLoop(cap, { pre: startAt, len, hits: ons.map(at => ({ at, want: at - off })), place, edge: Math.min(edge, startAt), tail: 0.25, lead: 0.012 });
       }
     }
     this.setRecorded(buf || slice(cap, lat), t0);

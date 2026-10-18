@@ -5,7 +5,7 @@
 // duplicarlo, silenciarlo o darlo vuelta (collage).
 import { app } from '../app.js';
 import { A, detectTransients, normalizeBuffer } from '../audio/engine.js';
-import { copyRange, deleteRange, insertAt, overwriteAt, silenceRange, reverseRange, afterDelete, afterInsert } from '../audio/edit.js';
+import { copyRange, deleteRange, insertAt, overwriteAt, silenceRange, reverseRange, rotateRange, afterDelete, afterInsert } from '../audio/edit.js';
 import { stretchBuffer } from '../audio/stretch.js';
 import { TRACK_COLORS, LOOP_COLORS, mkStep } from '../state.js';
 import { h, slider, toggle, toast, ink, shade, chips, popover, closePopover } from './util.js';
@@ -363,6 +363,29 @@ export function openLoopEditor(lp) {
     squareBtn.hidden = !(Math.abs(bars - Math.round(bars)) > 0.02 || bars < 0.75);
   };
 
+  // Ajuste fino a oído: corre todo el loop unos milisegundos (antes / después)
+  let moved = 0, learnedTold = false;
+  const movedLbl = h('span', { class: 'we-move' }, '0 ms');
+  const nudge = ms => {
+    const R = lp.region, sr = lp.raw.sampleRate;
+    lp.applyEdit(rotateRange(lp.raw, Math.round(R[0] * sr), Math.round(R[1] * sr), ms / 1000 * sr), R, 'Correr');
+    moved += ms;
+    movedLbl.textContent = (moved > 0 ? '+' : '') + moved + ' ms';
+    // En un loop de micrófono, si hubo que adelantarlo es que la demora era mayor: se aprende
+    if (lp.source === 'mic') {
+      const st = app.state.settings;
+      st.micLatency = Math.max(0, Math.min(600, (st.micLatency || 0) - ms));
+      if (!learnedTold) { learnedTold = true; toast('🎤 Lo tengo en cuenta para las próximas grabaciones de micrófono'); }
+    }
+  };
+  const nudgeRow = () => h('div', { class: 'we-nudge' },
+    h('span', { class: 'lbl' }, 'Correr'),
+    h('button', { class: 'sbtn', title: 'Adelantar 10 ms', onclick: () => nudge(-10) }, '◀◀ 10'),
+    h('button', { class: 'sbtn', title: 'Adelantar 2 ms', onclick: () => nudge(-2) }, '◀ 2'),
+    movedLbl,
+    h('button', { class: 'sbtn', title: 'Atrasar 2 ms', onclick: () => nudge(2) }, '2 ▶'),
+    h('button', { class: 'sbtn', title: 'Atrasar 10 ms', onclick: () => nudge(10) }, '10 ▶▶'));
+
   // Barra de herramientas tipo collage
   const toolbar = api => {
     const need = () => { const s = api.selection(); if (!s) toast('Primero arrastrá sobre la onda para seleccionar un pedazo'); return s; };
@@ -471,7 +494,8 @@ export function openLoopEditor(lp) {
       () => slider({ label: 'Fade out', min: 0, max: 0.5, step: 0.005, value: lp.fadeOut, fmt: v => Math.round(v * 1000) + ' ms', onInput: v => { if (!before) begin(); lp.fadeOut = v; ed.redraw(); clearTimeout(ed._t); ed._t = setTimeout(() => { lp.setEdit({ fadeOut: v }); lp.pushUndo('Fade', before); before = null; }, 350); } }),
       () => h('button', { class: 'sbtn', onclick: () => { begin(); lp.region = [0, lp.raw.duration]; end(); ed.redraw(); } }, '↔ Todo'),
       () => squareBtn,
-      () => h('div', { class: 'hint' }, 'Arrastrá sobre la onda para seleccionar · tocá para poner el cursor de pegado · dos dedos: zoom y mover · las manijas I/F de arriba marcan qué parte suena.'),
+      nudgeRow,
+      () => h('div', { class: 'hint' }, 'Si lo grabado se siente apenas corrido, usá Correr mientras suena. Arrastrá sobre la onda para seleccionar · tocá para poner el cursor de pegado · dos dedos: zoom y mover · las manijas I/F de arriba marcan qué parte suena.'),
     ],
   });
   updSquare();

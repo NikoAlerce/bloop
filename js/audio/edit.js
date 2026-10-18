@@ -112,6 +112,20 @@ export function reverseRange(buf, a, b) {
   return out;
 }
 
+// Corre circularmente el contenido de [a, b) n muestras (positivo = más tarde). Es un loop:
+// lo que sale por un lado entra por el otro, no se pierde nada.
+export function rotateRange(buf, a, b, n) {
+  a = clampI(buf, a); b = clampI(buf, b);
+  const L = b - a, out = copyRange(buf, 0, buf.length);
+  if (L < 2) return out;
+  n = ((Math.round(n) % L) + L) % L;
+  for (let c = 0; c < out.numberOfChannels; c++) {
+    const s = chan(buf, c).subarray(a, b), o = out.getChannelData(c);
+    for (let i = 0; i < L; i++) o[a + (i + n) % L] = s[i];
+  }
+  return out;
+}
+
 // Una posición (en segundos) después de borrar [a, b) o insertar L en p
 export const afterDelete = (x, a, b) => (x <= a ? x : x >= b ? x - (b - a) : a);
 export const afterInsert = (x, p, L, isEnd) => (isEnd ? (x < p ? x : x + L) : (x <= p ? x : x + L));

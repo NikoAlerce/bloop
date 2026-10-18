@@ -650,3 +650,6 @@ body.eco .bigpad { transition: none; }
   #app.keys-mode .loop-ctrls { width: auto; display: grid; grid-template-columns: repeat(2, 40px); gap: 5px; align-content: center; }
   #app.keys-mode .loop-ctrls button { width: 40px; height: 40px; }
 }
+.we-nudge { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.we-nudge .sbtn { height: 40px; min-width: 52px; font-variant-numeric: tabular-nums; }
+.we-move { min-width: 64px; text-align: center; font-weight: 800; font-variant-numeric: tabular-nums; }
