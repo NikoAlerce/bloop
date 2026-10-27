@@ -117,7 +117,8 @@ export async function initAudio() {
   A.micMeter = ctx.createAnalyser(); A.micMeter.fftSize = 512;
   A.micNode.connect(A.micMeter);
   A.monitor = gain(0);
-  A.micNode.connect(A.monitor).connect(A.sum);
+  // El monitoreo entra DESPUÉS del compresor general: cantar fuerte no baja la música
+  A.micNode.connect(A.monitor).connect(A.master);
 
   // Modo show: la salida estéreo se usa como dos salidas mono.
   // Izquierda = público (mezcla, sin click) · Derecha = tus auriculares (mezcla + click, con su volumen)
@@ -299,7 +300,7 @@ export function setShow(on, mon = 0.8, click = 0.7) {
   } else {
     A.analyser.connect(A.ctx.destination);
     A.clickBus.connect(A.sum);
-    A.monitor.connect(A.sum);
+    A.monitor.connect(A.master);
   }
 }
 
@@ -312,9 +313,10 @@ export function showTestTone(side) {
   o.connect(g).connect(A.showMerge, 0, side); o.start(t); o.stop(t + 0.65);
 }
 
-export function setMonitor(on) {
+export function setMonitor(on, vol = A.monitorVol ?? 0.6) {
   A.monitorOn = on;
-  A.monitor.gain.setTargetAtTime(on ? 1 : 0, A.ctx.currentTime, 0.02);
+  A.monitorVol = vol;
+  A.monitor.gain.setTargetAtTime(on ? vol : 0, A.ctx.currentTime, 0.02);
   if (!on) scheduleMicClose();
 }
 

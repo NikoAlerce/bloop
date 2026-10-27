@@ -53,7 +53,7 @@ export async function openInputSettings(anchor) {
     autoBtn.disabled = false; autoBtn.textContent = '✨ Ganancia automática';
     const cur = Math.pow(10, (s.inputGain || 0) / 20), raw = pk / cur;
     if (raw < 0.0005) { toast('No llegó sonido: revisá que el micrófono esté enchufado en la hembra rosa'); return; }
-    const dbv = Math.max(0, Math.min(40, Math.round(20 * Math.log10(0.5 / raw))));
+    const dbv = Math.max(0, Math.min(40, Math.round(20 * Math.log10(0.35 / raw))));
     s.inputGain = dbv; setInputGain(dbv); gainSlider.set(dbv);
     toast(`🎚 Ganancia del micrófono: +${dbv} dB`);
   });
@@ -76,8 +76,9 @@ export async function openInputSettings(anchor) {
     h('div', { class: 'row-between' }, meter, peak),
     gainSlider,
     autoBtn,
-    h('div', { class: 'hint' }, 'Un micrófono dinámico enchufado directo llega bajito: subí la ganancia hasta que el medidor llegue a la mitad o un poco más cuando tocás fuerte, sin ponerse rojo.'),
-    toggle('🎧 Escuchar la entrada (monitoreo)', s.monitor, v => { s.monitor = v; setMonitor(v); if (v) toast('Usá auriculares para evitar acople'); }),
+    h('div', { class: 'hint' }, 'Un micrófono dinámico enchufado directo llega bajito: subí la ganancia hasta que el medidor llegue más o menos a la mitad cuando tocás o cantás fuerte, nunca al rojo.'),
+    toggle('🎧 Escuchar la entrada (monitoreo)', s.monitor, v => { s.monitor = v; setMonitor(v, s.monVol ?? 0.6); if (v) toast('Usá auriculares para evitar acople'); }),
+    slider({ label: 'Volumen de la voz en vivo', value: s.monVol ?? 0.6, fmt: v => Math.round(v * 100) + '%', onInput: v => { s.monVol = v; setMonitor(s.monitor, v); } }),
     slider({ label: 'Umbral para grabar samples', min: 0.003, max: 0.3, step: 0.001, value: s.recThresh, fmt: db, onInput: v => { s.recThresh = v; } }),
     latSlider,
     calBtn,
