@@ -1,6 +1,6 @@
 // Entrada de audio: dispositivo, monitoreo, umbral, latencia (manual y automática) y medidor.
 import { app } from '../app.js';
-import { A, getMic, listInputs, setMonitor, inputLevel, calibrateLatency, scheduleMicClose, setInputGain } from '../audio/engine.js';
+import { A, getMic, listInputs, setMonitor, inputLevel, calibrateLatency, scheduleMicClose, setInputGain, micProcessing } from '../audio/engine.js';
 import { h, popover, slider, toggle, toast } from './util.js';
 
 const db = v => (v > 0 ? (20 * Math.log10(v)).toFixed(0) + ' dB' : '-∞');
@@ -69,8 +69,16 @@ export async function openInputSettings(anchor) {
     toast(`⏱ Latencia medida: ${ms} ms`);
   });
 
+  // Lo que el sistema le está haciendo al micrófono (si algo está prendido, puede "cortar y soltar")
+  const pr = micProcessing();
+  const on = [pr.eco && 'cancelación de eco', pr.ruido && 'supresión de ruido', pr.volumen && 'volumen automático'].filter(Boolean);
+  const procInfo = h('div', { class: on.length ? 'warn' : 'hint' }, on.length
+    ? `⚠ El sistema le aplica al micrófono: ${on.join(', ')}. Eso puede cortar y soltar la voz. En Samsung: bajá la cortina de arriba mientras Bloop usa el micrófono → "Modo de micrófono" → Estándar.`
+    : `Entrada${pr.label ? ': ' + pr.label : ''} · sin procesamiento del sistema (según la tablet). Si igual la voz "corta y suelta", en Samsung revisá en la cortina de arriba "Modo de micrófono" → Estándar.`);
+
   popover(anchor, [
     h('h4', {}, 'Entrada de audio'),
+    procInfo,
     h('div', { class: 'lbl' }, 'Dispositivo (micrófono interno o interfaz USB)'),
     h('div', { class: 'btn-row' }, sel, h('button', { class: 'sbtn', onclick: fill }, '🔄')),
     h('div', { class: 'row-between' }, meter, peak),

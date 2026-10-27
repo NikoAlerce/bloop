@@ -254,6 +254,14 @@ export async function getMic(deviceId) {
     delete audio.deviceId; // el dispositivo ya no está: usar el predeterminado
     stream = await navigator.mediaDevices.getUserMedia({ audio });
   }
+  // Si el sistema igual dejó algún procesamiento prendido, se insiste en apagarlo
+  const tr = stream.getAudioTracks()[0];
+  try {
+    const st = tr.getSettings?.() || {};
+    if (st.echoCancellation || st.noiseSuppression || st.autoGainControl) {
+      await tr.applyConstraints({ echoCancellation: false, noiseSuppression: false, autoGainControl: false });
+    }
+  } catch (e) { /* algunos sistemas no dejan */ }
   closeMic();
   A.micStream = stream;
   A.micDevice = want;
@@ -318,6 +326,13 @@ export function setMonitor(on, vol = A.monitorVol ?? 0.6) {
   A.monitorVol = vol;
   A.monitor.gain.setTargetAtTime(on ? vol : 0, A.ctx.currentTime, 0.02);
   if (!on) scheduleMicClose();
+}
+
+// Qué procesamiento está aplicando realmente el sistema al micrófono
+export function micProcessing() {
+  const tr = A.micStream?.getAudioTracks()[0];
+  const st = tr?.getSettings?.() || {};
+  return { eco: !!st.echoCancellation, ruido: !!st.noiseSuppression, volumen: !!st.autoGainControl, label: tr?.label || '' };
 }
 
 // Ganancia de entrada en dB (para micrófonos que llegan bajito, como un dinámico sin preamp)
