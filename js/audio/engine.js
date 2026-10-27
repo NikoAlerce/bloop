@@ -113,7 +113,9 @@ export async function initAudio() {
     A.micClip.curve = c;
   }
   A.micNode = gain(1);
-  A.micIn.connect(A.micClip).connect(A.micNode);
+  // Filtro que saca la corriente continua y lo más grave (vibraciones, golpes al pie)
+  A.micDC = ctx.createBiquadFilter(); A.micDC.type = 'highpass'; A.micDC.frequency.value = 30; A.micDC.Q.value = 0.7;
+  A.micIn.connect(A.micDC).connect(A.micClip).connect(A.micNode);
   A.micMeter = ctx.createAnalyser(); A.micMeter.fftSize = 512;
   A.micNode.connect(A.micMeter);
   A.monitor = gain(0);

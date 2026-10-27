@@ -87,11 +87,29 @@ export async function openInputSettings(anchor) {
     if (!node) { testBtn.disabled = false; toast('🎤 Sin acceso a la entrada de audio'); return; }
     micHold();
     const job = capture(node, A.ctx.currentTime + 0.05, 8);
+    const rawJob = A.micSrc ? capture(A.micSrc, A.ctx.currentTime + 0.05, 8) : null;
     const t0 = performance.now();
     const iv = setInterval(() => { testBtn.textContent = `🎙 Cantá una nota larga y pareja… ${Math.max(0, 8 - Math.floor((performance.now() - t0) / 1000))}`; }, 200);
     const buf = await job.promise;
     clearInterval(iv); micRelease();
     testBtn.disabled = false; testBtn.textContent = '🔬 Probar la entrada (8 s)';
+    // Diagnóstico de la entrada cruda (antes de la ganancia y los filtros de Bloop)
+    const raw = rawJob ? await rawJob.promise : null;
+    let diag = '';
+    if (raw) {
+      const r0 = raw.getChannelData(0), sr0 = raw.sampleRate;
+      let mean = 0, clip = 0;
+      for (const v of r0) { mean += v; if (Math.abs(v) > 0.97) clip++; }
+      mean /= r0.length;
+      // energía en 50 y 100 Hz (zumbido de la red) comparada con el total
+      const goertzel = f => { const k = 2 * Math.cos(2 * Math.PI * f / sr0); let s1 = 0, s2 = 0; for (const v of r0) { const s0 = v - mean + k * s1 - s2; s2 = s1; s1 = s0; } return Math.sqrt(s1 * s1 + s2 * s2 - k * s1 * s2) / r0.length * 2; };
+      let tot = 0; for (const v of r0) tot += (v - mean) ** 2; tot = Math.sqrt(tot / r0.length);
+      const hum = Math.max(goertzel(50), goertzel(100), goertzel(150)) / Math.SQRT2;
+      if (Math.abs(mean) > 0.05) diag = `⚠ Hay corriente continua en la entrada (${Math.round(Math.abs(mean) * 100)}% de escala): la tablet le manda alimentación al micrófono y el plug no la está aislando. `;
+      if (tot > 0.05 && hum > tot * 0.5) diag += '⚠ Hay un zumbido fuerte de 50 Hz: la tierra del plug no hace buen contacto (típico del plug a medio meter). ';
+      if (clip / r0.length > 0.01) diag += `⚠ La señal está al tope el ${Math.round(clip / r0.length * 100)}% del tiempo: la voz queda aplastada. `;
+      if (diag) diag += 'Probá con el cable XLR a 3,5 enchufado hasta el fondo.';
+    }
     // Nivel cada 20 ms
     const d = buf.getChannelData(0), win = Math.round(buf.sampleRate * 0.02), lv = [];
     for (let i = 0; i + win <= d.length; i += win) { let e = 0; for (let j = i; j < i + win; j++) e += d[j] * d[j]; lv.push(Math.sqrt(e / win)); }
@@ -107,9 +125,10 @@ export async function openInputSettings(anchor) {
     const loud = dbs.filter(x => x > -50), med = loud.sort((a, b) => a - b)[Math.floor(loud.length / 2)] ?? -90;
     let cuts = 0, inCut = false;
     for (const x of dbs) { if (!inCut && med > -50 && x < med - 15) { cuts++; inCut = true; } else if (inCut && x > med - 6) inCut = false; }
-    testInfo.textContent = med <= -50 ? 'Llegó muy poco sonido: subí la ganancia o acercá el micrófono.'
+    testInfo.textContent = diag || (med <= -50 ? 'Llegó muy poco sonido: subí la ganancia o acercá el micrófono.'
       : cuts >= 3 ? `La señal se corta ${cuts} veces en 8 s ya al entrar a la tablet: el corte no lo hace Bloop. Mandame una captura de este gráfico.`
-      : 'La señal entra pareja: el micrófono llega bien a la tablet. Escuchala abajo.';
+      : 'La señal entra pareja: el micrófono llega bien a la tablet. Escuchala abajo.');
+    testInfo.className = diag ? 'warn' : 'hint';
     const src = A.ctx.createBufferSource(); src.buffer = buf; src.connect(A.master); src.start();
   });
 
