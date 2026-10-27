@@ -119,8 +119,9 @@ export async function initAudio() {
   A.micMeter = ctx.createAnalyser(); A.micMeter.fftSize = 512;
   A.micNode.connect(A.micMeter);
   A.monitor = gain(0);
-  // El monitoreo entra DESPUÉS del compresor general: cantar fuerte no baja la música
-  A.micNode.connect(A.monitor).connect(A.master);
+  // El monitoreo entra DESPUÉS del compresor y del limitador: cantar fuerte no hace bombear
+  // la música (si se suman picos, el protector final los redondea sin bajar todo)
+  A.micNode.connect(A.monitor).connect(A.safety);
 
   // Modo show: la salida estéreo se usa como dos salidas mono.
   // Izquierda = público (mezcla, sin click) · Derecha = tus auriculares (mezcla + click, con su volumen)
@@ -310,7 +311,7 @@ export function setShow(on, mon = 0.8, click = 0.7) {
   } else {
     A.analyser.connect(A.ctx.destination);
     A.clickBus.connect(A.sum);
-    A.monitor.connect(A.master);
+    A.monitor.connect(A.safety);
   }
 }
 
