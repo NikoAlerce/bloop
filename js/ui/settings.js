@@ -1,6 +1,6 @@
 // Entrada de audio: dispositivo, monitoreo, umbral, latencia (manual y automática) y medidor.
 import { app } from '../app.js';
-import { A, getMic, listInputs, setMonitor, inputLevel, calibrateLatency, scheduleMicClose, setInputGain, micProcessing } from '../audio/engine.js';
+import { A, getMic, listInputs, setMonitor, inputLevel, calibrateLatency, scheduleMicClose, setInputGain, micProcessing, capture, micHold, micRelease } from '../audio/engine.js';
 import { h, popover, slider, toggle, toast } from './util.js';
 
 const db = v => (v > 0 ? (20 * Math.log10(v)).toFixed(0) + ' dB' : '-∞');
@@ -76,6 +76,43 @@ export async function openInputSettings(anchor) {
     ? `⚠ El sistema le aplica al micrófono: ${on.join(', ')}. Eso puede cortar y soltar la voz. En Samsung: bajá la cortina de arriba mientras Bloop usa el micrófono → "Modo de micrófono" → Estándar.`
     : `Entrada${pr.label ? ': ' + pr.label : ''} · sin procesamiento del sistema (según la tablet). Si igual la voz "corta y suelta", en Samsung revisá en la cortina de arriba "Modo de micrófono" → Estándar.`);
 
+  // Prueba de entrada: graba 8 s del micrófono, dibuja el nivel y lo hace escuchar.
+  // Sirve para ver si la señal ya llega cortada desde la tablet.
+  const testCv = h('canvas', { class: 'in-test', width: 520, height: 90 });
+  const testInfo = h('div', { class: 'hint' });
+  const testBtn = h('button', { class: 'sbtn' }, '🔬 Probar la entrada (8 s)');
+  testBtn.addEventListener('click', async () => {
+    testBtn.disabled = true;
+    const node = await getMic(s.inputId).catch(() => null);
+    if (!node) { testBtn.disabled = false; toast('🎤 Sin acceso a la entrada de audio'); return; }
+    micHold();
+    const job = capture(node, A.ctx.currentTime + 0.05, 8);
+    const t0 = performance.now();
+    const iv = setInterval(() => { testBtn.textContent = `🎙 Cantá una nota larga y pareja… ${Math.max(0, 8 - Math.floor((performance.now() - t0) / 1000))}`; }, 200);
+    const buf = await job.promise;
+    clearInterval(iv); micRelease();
+    testBtn.disabled = false; testBtn.textContent = '🔬 Probar la entrada (8 s)';
+    // Nivel cada 20 ms
+    const d = buf.getChannelData(0), win = Math.round(buf.sampleRate * 0.02), lv = [];
+    for (let i = 0; i + win <= d.length; i += win) { let e = 0; for (let j = i; j < i + win; j++) e += d[j] * d[j]; lv.push(Math.sqrt(e / win)); }
+    const g = testCv.getContext('2d'), W = testCv.width, H = testCv.height;
+    const css = getComputedStyle(document.body);
+    g.clearRect(0, 0, W, H);
+    const toY = v => H - Math.max(0, Math.min(1, (20 * Math.log10(v + 1e-6) + 60) / 60)) * H;
+    g.strokeStyle = css.color; g.lineWidth = 1.5; g.beginPath();
+    lv.forEach((v, i) => { const x = i / (lv.length - 1) * W; i ? g.lineTo(x, toY(v)) : g.moveTo(x, toY(v)); });
+    g.stroke();
+    // ¿Se corta? cuántas veces el nivel cae de golpe más de 15 dB y vuelve
+    const dbs = lv.map(v => 20 * Math.log10(v + 1e-6));
+    const loud = dbs.filter(x => x > -50), med = loud.sort((a, b) => a - b)[Math.floor(loud.length / 2)] ?? -90;
+    let cuts = 0, inCut = false;
+    for (const x of dbs) { if (!inCut && med > -50 && x < med - 15) { cuts++; inCut = true; } else if (inCut && x > med - 6) inCut = false; }
+    testInfo.textContent = med <= -50 ? 'Llegó muy poco sonido: subí la ganancia o acercá el micrófono.'
+      : cuts >= 3 ? `La señal se corta ${cuts} veces en 8 s ya al entrar a la tablet: el corte no lo hace Bloop. Mandame una captura de este gráfico.`
+      : 'La señal entra pareja: el micrófono llega bien a la tablet. Escuchala abajo.';
+    const src = A.ctx.createBufferSource(); src.buffer = buf; src.connect(A.master); src.start();
+  });
+
   popover(anchor, [
     h('h4', {}, 'Entrada de audio'),
     procInfo,
@@ -84,6 +121,7 @@ export async function openInputSettings(anchor) {
     h('div', { class: 'row-between' }, meter, peak),
     gainSlider,
     autoBtn,
+    testBtn, testCv, testInfo,
     h('div', { class: 'hint' }, 'Un micrófono dinámico enchufado directo llega bajito: subí la ganancia hasta que el medidor llegue más o menos a la mitad cuando tocás o cantás fuerte, nunca al rojo.'),
     toggle('🎧 Escuchar la entrada (monitoreo)', s.monitor, v => { s.monitor = v; setMonitor(v, s.monVol ?? 0.6); if (v) toast('Usá auriculares para evitar acople'); }),
     slider({ label: 'Volumen de la voz en vivo', value: s.monVol ?? 0.6, fmt: v => Math.round(v * 100) + '%', onInput: v => { s.monVol = v; setMonitor(s.monitor, v); } }),

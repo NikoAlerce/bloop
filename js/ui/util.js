@@ -30,7 +30,8 @@ export function popover(anchor, content, { onClose, cls = '' } = {}) {
   const pop = h('div', { class: 'popover ' + cls }, content);
   document.body.append(pop);
   const r = anchor.getBoundingClientRect();
-  const pr = pop.getBoundingClientRect();
+  // Tamaño real (sin la animación de aparición, que lo achica al principio)
+  const pr = { width: pop.offsetWidth, height: pop.offsetHeight };
   let x = r.left + r.width / 2 - pr.width / 2;
   let y = r.bottom + 8;
   if (y + pr.height > innerHeight - 8) y = r.top - pr.height - 8;
