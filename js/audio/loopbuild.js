@@ -66,12 +66,19 @@ export function buildLoop(cap, { pre, len, hits, place, edge = 0.06, tail = Infi
   // Cada tramo va de un golpe al siguiente; el crossfade queda justo ANTES de cada golpe
   const v0 = S(valid[0].at);
   if (v0 - LD + 2 * F > 0) put(Math.max(0, before ? S(before.at) + 2 * F : 0), v0 - LD + 2 * F, 0, !!before, true);
+  const shiftOf = k => S(place ? place(valid[k].want) : valid[k].want) - S(valid[k].at);
   for (let k = 0; k < valid.length; k++) {
     // El tramo arranca un poco antes del golpe (para no perder el comienzo del ataque) y
-    // termina con un fundido corto justo antes del margen del golpe siguiente
-    const o = S(valid[k].at), next = k + 1 < valid.length ? S(valid[k + 1].at) - LD + 2 * F : endSrc;
-    const target = place ? place(valid[k].want) : valid[k].want;
-    put(o - LD, Math.max(o - LD + 4 * F, next), S(target) - o, true, true);
+    // termina con un fundido corto justo antes del margen del golpe siguiente. Si el golpe
+    // siguiente se corre más tarde que este, quedaría un hueco: el tramo se estira para
+    // taparlo (sin pasar el ataque del golpe siguiente).
+    const o = S(valid[k].at), sh = shiftOf(k);
+    let next = endSrc;
+    if (k + 1 < valid.length) {
+      const gap = Math.max(0, shiftOf(k + 1) - sh);
+      next = S(valid[k + 1].at) - LD + 2 * F + Math.min(gap, LD - 2 * F);
+    }
+    put(o - LD, Math.max(o - LD + 4 * F, next), sh, true, true);
   }
   return out;
 }
@@ -215,9 +222,10 @@ export function isPercussive(buf, onsets) {
     let peak = 0;
     for (let i = a; i < a + 3 * W; i += W) peak = Math.max(peak, rms(i));
     n++;
-    if (rms(b - 2 * W) < peak * 0.35) ok++;
+    if (rms(b - 2 * W) < peak * 0.2) ok++;
   }
-  return n >= 2 && ok / n >= 0.6;
+  // Solo si casi todos los golpes se apagan antes del siguiente (voz y sonidos largos: no)
+  return n >= 3 && ok / n >= 0.8;
 }
 
 // Demora real del micrófono medida con los clicks de la cuenta regresiva:
