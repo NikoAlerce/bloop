@@ -110,25 +110,39 @@ export async function openInputSettings(anchor) {
       if (clip / r0.length > 0.01) diag += `⚠ La señal está al tope el ${Math.round(clip / r0.length * 100)}% del tiempo: la voz queda aplastada. `;
       if (diag) diag += 'Probá con el cable XLR a 3,5 enchufado hasta el fondo.';
     }
-    // Nivel cada 20 ms
-    const d = buf.getChannelData(0), win = Math.round(buf.sampleRate * 0.02), lv = [];
-    for (let i = 0; i + win <= d.length; i += win) { let e = 0; for (let j = i; j < i + win; j++) e += d[j] * d[j]; lv.push(Math.sqrt(e / win)); }
+    // Nivel cada 20 ms de las dos señales: la que entrega la tablet y la que sale de Bloop
+    const levels = bf => {
+      const d = bf.getChannelData(0), win = Math.round(bf.sampleRate * 0.02), lv = [];
+      for (let i = 0; i + win <= d.length; i += win) { let e = 0; for (let j = i; j < i + win; j++) e += d[j] * d[j]; lv.push(Math.sqrt(e / win)); }
+      return lv;
+    };
+    const cutsOf = lv => {
+      const dbs = lv.map(v => 20 * Math.log10(v + 1e-6));
+      const loud = dbs.filter(x => x > -50).sort((p, q) => p - q), med = loud[Math.floor(loud.length / 2)] ?? -90;
+      let cuts = 0, inCut = false;
+      for (const x of dbs) { if (!inCut && med > -50 && x < med - 15) { cuts++; inCut = true; } else if (inCut && x > med - 6) inCut = false; }
+      return { cuts, med };
+    };
+    const lvB = levels(buf), lvT = raw ? levels(raw) : null;
     const g = testCv.getContext('2d'), W = testCv.width, H = testCv.height;
-    const css = getComputedStyle(document.body);
     g.clearRect(0, 0, W, H);
     const toY = v => H - Math.max(0, Math.min(1, (20 * Math.log10(v + 1e-6) + 60) / 60)) * H;
-    g.strokeStyle = css.color; g.lineWidth = 1.5; g.beginPath();
-    lv.forEach((v, i) => { const x = i / (lv.length - 1) * W; i ? g.lineTo(x, toY(v)) : g.moveTo(x, toY(v)); });
-    g.stroke();
-    // ¿Se corta? cuántas veces el nivel cae de golpe más de 15 dB y vuelve
-    const dbs = lv.map(v => 20 * Math.log10(v + 1e-6));
-    const loud = dbs.filter(x => x > -50), med = loud.sort((a, b) => a - b)[Math.floor(loud.length / 2)] ?? -90;
-    let cuts = 0, inCut = false;
-    for (const x of dbs) { if (!inCut && med > -50 && x < med - 15) { cuts++; inCut = true; } else if (inCut && x > med - 6) inCut = false; }
-    testInfo.textContent = diag || (med <= -50 ? 'Llegó muy poco sonido: subí la ganancia o acercá el micrófono.'
-      : cuts >= 3 ? `La señal se corta ${cuts} veces en 8 s ya al entrar a la tablet: el corte no lo hace Bloop. Mandame una captura de este gráfico.`
-      : 'La señal entra pareja: el micrófono llega bien a la tablet. Escuchala abajo.');
-    testInfo.className = diag ? 'warn' : 'hint';
+    const line = (lv, color, width) => {
+      g.strokeStyle = color; g.lineWidth = width; g.beginPath();
+      lv.forEach((v, i) => { const x = i / (lv.length - 1) * W; i ? g.lineTo(x, toY(v)) : g.moveTo(x, toY(v)); });
+      g.stroke();
+    };
+    if (lvT) line(lvT, '#ff8ed4', 4);                       // tablet (rosa, gruesa)
+    line(lvB, getComputedStyle(document.body).color, 1.5);  // después de Bloop (fina)
+    const cB = cutsOf(lvB), cT = lvT ? cutsOf(lvT) : null;
+    const playing = app.seq.playing || app.loopers.some(l => l.src && l.state === 'playing');
+    let msg;
+    if (cB.med <= -50 && (!cT || cT.med <= -50)) msg = 'Llegó muy poco sonido: subí la ganancia o acercá el micrófono.';
+    else if (cT && cT.cuts >= 3) msg = `La señal YA LLEGA CORTADA desde la tablet (línea rosa: ${cT.cuts} cortes en 8 s), antes de que Bloop la toque.` + (playing ? ' Estaba sonando música: la tablet calla el micrófono cuando suena algo (supresión de eco del sistema). Probá la misma prueba con todo parado.' : '');
+    else if (cB.cuts >= 3) msg = `La tablet entrega la señal entera (rosa) pero después de Bloop se corta ${cB.cuts} veces: es un error de Bloop. Mandame una captura.`;
+    else msg = 'La señal entra pareja, tanto desde la tablet (rosa) como después de Bloop.' + (playing ? '' : ' Repetí la prueba con música sonando para comparar.');
+    testInfo.textContent = (diag ? diag + ' ' : '') + msg;
+    testInfo.className = diag || (cT && cT.cuts >= 3) || cB.cuts >= 3 ? 'warn' : 'hint';
     const src = A.ctx.createBufferSource(); src.buffer = buf; src.connect(A.master); src.start();
   });
 
