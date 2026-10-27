@@ -1,6 +1,6 @@
 // Entrada de audio: dispositivo, monitoreo, umbral, latencia (manual y automática) y medidor.
 import { app } from '../app.js';
-import { A, getMic, listInputs, setMonitor, inputLevel, calibrateLatency, scheduleMicClose } from '../audio/engine.js';
+import { A, getMic, listInputs, setMonitor, inputLevel, calibrateLatency, scheduleMicClose, setInputGain } from '../audio/engine.js';
 import { h, popover, slider, toggle, toast } from './util.js';
 
 const db = v => (v > 0 ? (20 * Math.log10(v)).toFixed(0) + ' dB' : '-∞');
@@ -38,6 +38,26 @@ export async function openInputSettings(anchor) {
   };
   requestAnimationFrame(tick);
 
+  // Ganancia de entrada: a mano o automática (escucha unos segundos y deja el pico cerca de -6 dB)
+  const gainSlider = slider({ label: 'Ganancia del micrófono', min: 0, max: 40, step: 1, value: s.inputGain || 0, fmt: v => '+' + v + ' dB', onInput: v => { s.inputGain = v; setInputGain(v); } });
+  const autoBtn = h('button', { class: 'sbtn on' }, '✨ Ganancia automática');
+  autoBtn.addEventListener('click', async () => {
+    autoBtn.disabled = true;
+    let pk = 0;
+    const end = performance.now() + 4000;
+    while (performance.now() < end) {
+      autoBtn.textContent = `🎤 Tocá o cantá fuerte… ${Math.ceil((end - performance.now()) / 1000)}`;
+      pk = Math.max(pk, inputLevel());
+      await new Promise(r => setTimeout(r, 30));
+    }
+    autoBtn.disabled = false; autoBtn.textContent = '✨ Ganancia automática';
+    const cur = Math.pow(10, (s.inputGain || 0) / 20), raw = pk / cur;
+    if (raw < 0.0005) { toast('No llegó sonido: revisá que el micrófono esté enchufado en la hembra rosa'); return; }
+    const dbv = Math.max(0, Math.min(40, Math.round(20 * Math.log10(0.5 / raw))));
+    s.inputGain = dbv; setInputGain(dbv); gainSlider.set(dbv);
+    toast(`🎚 Ganancia del micrófono: +${dbv} dB`);
+  });
+
   const latSlider = slider({ label: 'Compensación de latencia', min: 0, max: 400, step: 1, value: s.micLatency, fmt: v => v + ' ms', onInput: v => { s.micLatency = v; } });
   const calBtn = h('button', { class: 'sbtn on' }, '🎯 Calibrar automáticamente');
   calBtn.addEventListener('click', async () => {
@@ -54,6 +74,9 @@ export async function openInputSettings(anchor) {
     h('div', { class: 'lbl' }, 'Dispositivo (micrófono interno o interfaz USB)'),
     h('div', { class: 'btn-row' }, sel, h('button', { class: 'sbtn', onclick: fill }, '🔄')),
     h('div', { class: 'row-between' }, meter, peak),
+    gainSlider,
+    autoBtn,
+    h('div', { class: 'hint' }, 'Un micrófono dinámico enchufado directo llega bajito: subí la ganancia hasta que el medidor llegue a la mitad o un poco más cuando tocás fuerte, sin ponerse rojo.'),
     toggle('🎧 Escuchar la entrada (monitoreo)', s.monitor, v => { s.monitor = v; setMonitor(v); if (v) toast('Usá auriculares para evitar acople'); }),
     slider({ label: 'Umbral para grabar samples', min: 0.003, max: 0.3, step: 0.001, value: s.recThresh, fmt: db, onInput: v => { s.recThresh = v; } }),
     latSlider,

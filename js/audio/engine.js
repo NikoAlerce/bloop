@@ -100,8 +100,20 @@ export async function initAudio() {
   for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
   A.noise = nb;
 
-  // Entrada (micrófono / interfaz): nodo fijo al que se conecta el dispositivo elegido
+  // Entrada (micrófono / interfaz): dispositivo → ganancia de entrada → protector suave →
+  // nodo fijo que usan la grabación, el medidor y el monitoreo
+  A.micIn = gain(1);
+  A.micClip = ctx.createWaveShaper();
+  {
+    const n = 2048, c = new Float32Array(n), knee = 0.8;
+    for (let i = 0; i < n; i++) {
+      const x = (i / (n - 1)) * 2 - 1, ax = Math.abs(x);
+      c[i] = Math.sign(x) * (ax <= knee ? ax : knee + (1 - knee) * Math.tanh((ax - knee) / (1 - knee)));
+    }
+    A.micClip.curve = c;
+  }
   A.micNode = gain(1);
+  A.micIn.connect(A.micClip).connect(A.micNode);
   A.micMeter = ctx.createAnalyser(); A.micMeter.fftSize = 512;
   A.micNode.connect(A.micMeter);
   A.monitor = gain(0);
@@ -245,7 +257,7 @@ export async function getMic(deviceId) {
   A.micStream = stream;
   A.micDevice = want;
   A.micSrc = A.ctx.createMediaStreamSource(stream);
-  A.micSrc.connect(A.micNode);
+  A.micSrc.connect(A.micIn);
   scheduleMicClose(4000); // si nadie lo usa enseguida, se cierra
   stream.getAudioTracks().forEach(t => t.addEventListener('ended', () => { if (A.micStream === stream) closeMic(); }));
   return A.micNode;
@@ -304,6 +316,11 @@ export function setMonitor(on) {
   A.monitorOn = on;
   A.monitor.gain.setTargetAtTime(on ? 1 : 0, A.ctx.currentTime, 0.02);
   if (!on) scheduleMicClose();
+}
+
+// Ganancia de entrada en dB (para micrófonos que llegan bajito, como un dinámico sin preamp)
+export function setInputGain(db) {
+  A.micIn.gain.setTargetAtTime(Math.pow(10, (db || 0) / 20), A.ctx.currentTime, 0.02);
 }
 
 // Nivel pico de la entrada (0..1)

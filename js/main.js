@@ -1,5 +1,5 @@
 import { app } from './app.js';
-import { A, initAudio, setDelay, setMonitor, setShow } from './audio/engine.js';
+import { A, initAudio, setDelay, setMonitor, setShow, setInputGain } from './audio/engine.js';
 import { generateKits } from './audio/drums.js';
 import { DrumTrack } from './audio/sampler.js';
 import { Synth } from './audio/synth.js';
@@ -158,6 +158,7 @@ function buildAudio() {
   // más que la salida sola). La cuenta regresiva de un loop de 🎤 la mide de verdad.
   if (!s.settings.micMeasured) s.settings.micLatency = Math.round(Math.min(300, Math.max(100, A.outLat * 2000 + 40)));
   setMonitor(false);
+  setInputGain(s.settings.inputGain || 0);
   setShow(!!s.settings.show, s.settings.showMon ?? 0.8, s.settings.showClick ?? 0.7);
   applyMix();
 }
