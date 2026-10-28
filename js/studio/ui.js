@@ -107,6 +107,9 @@ export function buildStudio(el) {
   // 🗑 Borrar: lo elegido (varios clips, notas del piano roll, un clip o el tiempo marcado)
   const delBtn = h('button', { class: 'tb-btn sm del', title: 'Borrar lo elegido (Supr)' }, '🗑 Borrar');
   delBtn.addEventListener('click', () => { if (!(arr.many.size < 2 && detail.deleteSel())) arr.deleteSelected(); });
+  // ＋ Clip MIDI: un clip vacío de 1 compás en la pista MIDI elegida, listo para dibujar notas
+  const newClipBtn = h('button', { class: 'tb-btn sm', title: 'Crear un clip MIDI vacío (sin grabar) en la pista elegida, donde está el cursor' }, '＋ Clip MIDI');
+  newClipBtn.addEventListener('click', () => arr.newMidiClipAtCursor());
   // ☑ Varios: con el dedo, cada toque suma o saca clips de la selección
   const multiBtn = h('button', { class: 'tb-btn sm', title: 'Elegir varios clips: cada toque suma o saca uno (con el lápiz también podés arrastrar en el vacío)' }, '☑ Varios');
   multiBtn.addEventListener('click', () => { st.multi = !st.multi; multiBtn.classList.toggle('on', st.multi); if (!st.multi) { arr.many.clear(); arr.draw(); } });
@@ -119,7 +122,7 @@ export function buildStudio(el) {
     posLbl,
     h('div', { class: 'tb-group' }, loopBtn, gridBtn, drawBtn, followBtn),
     h('div', { class: 'tb-group' }, undoBtn, redoBtn),
-    h('div', { class: 'tb-group' }, multiBtn, delBtn),
+    h('div', { class: 'tb-group' }, newClipBtn, multiBtn, delBtn),
     h('div', { class: 'tb-spacer' }),
     h('div', { class: 'tb-group' }, kbBtn, brBtn, expBtn, helpBtn));
 
@@ -588,6 +591,11 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
     const auto = h('button', { class: 'sth-b' + (t.autoOn ? ' on' : ''), title: 'Automatización: dibujá cómo cambia un parámetro' }, 'A');
     auto.addEventListener('click', e => { e.stopPropagation(); t.autoOn = !t.autoOn; if (t.autoOn && t.h < 90) t.h = 110; renderHeads(); });
     const btns = h('div', { class: 'sth-btns' }, act, solo, arm, auto);
+    if (t.kind === 'midi') {
+      const add = h('button', { class: 'sth-b', title: 'Clip MIDI vacío nuevo (en el cursor)' }, '＋');
+      add.addEventListener('click', e => { e.stopPropagation(); newMidiClipAtCursor(t); });
+      btns.append(add);
+    }
     if (t.kind === 'audio') {
       const mon = h('button', { class: 'sth-b' + (t.mon ? ' on' : ''), title: 'Escuchar la entrada con los efectos de la pista (cuando está armada)' }, '🎧');
       mon.addEventListener('click', e => { e.stopPropagation(); t.mon = !t.mon; if (t.mon && !t.arm) t.arm = true; studio.sync(); renderHeads(); });
@@ -649,6 +657,27 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
   function renameTrack(t) {
     const v = prompt('Nombre de la pista', t.name);
     if (v != null && v.trim()) { snapshot('Renombrar pista'); t.name = v.trim().slice(0, 32); renderHeads(); app.emit('studio-sel'); }
+  }
+
+  // Clip MIDI vacío: en el compás del cursor (o justo después del clip que haya ahí), 1 compás.
+  // Sin pista MIDI elegida, crea una pista nueva con el synth.
+  function newMidiClipAtCursor(t = null) {
+    t ||= selTrack();
+    if (!t || t.kind !== 'midi') t = st.tracks.find(x => x.kind === 'midi' && x.id === st.sel.track) || addTrack('midi');
+    let a = Math.floor(st.pos / 4 + 1e-6) * 4;
+    for (let guard = 0; guard < 200; guard++) {
+      const over = t.clips.find(c => c.start < a + 4 - 1e-6 && c.start + c.len > a + 1e-6);
+      if (!over) break;
+      a = Math.ceil((over.start + over.len) / 4 - 1e-6) * 4;
+    }
+    snapshot('Clip MIDI nuevo');
+    const c = newMidiClip(a, 4, t.color);
+    t.clips.push(c);
+    st.pos = a;
+    if (X(a) < 0 || X(a + 4) > lanes.clientWidth) st.sx = Math.max(0, a - 2);
+    selectClip(t, c);
+    app.emit('studio');
+    toast('▤ Clip MIDI listo: doble toque en la grilla de abajo para poner notas (o ✏️ Dibujar)', 3500);
   }
 
   function addTrack(kind, opts = {}) {
@@ -1068,7 +1097,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
   // ---- Animación ----
   let lastPos = '', wasPlaying = false;
   return {
-    draw, renderHeads, trackAt, selectClip, selectTrack, addTrack, audioOp, many, deleteSelected,
+    draw, renderHeads, trackAt, selectClip, selectTrack, addTrack, audioOp, many, deleteSelected, newMidiClipAtCursor,
     X, B,
     dropInfo,
     setDrop(d) { drop = d; draw(); },
