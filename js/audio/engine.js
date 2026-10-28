@@ -247,8 +247,13 @@ export function setPerf(x, y) {
 // Sin cancelación de eco, supresión de ruido ni ganancia automática: señal cruda para grabar música.
 export async function getMic(deviceId) {
   const want = deviceId ?? A.inputId ?? '';
-  if (A.micStream && A.micDevice === want) return A.micNode;
-  const audio = { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: { ideal: 2 }, latency: 0 };
+  if (A.micStream && A.micDevice === want && A.micOpenCompat === !!A.micCompat) return A.micNode;
+  // Modo compatible (Android): en modo "comunicación" Chrome respeta la elección de micrófono
+  // (por ejemplo el de la tablet con un adaptador USB puesto), a cambio de la cancelación de eco
+  const compat = !!A.micCompat;
+  const audio = compat
+    ? { echoCancellation: true, noiseSuppression: false, autoGainControl: false }
+    : { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: { ideal: 2 }, latency: 0 };
   if (want) audio.deviceId = { exact: want };
   let stream;
   try { stream = await navigator.mediaDevices.getUserMedia({ audio }); }
@@ -261,13 +266,14 @@ export async function getMic(deviceId) {
   const tr = stream.getAudioTracks()[0];
   try {
     const st = tr.getSettings?.() || {};
-    if (st.echoCancellation || st.noiseSuppression || st.autoGainControl) {
+    if (!compat && (st.echoCancellation || st.noiseSuppression || st.autoGainControl)) {
       await tr.applyConstraints({ echoCancellation: false, noiseSuppression: false, autoGainControl: false });
     }
   } catch (e) { /* algunos sistemas no dejan */ }
   closeMic();
   A.micStream = stream;
   A.micDevice = want;
+  A.micOpenCompat = compat;
   A.micSrc = A.ctx.createMediaStreamSource(stream);
   A.micSrc.connect(A.micIn);
   scheduleMicClose(4000); // si nadie lo usa enseguida, se cierra

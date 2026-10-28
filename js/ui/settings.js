@@ -151,6 +151,12 @@ export async function openInputSettings(anchor) {
     procInfo,
     h('div', { class: 'lbl' }, 'Dispositivo (micrófono interno o interfaz USB)'),
     h('div', { class: 'btn-row' }, sel, h('button', { class: 'sbtn', onclick: fill }, '🔄')),
+    toggle('📱 Modo compatible Android (para elegir el micrófono de la tablet)', !!s.micCompat, async v => {
+      s.micCompat = v; A.micCompat = v;
+      try { await getMic(s.inputId); toast(v ? '📱 Modo compatible: elegí "Speakerphone" para usar el micrófono de la tablet' : 'Modo crudo (sin procesamiento)'); }
+      catch (e) { toast('No pude abrir la entrada'); }
+    }),
+    h('div', { class: 'hint' }, 'Con un adaptador USB puesto, Android solo deja elegir otro micrófono en este modo. Puede sumar cancelación de eco del sistema; con auriculares suele no molestar.'),
     h('div', { class: 'row-between' }, meter, peak),
     gainSlider,
     autoBtn,

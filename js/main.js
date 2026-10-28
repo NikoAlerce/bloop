@@ -159,6 +159,7 @@ function buildAudio() {
   if (!s.settings.micMeasured) s.settings.micLatency = Math.round(Math.min(300, Math.max(100, A.outLat * 2000 + 40)));
   setMonitor(false, s.settings.monVol ?? 0.6);
   setInputGain(s.settings.inputGain || 0);
+  A.micCompat = !!s.settings.micCompat;
   setShow(!!s.settings.show, s.settings.showMon ?? 0.8, s.settings.showClick ?? 0.7);
   applyMix();
 }
