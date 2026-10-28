@@ -825,3 +825,6 @@ body.eco .bigpad { transition: none; }
 .dev.inst { max-width: none; }
 .dev.inst .inst-groups { flex-wrap: nowrap; }
 .dev.inst .inst-group { max-width: 210px; flex: none; }
+/* El botón del Estudio siempre con su nombre y bien visible */
+.tb-btn.view.studio-btn { background: var(--accent); color: var(--bg); padding: 0 12px; }
+.tb-btn.view.studio-btn span { display: inline !important; font-weight: 800; }

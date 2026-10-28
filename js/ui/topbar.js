@@ -147,7 +147,7 @@ export function buildTopbar(el) {
     h('div', { class: 'logo' }, logo, h('span', {}, 'bloop')),
     h('div', { class: 'tb-group' }, play, rec, qBtn, metro),
     h('div', { class: 'tb-group' }, bpm, tap, swing.el),
-    h('div', { class: 'tb-group' }, viewBtn, keysBtn, studioBtn, undoBtn, redoBtn),
+    h('div', { class: 'tb-group' }, studioBtn, viewBtn, keysBtn, undoBtn, redoBtn),
     h('div', { class: 'tb-group' }, pats, patMenu, songBtn),
     h('div', { class: 'tb-spacer' }),
     h('div', { class: 'tb-group' }, ctrlBtn, master.el, meter, menu),
