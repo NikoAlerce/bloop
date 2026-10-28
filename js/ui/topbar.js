@@ -75,6 +75,9 @@ export function buildTopbar(el) {
   viewBtn.addEventListener('click', () => toggleView('pads'));
   keysBtn.addEventListener('click', () => toggleView('keys'));
   input.target('act:view', { label: 'Modo Pads', kind: 'button', el: viewBtn, press: () => toggleView('pads') });
+  const studioBtn = h('button', { class: 'tb-btn view studio-btn', title: 'Modo Estudio: pistas acostadas como Ableton (Arrangement)' }, '🎚', h('span', {}, 'Estudio'));
+  studioBtn.addEventListener('click', () => setView('studio'));
+  input.target('act:viewstudio', { label: 'Modo Estudio', kind: 'button', el: studioBtn, press: () => setView(s.view === 'studio' ? 'main' : 'studio') });
   input.target('act:viewkeys', { label: 'Modo Teclado', kind: 'button', el: keysBtn, press: () => toggleView('keys') });
   const updView = () => { viewBtn.classList.toggle('on', s.view === 'pads'); keysBtn.classList.toggle('on', s.view === 'keys'); };
   app.on('view', updView);
@@ -144,7 +147,7 @@ export function buildTopbar(el) {
     h('div', { class: 'logo' }, logo, h('span', {}, 'bloop')),
     h('div', { class: 'tb-group' }, play, rec, qBtn, metro),
     h('div', { class: 'tb-group' }, bpm, tap, swing.el),
-    h('div', { class: 'tb-group' }, viewBtn, keysBtn, undoBtn, redoBtn),
+    h('div', { class: 'tb-group' }, viewBtn, keysBtn, studioBtn, undoBtn, redoBtn),
     h('div', { class: 'tb-group' }, pats, patMenu, songBtn),
     h('div', { class: 'tb-spacer' }),
     h('div', { class: 'tb-group' }, ctrlBtn, master.el, meter, menu),

@@ -8,13 +8,22 @@ import { hitLive, selectTrack, trackName, soundName } from '../actions.js';
 import { openBank } from './bank.js';
 import { openSampleEditor } from './waveeditor.js';
 import { COUNT_OPTS } from './countin.js';
+import { openStudio, stopStudio } from '../studio/index.js';
 
 // Vistas: 'main' (todo) · 'pads' (drum machine + loops) · 'keys' (loops arriba + teclado abajo)
+// · 'studio' (vista Arrangement, pantalla completa)
 export function setView(v) {
+  const prev = app.state.view;
   app.state.view = v;
   const el = document.getElementById('app');
   el.classList.toggle('pads-mode', v === 'pads');
   el.classList.toggle('keys-mode', v === 'keys');
+  el.classList.toggle('studio-mode', v === 'studio');
+  document.getElementById('studio').hidden = v !== 'studio';
+  if (v === 'studio') {
+    if (app.seq.playing) app.seq.stop();
+    openStudio(document.getElementById('studio'));
+  } else if (prev === 'studio') stopStudio();
   app.emit('view');
 }
 

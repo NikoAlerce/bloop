@@ -1,6 +1,6 @@
 // Service worker: la app funciona sin internet y se actualiza sola al abrirla.
 // VERSION y FILES los escribe tools/stamp.py (no editar a mano).
-const VERSION = 'bloop-2026-10-28-9eba32e2';
+const VERSION = 'bloop-2026-10-28-21587a9f';
 const FILES = [
   './',
   'index.html',
@@ -30,6 +30,15 @@ const FILES = [
   'js/scales.js',
   'js/sequencer.js',
   'js/state.js',
+  'js/studio/browser.js',
+  'js/studio/detail.js',
+  'js/studio/devices.js',
+  'js/studio/engine.js',
+  'js/studio/gest.js',
+  'js/studio/index.js',
+  'js/studio/keys.js',
+  'js/studio/model.js',
+  'js/studio/ui.js',
   'js/ui/bank.js',
   'js/ui/controllers.js',
   'js/ui/countin.js',

@@ -175,6 +175,7 @@ export function buildKeyboard() {
   // Teclado de computadora (si la tecla no fue asignada a otra cosa)
   const qDown = new Map();
   input.onKey((e, down) => {
+    if (app.state.view === 'studio') return false; // en el Estudio toca la pista elegida
     if (e.code in QWERTY) {
       if (down) {
         if (qDown.has(e.code)) return true;

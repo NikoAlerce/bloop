@@ -23,6 +23,7 @@ import { registerParamTargets } from './ui/params.js';
 import { registerMixerTargets } from './ui/mixer.js';
 import { buildLearnBar } from './ui/controllers.js';
 import { toast } from './ui/util.js';
+import { studioTick, studioFrame, studioKey, studioMidi } from './studio/index.js';
 
 const $ = id => document.getElementById(id);
 
@@ -229,6 +230,7 @@ function registerGlobals() {
 
   // Teclado / pedales sin asignar
   input.onKey((e, down) => {
+    if (s.view === 'studio') return studioKey(e, down);
     if (!down) return false;
     const c = e.code, k = e.key.toLowerCase();
     if (c === 'Space' || e.key === ' ') { seq.toggle(); return true; }
@@ -242,6 +244,7 @@ function registerGlobals() {
 
   // MIDI sin asignar: notas al teclado (synth o sampler), canal 10 → pads, CC1 → brillo del synth
   input.midiHandler = ev => {
+    if (s.view === 'studio' && studioMidi(ev)) return;
     if (ev.cmd === 0x90 || ev.cmd === 0x80) {
       if (ev.ch === 9 && ev.d1 >= 36 && ev.d1 < 44) { if (ev.on) hitLive(ev.d1 - 36, ev.value); return; }
       if (ev.on) { noteOn(ev.d1, ev.value); ui.dock.keyboard.markDown(ev.d1, 'down', true); }
@@ -262,7 +265,7 @@ function buildUI() {
   buildCountIn();
   const loopsFrame = buildLoops($('perf'));
   ui.dock = buildDock($('dock'));
-  setView(['pads', 'keys'].includes(app.state.view) ? app.state.view : 'main');
+  setView(['pads', 'keys', 'studio'].includes(app.state.view) ? app.state.view : 'main');
   registerParamTargets();
   registerMixerTargets();
   registerGlobals();
@@ -298,7 +301,8 @@ function buildUI() {
       seq.uiQueue = keep;
     }
     const eco = app.state.settings.eco;
-    if (!eco || now - lastHeavy > 66) {
+    if (app.state.view === 'studio') studioFrame();
+    else if (!eco || now - lastHeavy > 66) {
       lastHeavy = now;
       topFrame(dt);
       loopsFrame(now / 1000);
@@ -313,7 +317,7 @@ function buildUI() {
 // Reloj del secuenciador en un Worker (no se frena con la UI)
 function startClock() {
   const w = new Worker(URL.createObjectURL(new Blob(['setInterval(()=>postMessage(0),20)'], { type: 'text/javascript' })));
-  w.onmessage = () => seq.tick();
+  w.onmessage = () => { seq.tick(); studioTick(); };
   const resume = () => { if (A.ctx.state !== 'running') A.ctx.resume(); };
   document.addEventListener('visibilitychange', () => { if (!document.hidden) resume(); else save(); });
   document.addEventListener('pointerdown', resume);

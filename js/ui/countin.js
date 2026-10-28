@@ -15,7 +15,8 @@ export function buildCountIn() {
     const recLoop = () => app.loopers.some(l => l.state === 'armed');
     const loop = () => {
       const seq = app.seq;
-      if (seq.countIn !== ci || !seq.playing) { el.hidden = true; return; }
+      // ci.alive: cuentas de otras partes (el Estudio) dicen ellas mismas si siguen vigentes
+      if (ci.alive ? !ci.alive() : seq.countIn !== ci || !seq.playing) { el.hidden = true; return; }
       const heard = A.ctx.currentTime - A.outLat;
       if (heard >= ci.t0) { el.hidden = true; return; }
       if (heard >= ci.t) {
@@ -26,8 +27,9 @@ export function buildCountIn() {
           num.textContent = txt;
           el.classList.remove('beat'); void el.offsetWidth; el.classList.add('beat');
         }
-        lbl.textContent = recLoop() ? 'grabando en…' : app.seq.recording ? 'grabando en…' : 'arranca en…';
-        el.classList.toggle('rec', recLoop() || app.seq.recording);
+        const rec = ci.rec || recLoop() || app.seq.recording;
+        lbl.textContent = rec ? 'grabando en…' : 'arranca en…';
+        el.classList.toggle('rec', rec);
         el.hidden = false;
       }
       raf = requestAnimationFrame(loop);
