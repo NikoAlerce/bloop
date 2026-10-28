@@ -221,6 +221,20 @@ class TrackAudio {
   }
 }
 
+// Una pista suena si está prendida (y no la tapa un solo de otra), o si está armada (⏺):
+// como el monitoreo de Ableton, armar una pista MIDI siempre deja escuchar lo que tocás
+export const heard = t => audible(t) || (t.arm && t.kind === 'midi');
+
+// Si tocás una pista que no suena, avisa por qué (una vez cada tanto)
+let hintT = 0;
+export function silentHint(t) {
+  if (heard(t) || performance.now() - hintT < 6000) return;
+  hintT = performance.now();
+  const others = S().tracks.some(x => x.solo && x !== t);
+  toast(others ? `«${t.name}» no suena porque otra pista está en Solo (S). Armala (⏺) o sacá el Solo.`
+    : `«${t.name}» está apagada: tocá su número amarillo para prenderla, o armala (⏺).`, 4200);
+}
+
 // ---------- Automatización ----------
 // Claves: 'vol', 'pan', 'rev', 'dly', 'd:<idDispositivo>:<param>'
 export function autoTargets(t) {
@@ -282,7 +296,7 @@ export const studio = {
 
   applyTrack(t, time = ctx().currentTime, vals = {}) {
     const ta = this.ta(t.id); if (!ta) return;
-    const on = audible(t);
+    const on = heard(t);
     const vol = vals.vol ?? t.vol, pan = vals.pan ?? t.pan, rev = vals.rev ?? t.rev, dly = vals.dly ?? t.dly;
     const g = on ? faderGain(vol) : 0;
     ta.fader.gain.setTargetAtTime(g, time, 0.012);
@@ -461,6 +475,7 @@ export const studio = {
   },
   noteOn(midi, vel = 0.8, ts) {
     const t = this.playTarget(); if (!t) return false;
+    silentHint(t);
     const ta = this.ta(t.id); if (!ta?.inst) return false;
     const ps = transformNote({ p: midi, v: vel }, (t.midiFx || []).filter(f => f.type !== 'arp' && f.type !== 'human')).map(n => n.p);
     this.noteOff(midi);

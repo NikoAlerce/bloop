@@ -17,7 +17,7 @@ import {
   S, uid, clone, spb, selClip, selTrack, findTrack, gridBeats, snapB, getBuffer, putBuffer, peaksOf, clipNotes,
   DRUM_NOTE, DRUM_PADS, srcName, synthInst, drumInst, samplerInst, audible,
 } from './model.js';
-import { studio, faderGain } from './engine.js';
+import { studio, faderGain, silentHint, heard } from './engine.js';
 import { AUDIO_FX, MIDI_FX, AUDIO_FX_KEYS, MIDI_FX_KEYS, defaultsOf } from './devices.js';
 import { gestures, fitCanvas, pointAnchor } from './gest.js';
 import { snapshot, norm, denorm, mfader, splitAt, copyClip, defaultDetailH } from './ui.js';
@@ -302,6 +302,7 @@ function midiEditor(el, t, c) {
   const held = new Set();
   const audition = (p, on) => {
     const ta = studio.ta(t.id); if (!ta?.inst) return;
+    if (on) silentHint(t);
     if (on) { ta.inst.on(p, 0.85); held.add(p); } else { ta.inst.off(p); held.delete(p); }
     draw();
   };
@@ -913,7 +914,7 @@ function mixerView(el) {
     m.addEventListener('click', () => { t.mute = !t.mute; studio.applyMix(); app.emit('studio'); });
     const s = h('button', { class: 'sth-b solo' + (t.solo ? ' on' : '') }, 'S');
     s.addEventListener('click', () => { t.solo = !t.solo; studio.applyMix(); app.emit('studio'); });
-    const strip = h('div', { class: 'mstrip' + (t.id === st.sel.track ? ' sel' : '') + (audible(t) ? '' : ' muted') },
+    const strip = h('div', { class: 'mstrip' + (t.id === st.sel.track ? ' sel' : '') + (heard(t) ? '' : ' muted') },
       h('div', { class: 'ms-name' }, h('i', { style: { background: t.color } }), t.name),
       knob({ label: 'Paneo', min: -1, max: 1, value: t.pan, def: 0, bipolar: true, size: 34, color: t.color, fmt: panFmt, onInput: x => { t.pan = x; studio.applyTrack(t); } }).el,
       h('div', { class: 'ms-sends' },

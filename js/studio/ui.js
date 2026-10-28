@@ -12,7 +12,7 @@ import {
   S, COLORS, clone, uid, spb, newTrack, newMidiClip, findTrack, findClip, selClip, selTrack, gridBeats, snapB,
   GRID_OPTS, clipNotes, peaksOf, getBuffer, songEnd, audible, synthInst, drumInst,
 } from './model.js';
-import { studio, removeOverlaps, splitRight, autoTargets, autoValueAt, faderGain } from './engine.js';
+import { studio, removeOverlaps, splitRight, autoTargets, autoValueAt, faderGain, heard } from './engine.js';
 import { gestures, pointAnchor, fitCanvas } from './gest.js';
 import { buildBrowser } from './browser.js';
 import { buildDetail, instView, setInstView } from './detail.js';
@@ -394,7 +394,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
   // Clip al estilo Ableton: barra de título del color del clip, cuerpo más claro y el
   // contenido (notas u onda) en negro. Seleccionado: más claro, borde blanco y agarraderas.
   function drawClip(gc, t, c, x, y, w, hh, sel, dim) {
-    const col = c.color || t.color, muted = !audible(t);
+    const col = c.color || t.color, muted = !heard(t);
     gc.save();
     gc.globalAlpha = dim ? 0.35 : muted ? 0.5 : 1;
     rr(gc, x, y, w, hh, 2);
@@ -538,9 +538,9 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
     const sel = t.id === st.sel.track;
     const name = h('div', { class: 'sth-name' }, t.kind === 'audio' ? '〰 ' : t.inst?.type === 'drums' ? '🥁 ' : t.inst?.type === 'sampler' ? '🎻 ' : '🎹 ', t.name);
     const act = h('button', { class: 'sth-b act' + (t.mute ? '' : ' on'), title: 'Prender / apagar (mute)' }, String(i + 1));
-    act.addEventListener('click', e => { e.stopPropagation(); t.mute = !t.mute; studio.applyMix(); renderHeads(); });
+    act.addEventListener('click', e => { e.stopPropagation(); t.mute = !t.mute; studio.applyMix(); renderHeads(); app.emit('studio-draw'); });
     const solo = h('button', { class: 'sth-b solo' + (t.solo ? ' on' : ''), title: 'Solo' }, 'S');
-    solo.addEventListener('click', e => { e.stopPropagation(); t.solo = !t.solo; studio.applyMix(); renderHeads(); });
+    solo.addEventListener('click', e => { e.stopPropagation(); t.solo = !t.solo; studio.applyMix(); renderHeads(); app.emit('studio-draw'); });
     const arm = h('button', { class: 'sth-b arm' + (t.arm ? ' on' : ''), title: t.kind === 'audio' ? 'Armar para grabar el micrófono' : 'Armar para grabar lo que tocás' }, '⏺');
     arm.addEventListener('click', e => { e.stopPropagation(); t.arm = !t.arm; studio.sync(); renderHeads(); });
     const auto = h('button', { class: 'sth-b' + (t.autoOn ? ' on' : ''), title: 'Automatización: dibujá cómo cambia un parámetro' }, 'A');
@@ -555,7 +555,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
     const meter = h('i', { class: 'sth-meter' });
     const more = h('button', { class: 'sth-more', title: 'Opciones de la pista' }, '⋯');
     more.addEventListener('click', e => { e.stopPropagation(); trackMenu(more, t); });
-    const el = h('div', { class: 'sth' + (sel ? ' sel' : '') + (t.mute ? ' muted' : '') },
+    const el = h('div', { class: 'sth' + (sel ? ' sel' : '') + (heard(t) ? '' : ' muted') },
       h('div', { class: 'sth-top' }, name, more), btns, h('div', { class: 'sth-vol' }, fader, meter));
     el.style.setProperty('--c', t.color);
     el.style.height = t.h + 'px';
