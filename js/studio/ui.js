@@ -104,6 +104,14 @@ export function buildStudio(el) {
   const helpBtn = h('button', { class: 'round', title: 'Cómo se usa' }, '?');
   helpBtn.addEventListener('click', () => showStudioHelp(helpBtn));
 
+  // 🗑 Borrar: lo elegido (varios clips, notas del piano roll, un clip o el tiempo marcado)
+  const delBtn = h('button', { class: 'tb-btn sm del', title: 'Borrar lo elegido (Supr)' }, '🗑 Borrar');
+  delBtn.addEventListener('click', () => { if (!(arr.many.size < 2 && detail.deleteSel())) arr.deleteSelected(); });
+  // ☑ Varios: con el dedo, cada toque suma o saca clips de la selección
+  const multiBtn = h('button', { class: 'tb-btn sm', title: 'Elegir varios clips: cada toque suma o saca uno (con el lápiz también podés arrastrar en el vacío)' }, '☑ Varios');
+  multiBtn.addEventListener('click', () => { st.multi = !st.multi; multiBtn.classList.toggle('on', st.multi); if (!st.multi) { arr.many.clear(); arr.draw(); } });
+  multiBtn.classList.toggle('on', !!st.multi);
+
   const bar = h('header', { class: 'st-bar' },
     back,
     h('div', { class: 'tb-group' }, playBtn, stopBtn, recBtn),
@@ -111,6 +119,7 @@ export function buildStudio(el) {
     posLbl,
     h('div', { class: 'tb-group' }, loopBtn, gridBtn, drawBtn, followBtn),
     h('div', { class: 'tb-group' }, undoBtn, redoBtn),
+    h('div', { class: 'tb-group' }, multiBtn, delBtn),
     h('div', { class: 'tb-spacer' }),
     h('div', { class: 'tb-group' }, kbBtn, brBtn, expBtn, helpBtn));
 
@@ -218,7 +227,7 @@ function studioKey(e, down, ui) {
   }
   if (mod && k === 'e') { const sc = selClip(); if (sc) splitAt(sc.t, sc.c, st.pos); return true; }
   if (mod && k === 'l') { const sc = selClip(); if (sc) { st.loop = { on: true, a: sc.c.start, b: sc.c.start + sc.c.len }; app.emit('studio-draw'); } return true; }
-  if (k === 'delete' || k === 'backspace') { if (ui.detail.deleteSel?.()) return true; const sc = selClip(); if (sc) deleteClip(sc.t, sc.c); return true; }
+  if (k === 'delete' || k === 'backspace') { if (ui.arr.many.size < 2 && ui.detail.deleteSel?.()) return true; ui.arr.deleteSelected(); return true; }
   if (k === 'b' && !mod) { ui.drawBtn(); return true; }
   if (k === 'r' && !mod) { studio.toggleRec(); return true; }
   return ui.keys.qwerty(e, true);
@@ -269,6 +278,39 @@ function showStudioHelp(anchor) {
 function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
   const st = S();
   let hover = null, tsel = null, ghost = null, drop = null;
+  const many = new Set(); // clips elegidos (además del principal st.sel.clip)
+  const isSel = c => c.id === st.sel.clip || many.has(c.id);
+  // Clips elegidos con su pista: [{t, c}]
+  const selected = () => {
+    const ids = new Set(many); if (st.sel.clip) ids.add(st.sel.clip);
+    const out = [];
+    for (const t of st.tracks) for (const c of t.clips) if (ids.has(c.id)) out.push({ t, c });
+    return out;
+  };
+  function deleteSelected() {
+    const list = selected();
+    if (list.length) {
+      snapshot(list.length > 1 ? `Borrar ${list.length} clips` : 'Borrar clip');
+      const ids = new Set(list.map(x => x.c.id));
+      for (const t of st.tracks) t.clips = t.clips.filter(c => !ids.has(c.id));
+      many.clear(); st.sel.clip = null;
+      app.emit('studio');
+      toast(list.length > 1 ? `🗑 ${list.length} clips borrados (↶ para deshacer)` : '🗑 Clip borrado');
+      return true;
+    }
+    if (tsel) { deleteTime(tsel); return true; }
+    toast('Elegí uno o varios clips para borrar');
+    return false;
+  }
+  function deleteTime(sel) {
+    const a = Math.min(sel.a, sel.b), b = Math.max(sel.a, sel.b);
+    snapshot('Borrar tiempo');
+    for (const t of st.tracks.slice(st.tracks.indexOf(sel.t0), st.tracks.indexOf(sel.t1) + 1)) {
+      const tmp = newMidiClip(a, b - a); tmp.kind = '__cut';
+      t.clips.push(tmp); removeOverlaps(t, tmp); t.clips = t.clips.filter(c => c !== tmp);
+    }
+    tsel = null; app.emit('studio');
+  }
 
   const X = b => (b - st.sx) * st.zoom;
   const B = x => x / st.zoom + st.sx;
@@ -349,7 +391,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
         for (const c of t.clips) {
           const x = X(c.start), cw = c.len * st.zoom;
           if (x > w || x + cw < 0) continue;
-          drawClip(gc, t, c, x, y0 + 1, cw, t.h - 3, c.id === st.sel.clip, t.autoOn);
+          drawClip(gc, t, c, x, y0 + 1, cw, t.h - 3, isSel(c), t.autoOn);
         }
         if (t.autoOn) drawAuto(gc, t, y0, w);
         if (studio.rec && studio.rec.tracks.includes(t.id) && studio.rec.audio && t.kind === 'audio') drawRecording(gc, t, y0, w);
@@ -584,10 +626,23 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
     if (st.detail === 'clip' && !(selClip()?.t === t)) st.detail = 'devices';
     if (changed || st.detail !== 'devices') app.emit('studio-sel');
   }
-  function selectClip(t, c) {
+  function selectClip(t, c, add = false) {
+    if (add) {
+      // sumar o sacar este clip de la selección
+      const ids = new Set(many); if (st.sel.clip) ids.add(st.sel.clip);
+      if (ids.has(c.id)) ids.delete(c.id); else ids.add(c.id);
+      const list = [...ids];
+      st.sel.clip = ids.has(c.id) ? c.id : list[list.length - 1] || null;
+      many.clear(); list.forEach(id => { if (id !== st.sel.clip) many.add(id); });
+      if (st.sel.clip === c.id) st.sel.track = t.id;
+      draw(); app.emit('studio-sel');
+      if (ids.size > 1) toast(`${ids.size} clips elegidos`, 1000);
+      return;
+    }
+    many.clear();
     st.sel.track = t.id; st.sel.clip = c.id;
     if (st.detail !== 'mixer') st.detail = 'clip';
-    if (S().detailH < 60) S().detailH = 300;
+    if (S().detailH < 60) S().detailH = defaultDetailH();
     app.emit('studio-sel');
   }
 
@@ -652,6 +707,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
   }
 
   function dragClip(hh, p, e, copy) {
+    if (isSel(hh.clip) && selected().length > 1 && !copy) return dragMany(hh, p);
     const c0 = hh.clip;
     let t = hh.t, c = c0, began = false;
     const b0 = B(p.x), orig = c0.start;
@@ -669,7 +725,26 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
         if (tr && tr !== t && tr.kind === c.kind) { t.clips = t.clips.filter(x => x !== c); tr.clips.push(c); t = tr; st.sel.track = t.id; }
         c.start = ns; draw();
       },
-      up() { if (began) { removeOverlaps(t, c); st.sel.clip = c.id; app.emit('studio'); } else selectClip(t, c); },
+      up(q, ev) { if (began) { removeOverlaps(t, c); st.sel.clip = c.id; app.emit('studio'); } else if (!st.multi && !ev?.shiftKey) selectClip(t, c); },
+    };
+  }
+
+  // Varios clips elegidos: se mueven juntos en el tiempo (cada uno en su pista)
+  function dragMany(hh, p) {
+    const list = selected(), b0 = B(p.x), anchor = hh.clip.start;
+    const orig = new Map(list.map(x => [x.c, x.c.start]));
+    const minStart = Math.min(...list.map(x => x.c.start));
+    let began = false;
+    return {
+      move(q, ev) {
+        if (!began) { began = true; snapshot(`Mover ${list.length} clips`); }
+        const free = ev?.altKey || st.grid === 'off';
+        let d = (free ? anchor + B(q.x) - b0 : snapB(anchor + B(q.x) - b0, g())) - anchor;
+        d = Math.max(-minStart, d);
+        for (const [c, s0] of orig) c.start = s0 + d;
+        draw();
+      },
+      up(q, ev) { if (began) { for (const x of list) removeOverlaps(x.t, x.c); app.emit('studio'); } else if (!st.multi && !ev?.shiftKey) selectClip(hh.t, hh.clip); },
     };
   }
 
@@ -735,6 +810,15 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
       up(q, ev, tap) {
         if (tap) { tsel = null; setCursor(hh); }
         else if (tsel && Math.abs(tsel.b - tsel.a) < 1e-6) tsel = null;
+        else if (tsel) {
+          // quedan elegidos los clips que toca el rectángulo
+          const a = Math.min(tsel.a, tsel.b), b = Math.max(tsel.a, tsel.b);
+          many.clear(); st.sel.clip = null;
+          for (const t of st.tracks.slice(st.tracks.indexOf(tsel.t0), st.tracks.indexOf(tsel.t1) + 1)) {
+            for (const c of t.clips) if (c.start < b && c.start + c.len > a) { if (st.sel.clip) many.add(c.id); else { st.sel.clip = c.id; st.sel.track = t.id; } }
+          }
+          app.emit('studio-sel');
+        }
         draw();
       },
     };
@@ -742,7 +826,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
 
   function setCursor(hh) {
     st.pos = Math.max(0, snapB(hh.b, g(), 'floor'));
-    st.sel.clip = null;
+    st.sel.clip = null; many.clear();
     selectTrack(hh.t);
     if (studio.playing) { studio.stop(); studio.play(); }
     draw(); app.emit('studio-sel');
@@ -806,7 +890,9 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
       tsel = null;
       if (!hh.t) return null;
       if (hh.t.autoOn) return autoDrag(hh, p, e);
-      if (hh.clip) return hh.edge ? resizeClip(hh, hh.edge) : dragClip(hh, p, e, e.ctrlKey || e.metaKey);
+      if (hh.clip) {
+        return hh.edge && !st.multi ? resizeClip(hh, hh.edge) : dragClip(hh, p, e, e.altKey);
+      }
       if (st.draw && hh.t.kind === 'midi') return createClipDrag(hh);
       return selDrag(hh, p);
     },
@@ -819,9 +905,15 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
     },
     tap(p, e, dbl) {
       const hh = hit(p, e.pointerType === 'touch');
-      if (!hh.t) { st.sel.clip = null; tsel = null; app.emit('studio-sel'); return; }
+      if (!hh.t) { st.sel.clip = null; many.clear(); tsel = null; app.emit('studio-sel'); return; }
       if (hh.t.autoOn && e.pointerType === 'touch') return;
-      if (hh.clip) { selectClip(hh.t, hh.clip); return; }
+      if (hh.clip) {
+        // con el modo ☑ Varios (o Shift/Ctrl) cada toque suma o saca el clip
+        const add = st.multi || e.shiftKey || e.ctrlKey || e.metaKey;
+        selectClip(hh.t, hh.clip, add);
+        return;
+      }
+      if (st.multi) return;
       if (dbl && hh.t.kind === 'midi') {
         snapshot('Clip nuevo');
         const a = Math.floor(hh.b / 4) * 4, c = newMidiClip(a, 4, hh.t.color);
@@ -976,7 +1068,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
   // ---- Animación ----
   let lastPos = '', wasPlaying = false;
   return {
-    draw, renderHeads, trackAt, selectClip, selectTrack, addTrack, audioOp,
+    draw, renderHeads, trackAt, selectClip, selectTrack, addTrack, audioOp, many, deleteSelected,
     X, B,
     dropInfo,
     setDrop(d) { drop = d; draw(); },
