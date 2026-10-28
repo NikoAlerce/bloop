@@ -1,147 +1,257 @@
-// Navegador del Estudio (barra de la izquierda, como en Ableton): instrumentos, efectos de audio,
-// efectos MIDI, samples del banco y lo que hiciste en el modo En vivo (loops y patrones).
-// Se arrastra a una pista (o al espacio vacío para una pista nueva). Tocar un sample lo hace sonar.
+// Navegador del Estudio, como el de Ableton Live: a la izquierda las etiquetas (Biblioteca y
+// Lugares), al lado la lista con carpetas que se despliegan, y abajo la escucha previa con la onda.
+//  · Tocar un elemento lo elige y lo hace sonar (samples, instrumentos, kits, loops).
+//  · Doble toque (o el botón ⤵) lo carga en la pista elegida, o en una pista nueva.
+//  · También se arrastra a una pista, al espacio vacío (pista nueva), a un pad o a los dispositivos.
 import { app } from '../app.js';
 import { h, toast } from '../ui/util.js';
 import { bank, CATS } from '../bank.js';
-import { PRESETS, PRESET_CATS, PRESET_DEFAULTS } from '../audio/presets.js';
+import { PRESET_CATS, PRESET_DEFAULTS } from '../audio/presets.js';
 import { allPresets } from '../ui/presets.js';
 import { presetById } from '../actions.js';
 import { isPatternEmpty } from '../state.js';
 import {
-  S, uid, putBuffer, newTrack, newMidiClip, newAudioClip, synthInst, drumInst, samplerInst, srcName, DRUM_NOTE, selTrack,
+  S, putBuffer, getBuffer, buffers, peaksOf, newTrack, newMidiClip, newAudioClip, drumInst, samplerInst, srcName, DRUM_NOTE, selTrack,
 } from './model.js';
 import { studio, removeOverlaps } from './engine.js';
-import { AUDIO_FX, MIDI_FX, AUDIO_FX_KEYS, MIDI_FX_KEYS } from './devices.js';
+import { AUDIO_FX, MIDI_FX, MIDI_FX_KEYS } from './devices.js';
 import { snapshot } from './ui.js';
 import { addDevice } from './detail.js';
+import { fitCanvas } from './gest.js';
+import { T, FONT } from './theme.js';
 
-const SECTIONS = [
+const LIBRARY = [
   ['inst', '🎹', 'Instrumentos'], ['drums', '🥁', 'Batería'], ['afx', '✨', 'Efectos de audio'], ['mfx', '🎼', 'Efectos MIDI'],
-  ['samples', '🔊', 'Samples'], ['live', '🎛', 'Desde En vivo'],
+  ['samples', '〰', 'Samples'], ['clips', '▤', 'Clips'],
 ];
+const PLACES = [['packs', '📦', 'Packs'], ['project', '💾', 'Proyecto actual']];
+const AFX_GROUPS = [
+  ['Dinámica', ['comp', 'limiter']], ['EQ y filtros', ['eq', 'filter']], ['Delay y modulación', ['delay', 'chorus', 'trem']],
+  ['Reverb', ['reverb']], ['Color y distorsión', ['sat', 'crush']], ['Utilidad', ['util']],
+];
+const HIT_CATS = ['kick', 'snare', 'clap', 'hat', 'cymbal', 'tom', 'perc'];
 
 export function buildBrowser(el, { arr }) {
   const st = S();
-  let query = '', sampleCat = 'all';
-  const search = h('input', { class: 'br-search', type: 'search', placeholder: '🔍 Buscar…' });
-  search.addEventListener('input', () => { query = search.value.trim().toLowerCase(); fill(); });
-  const cats = h('div', { class: 'br-cats' });
-  const list = h('div', { class: 'br-list' });
-  el.append(h('div', { class: 'panel-title' }, 'Navegador'), search, cats, list);
+  let query = '', selKey = null, listen = true, lastTap = { key: null, t: 0 };
+  if (![...LIBRARY, ...PLACES].some(([k]) => k === st.browserCat)) st.browserCat = 'inst';
+  const open = new Set(['afx:Dinámica', 'afx:EQ y filtros', 'afx:Delay y modulación', 'afx:Reverb', 'afx:Color y distorsión', 'afx:Utilidad', 'clips:pats', 'clips:loops', 'drums:racks']);
 
-  function renderCats() {
-    cats.innerHTML = '';
-    for (const [k, e, l] of SECTIONS) {
+  const search = h('input', { class: 'br-search', type: 'search', placeholder: 'Buscar' });
+  search.addEventListener('input', () => { query = search.value.trim().toLowerCase(); fill(); });
+  const side = h('div', { class: 'br-side' });
+  const list = h('div', { class: 'br-list' });
+  const pvCv = h('canvas', { class: 'br-pv-cv' });
+  const pvName = h('span', { class: 'br-pv-name' }, '');
+  const pvBtn = h('button', { class: 'br-pv-btn on', title: 'Escuchar al elegir (preescucha)' }, '🎧');
+  pvBtn.addEventListener('click', () => { listen = !listen; pvBtn.classList.toggle('on', listen); if (!listen) studio.stopPreview(); });
+  const collapse = h('button', { class: 'st-collapse', title: 'Cerrar el navegador' }, '◀');
+  collapse.addEventListener('click', () => { st.browser = false; app.emit('studio-layout'); });
+  el.append(h('div', { class: 'br-top' }, search, collapse), h('div', { class: 'br-cols' }, side, h('div', { class: 'br-main' }, h('div', { class: 'br-colhead' }, 'Nombre'), list)),
+    h('div', { class: 'br-pv' }, pvBtn, h('div', { class: 'br-pv-wave' }, pvCv, pvName)));
+
+  function renderSide() {
+    side.innerHTML = '';
+    const lbl = (k, e, l) => {
       const b = h('button', { class: 'br-cat' + (st.browserCat === k ? ' on' : '') }, h('span', {}, e), l);
-      b.addEventListener('click', () => { st.browserCat = k; renderCats(); fill(); });
-      cats.append(b);
-    }
+      b.addEventListener('click', () => { st.browserCat = k; renderSide(); fill(); list.scrollTop = 0; });
+      return b;
+    };
+    side.append(h('div', { class: 'br-sec' }, 'Biblioteca'), ...LIBRARY.map(x => lbl(...x)), h('div', { class: 'br-sec' }, 'Lugares'), ...PLACES.map(x => lbl(...x)));
   }
 
-  const match = s => !query || s.toLowerCase().includes(query);
-
-  function items() {
-    const k = st.browserCat, out = [];
-    if (k === 'inst') {
-      out.push({ head: 'Synth' });
+  // ---- Árbol de cada etiqueta: {key, label, emoji, kids?: () => [...], item?} ----
+  const folder = (key, label, kids, emoji = '') => ({ key, label, emoji, kids });
+  const leaf = (key, item) => ({ key, label: item.label, emoji: item.emoji, item, hint: item.hint });
+  function tree(cat) {
+    if (cat === 'inst') {
       const catName = Object.fromEntries(PRESET_CATS);
-      let last = null;
-      for (const p of allPresets()) {
-        if (!match(p.name)) continue;
-        if (p.cat !== last) { out.push({ sub: catName[p.cat] || p.cat }); last = p.cat; }
-        out.push({ kind: 'synth', key: p.key, label: p.name, emoji: p.emoji || '★', hint: 'Synth' });
-      }
-      const insts = bank.all().filter(x => x.kind === 'inst' && match(x.name));
-      if (insts.length) {
-        out.push({ head: 'Instrumentos sampleados' });
-        for (const it of insts) out.push({ kind: 'binst', pack: it.pack, id: it.id, label: it.name, emoji: it.packEmoji || '🎻', hint: 'Sampler' });
-      }
-      out.push({ head: 'Sampler' });
-      out.push({ kind: 'sampler', label: 'Sampler vacío', emoji: '🎻', hint: 'Arrastrale un sample' });
-    } else if (k === 'drums') {
-      out.push({ head: 'Drum Rack' });
-      app.kits.forEach((kit, i) => { if (match(kit.name)) out.push({ kind: 'kit', kit: i, label: kit.name, emoji: '🥁', hint: kit.sounds.length + ' sonidos' }); });
-      out.push({ kind: 'livekit', label: 'Los pads del modo En vivo', emoji: '🎛', hint: 'Con tus sonidos' });
-      const hits = bank.all().filter(x => x.kind === 'sound' && ['kick', 'snare', 'clap', 'hat', 'cymbal', 'tom', 'perc'].includes(x.cat) && match(x.name));
-      if (hits.length) {
-        out.push({ head: 'Golpes sueltos (arrastralos a un pad)' });
-        for (const it of hits.slice(0, 400)) out.push({ kind: 'sample', pack: it.pack, id: it.id, label: it.name, emoji: '·', hint: it.cat, bpm: it.bpm });
-      }
-    } else if (k === 'afx') {
-      for (const key of AUDIO_FX_KEYS) { const f = AUDIO_FX[key]; if (match(f.name + f.desc)) out.push({ kind: 'afx', type: key, label: f.name, emoji: f.emoji, hint: f.desc }); }
-    } else if (k === 'mfx') {
-      for (const key of MIDI_FX_KEYS) { const f = MIDI_FX[key]; if (match(f.name + f.desc)) out.push({ kind: 'mfx', type: key, label: f.name, emoji: f.emoji, hint: f.desc }); }
-    } else if (k === 'samples') {
-      out.push({ chips: true });
-      const all = bank.all().filter(x => x.kind === 'sound' && (sampleCat === 'all' || x.cat === sampleCat) && match(x.name + ' ' + (x.tags || []).join(' ')));
-      for (const it of all.slice(0, 600)) out.push({ kind: 'sample', pack: it.pack, id: it.id, label: it.name, emoji: it.packEmoji || '🔊', hint: (it.bpm ? it.bpm + ' BPM · ' : '') + it.cat, bpm: it.bpm });
-      if (!all.length) out.push({ note: 'No hay samples con ese filtro. Descargá packs desde 📚 Sonidos en el modo En vivo.' });
-    } else if (k === 'live') {
-      const lps = app.loopers.filter(l => l.hasAudio);
-      out.push({ head: 'Loops' });
-      if (!lps.length) out.push({ note: 'Todavía no grabaste loops.' });
-      for (const l of lps) out.push({ kind: 'loop', i: l.i, label: `Loop ${l.i + 1}`, emoji: '🔁', hint: `${l.bars} compases · ${{ mic: '🎤', keys: '🎹', groove: '🥁' }[l.source] || ''}` });
-      out.push({ head: 'Patrones (scenes)' });
+      const pre = allPresets();
+      const cats = [...new Set(pre.map(p => p.cat))];
+      const insts = bank.all().filter(x => x.kind === 'inst');
+      const packs = [...new Set(insts.map(x => x.pack))];
+      return [
+        folder('inst:synth', 'Synth', () => cats.map(c => folder('inst:synth:' + c, catName[c] || c, () =>
+          pre.filter(p => p.cat === c).map(p => leaf('syn:' + p.key, { kind: 'synth', key: p.key, cat: p.cat, label: p.name, emoji: p.emoji || '★', hint: 'Synth' })))), '🎹'),
+        folder('inst:sampled', 'Instrumentos sampleados', () => packs.map(pk => folder('inst:pk:' + pk, bank.packs.get(pk)?.name || pk, () =>
+          insts.filter(x => x.pack === pk).map(it => leaf('bi:' + it.key, { kind: 'binst', pack: it.pack, id: it.id, cat: it.cat, label: it.name, emoji: '🎻', hint: 'Sampler' })), '📦')), '🎻'),
+        leaf('sampler', { kind: 'sampler', label: 'Sampler vacío', emoji: '🎻', hint: 'Arrastrale un sample' }),
+      ];
+    }
+    if (cat === 'drums') {
+      const hits = bank.all().filter(x => x.kind === 'sound' && HIT_CATS.includes(x.cat));
+      const catName = Object.fromEntries(CATS);
+      return [
+        folder('drums:racks', 'Drum Racks', () => [
+          ...app.kits.map((k, i) => leaf('kit:' + i, { kind: 'kit', kit: i, label: k.name, emoji: '🥁', hint: k.sounds.length + ' sonidos' })),
+          leaf('livekit', { kind: 'livekit', label: 'Los pads del modo En vivo', emoji: '🎛', hint: 'Con tus sonidos' }),
+        ], '🥁'),
+        folder('drums:hits', 'Golpes sueltos', () => HIT_CATS.filter(c => hits.some(x => x.cat === c)).map(c => folder('drums:hit:' + c, catName[c] || c, () =>
+          hits.filter(x => x.cat === c).map(sampleLeaf))), '·'),
+      ];
+    }
+    if (cat === 'afx') return AFX_GROUPS.map(([g, ks]) => folder('afx:' + g, g, () => ks.map(k => leaf('afx:' + k, { kind: 'afx', type: k, label: AUDIO_FX[k].name, emoji: AUDIO_FX[k].emoji, hint: AUDIO_FX[k].desc })), '📁'));
+    if (cat === 'mfx') return MIDI_FX_KEYS.map(k => leaf('mfx:' + k, { kind: 'mfx', type: k, label: MIDI_FX[k].name, emoji: MIDI_FX[k].emoji, hint: MIDI_FX[k].desc }));
+    if (cat === 'samples') {
+      const all = bank.all().filter(x => x.kind === 'sound');
+      const catName = Object.fromEntries(CATS);
+      return CATS.filter(([c]) => c !== 'all' && c !== 'fav' && all.some(x => x.cat === c)).map(([c]) => folder('smp:' + c, catName[c], () => all.filter(x => x.cat === c).map(sampleLeaf), '📁'));
+    }
+    if (cat === 'clips') {
+      const pats = [];
       app.state.patterns.forEach((p, i) => {
         if (isPatternEmpty(p)) return;
-        if (p.tracks.some(t => t.steps.some(s => s))) out.push({ kind: 'patdrums', i, label: `Patrón ${i + 1} · batería`, emoji: '🥁', hint: 'Como clip MIDI' });
-        if (p.synth.notes.length) out.push({ kind: 'patsynth', i, label: `Patrón ${i + 1} · synth`, emoji: '🎹', hint: 'Como clip MIDI' });
+        if (p.tracks.some(tr => tr.steps.some(s => s))) pats.push(leaf('pd:' + i, { kind: 'patdrums', i, label: `Patrón ${i + 1} · batería`, emoji: '▤', hint: 'Clip MIDI' }));
+        if (p.synth.notes.length) pats.push(leaf('ps:' + i, { kind: 'patsynth', i, label: `Patrón ${i + 1} · synth`, emoji: '▤', hint: 'Clip MIDI' }));
       });
-      out.push({ kind: 'allpats', label: 'Toda la canción (modo 🎼)', emoji: '🎼', hint: 'La cadena de patrones en orden' });
+      pats.push(leaf('allpats', { kind: 'allpats', label: 'Toda la canción (modo 🎼)', emoji: '🎼', hint: 'Los patrones en orden' }));
+      const loops = app.loopers.filter(l => l.hasAudio).map(l => leaf('lp:' + l.i, { kind: 'loop', i: l.i, label: `Loop ${l.i + 1}`, emoji: '🔁', hint: `${l.bars} compases` }));
+      return [folder('clips:pats', 'Patrones del modo En vivo', () => pats, '📁'), folder('clips:loops', 'Loops del modo En vivo', () => loops.length ? loops : [{ key: 'nolp', label: 'Todavía no grabaste loops', note: true }], '📁')];
+    }
+    if (cat === 'packs') {
+      const out = [];
+      for (const [pid, m] of bank.packs) {
+        out.push(folder('pack:' + pid, m.name, () => [
+          ...m.instruments.map(it => leaf('bi:' + pid + '/' + it.id, { kind: 'binst', pack: pid, id: it.id, cat: it.cat, label: it.name, emoji: '🎻', hint: 'Instrumento' })),
+          ...m.sounds.map(s => sampleLeaf({ ...s, pack: pid, key: pid + '/' + s.id })),
+        ], m.emoji || '📦'));
+      }
+      out.push({ key: 'nopk', label: 'Más packs: 📚 Sonidos en el modo En vivo', note: true });
+      return out;
+    }
+    if (cat === 'project') {
+      const seen = new Map();
+      for (const t of st.tracks) for (const c of t.clips) if (c.kind === 'audio' && !seen.has(c.buf)) seen.set(c.buf, c);
+      const items = [...seen.values()].map(c => leaf('pb:' + c.buf, { kind: 'projbuf', buf: c.buf, bpm: c.bpm, warp: c.warp, label: c.name || 'Audio', emoji: '〰', hint: 'Grabación / audio del proyecto' }));
+      return items.length ? items : [{ key: 'nopb', label: 'Todavía no hay audio en el proyecto', note: true }];
+    }
+    return [];
+  }
+  const sampleLeaf = it => leaf('s:' + it.key, { kind: 'sample', pack: it.pack, id: it.id, label: it.name, emoji: '〰', hint: (it.bpm ? it.bpm + ' BPM · ' : '') + (it.cat || ''), bpm: it.bpm });
+
+  // Hojas que coinciden con la búsqueda (dentro de la etiqueta elegida)
+  function searchLeaves(nodes, out = []) {
+    for (const n of nodes) {
+      if (out.length > 300) break;
+      if (n.kids) searchLeaves(n.kids(), out);
+      else if (n.item && (n.label + ' ' + (n.hint || '')).toLowerCase().includes(query)) out.push(n);
     }
     return out;
   }
 
   function fill() {
     list.innerHTML = '';
-    for (const it of items()) {
-      if (it.head) { list.append(h('div', { class: 'br-head' }, it.head)); continue; }
-      if (it.sub) { list.append(h('div', { class: 'br-sub' }, it.sub)); continue; }
-      if (it.note) { list.append(h('div', { class: 'hint' }, it.note)); continue; }
-      if (it.chips) {
-        const row = h('div', { class: 'chips wrap br-chips' }, ...CATS.filter(([k]) => k !== 'fav').map(([k, l]) => h('button', { class: 'chip' + (sampleCat === k ? ' on' : ''), onclick: () => { sampleCat = k; fill(); } }, l)));
-        list.append(row); continue;
-      }
-      list.append(row(it));
+    const roots = tree(st.browserCat);
+    if (query) {
+      const res = searchLeaves(roots);
+      if (!res.length) list.append(h('div', { class: 'br-note' }, 'Nada con «' + query + '» acá'));
+      res.forEach(n => list.append(row(n, 0)));
+      return;
     }
+    const walk = (nodes, depth) => {
+      for (const n of nodes) {
+        list.append(row(n, depth));
+        if (n.kids && open.has(n.key)) walk(n.kids(), depth + 1);
+      }
+    };
+    walk(roots, 0);
   }
 
-  function row(it) {
-    const add = h('button', { class: 'br-add', title: 'Agregar a la pista elegida (o en una nueva)' }, '＋');
-    const r = h('div', { class: 'br-item' }, h('span', { class: 'br-emo' }, it.emoji), h('div', { class: 'br-txt' }, h('b', {}, it.label), it.hint ? h('small', {}, it.hint) : null), add);
-    add.addEventListener('click', e => { e.stopPropagation(); applyItem(it, null); });
-    // Arrastrar: con el dedo, moviendo hacia los costados (para arriba/abajo desplaza la lista)
+  function row(n, depth) {
+    if (n.note) return h('div', { class: 'br-note', style: { paddingLeft: 10 + depth * 14 + 'px' } }, n.label);
+    const isF = !!n.kids;
+    const r = h('div', { class: 'br-item' + (isF ? ' folder' : '') + (selKey === n.key ? ' on' : '') },
+      h('span', { class: 'br-tri', style: { marginLeft: depth * 14 + 'px' } }, isF ? (open.has(n.key) ? '▾' : '▸') : ''),
+      h('span', { class: 'br-emo' }, n.emoji || ''),
+      h('span', { class: 'br-txt' }, n.label, !isF && n.hint ? h('small', {}, n.hint) : null));
+    if (!isF && selKey === n.key) {
+      const load = h('button', { class: 'br-load', title: 'Cargar en la pista elegida (o en una nueva)' }, '⤵');
+      load.addEventListener('pointerdown', e => e.stopPropagation());
+      load.addEventListener('click', e => { e.stopPropagation(); applyItem(n.item, null); });
+      r.append(load);
+    }
     let d = null;
-    r.addEventListener('pointerdown', e => {
-      if (e.target === add) return;
-      d = { x: e.clientX, y: e.clientY, id: e.pointerId, type: e.pointerType, on: false };
-    });
+    r.addEventListener('pointerdown', e => { d = { x: e.clientX, y: e.clientY, id: e.pointerId, type: e.pointerType, on: false }; });
     r.addEventListener('pointermove', e => {
-      if (!d || d.id !== e.pointerId) return;
+      if (!d || d.id !== e.pointerId || isF) return;
       const dx = e.clientX - d.x, dy = e.clientY - d.y;
       if (!d.on) {
         if (d.type === 'touch' ? Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) : Math.hypot(dx, dy) > 6) {
-          d.on = true; r.setPointerCapture(e.pointerId); startGhost(it, e);
+          d.on = true; r.setPointerCapture(e.pointerId); startGhost(n.item, e);
         } else return;
       }
       moveGhost(e);
     });
-    const end = e => {
+    r.addEventListener('pointerup', e => {
       if (!d) return;
       const was = d; d = null;
-      if (was.on) { endGhost(it, e); return; }
-      if (e.type === 'pointerup' && Math.hypot(e.clientX - was.x, e.clientY - was.y) < 8) tapItem(it, r);
-    };
-    r.addEventListener('pointerup', end);
-    r.addEventListener('pointercancel', e => { if (d?.on) { endGhost(it, null); } d = null; });
+      if (was.on) { endGhost(n.item, e); return; }
+      if (Math.hypot(e.clientX - was.x, e.clientY - was.y) > 8) return;
+      if (isF) { open.has(n.key) ? open.delete(n.key) : open.add(n.key); fill(); return; }
+      const now = performance.now();
+      if (lastTap.key === n.key && now - lastTap.t < 380) { lastTap = { key: null, t: 0 }; applyItem(n.item, null); return; } // doble toque: cargar
+      lastTap = { key: n.key, t: now };
+      selKey = n.key; fill();
+      preview(n.item);
+    });
+    r.addEventListener('pointercancel', () => { if (d?.on) endGhost(n.item, null); d = null; });
     return r;
+  }
+
+  // ---- Escucha previa ----
+  let pvBuf = null, pvT0 = 0;
+  async function preview(it) {
+    pvName.textContent = it.label;
+    pvBuf = null; drawPv();
+    if (!listen) return;
+    try {
+      if (it.kind === 'sample') { const r = await bank.load(it.pack, it.id); playBuf(r.buffer || r.zones[0].buffer); }
+      else if (it.kind === 'loop') playBuf(app.loopers[it.i].baseBuffer);
+      else if (it.kind === 'projbuf') playBuf(getBuffer(it.buf));
+      else if (it.kind === 'synth') { const pr = presetById(it.key); studio.previewInst({ type: 'synth', params: { ...PRESET_DEFAULTS, ...pr.params } }, it.cat); }
+      else if (it.kind === 'binst') studio.previewInst({ ...samplerInst({ bank: { pack: it.pack, id: it.id } }), r: 0.4 }, it.cat === 'bass' ? 'bass' : 'keys');
+      else if (it.kind === 'kit') studio.previewInst(drumInst(it.kit));
+      else if (it.kind === 'livekit') studio.previewInst(liveKit(true));
+      else if (it.kind === 'afx' || it.kind === 'mfx') { studio.stopPreview(); pvName.textContent = it.label + ' · ' + it.hint; }
+      else studio.stopPreview();
+    } catch (e) { toast('No pude cargar ese sonido'); }
+  }
+  function playBuf(buf) {
+    if (!buf) return;
+    pvBuf = buf; pvT0 = performance.now();
+    studio.previewBuf(buf);
+    drawPv(); animPv();
+  }
+  function drawPv(ph = null) {
+    const { g, w, h: hh } = fitCanvas(pvCv);
+    g.fillStyle = '#181818'; g.fillRect(0, 0, w, hh);
+    if (!pvBuf) return;
+    const id = [...buffers.entries()].find(([, b]) => b === pvBuf)?.[0];
+    const d = pvBuf.getChannelData(0), step = Math.max(1, Math.floor(d.length / w));
+    g.fillStyle = T.accent;
+    for (let x = 0; x < w; x++) {
+      let lo = 0, hi = 0;
+      for (let i = x * step, e = Math.min(d.length, i + step); i < e; i += 4) { const v = d[i]; if (v < lo) lo = v; if (v > hi) hi = v; }
+      g.fillRect(x, hh / 2 - hi * hh / 2, 1, Math.max(1, (hi - lo) * hh / 2));
+    }
+    if (ph != null) { g.fillStyle = '#fff'; g.fillRect(ph * w, 0, 1.5, hh); }
+    void id;
+  }
+  function animPv() {
+    const b = pvBuf; if (!b) return;
+    const f = () => {
+      if (pvBuf !== b) return;
+      const ph = (performance.now() - pvT0) / 1000 / b.duration;
+      if (ph > 1) { drawPv(); return; }
+      drawPv(ph); requestAnimationFrame(f);
+    };
+    requestAnimationFrame(f);
   }
 
   // ---- Fantasma que sigue al dedo o al lápiz ----
   let ghost = null;
   function startGhost(it, e) {
-    ghost = h('div', { class: 'drag-ghost' }, it.emoji + ' ' + it.label);
+    ghost = h('div', { class: 'drag-ghost' }, (it.emoji || '') + ' ' + it.label);
     document.body.append(ghost);
     moveGhost(e);
   }
@@ -168,22 +278,6 @@ export function buildBrowser(el, { arr }) {
     if (di) applyItem(it, di);
   }
 
-  async function tapItem(it, r) {
-    if (it.kind === 'sample') {
-      try { const { buffer, zones } = await bank.load(it.pack, it.id); studio.previewBuf(buffer || zones[0].buffer); } catch (e) { toast('No pude cargar ese sonido'); }
-      list.querySelectorAll('.br-item.on').forEach(x => x.classList.remove('on'));
-      r.classList.add('on');
-      return;
-    }
-    if (it.kind === 'loop') { const lp = app.loopers[it.i]; if (lp.baseBuffer) studio.previewBuf(lp.baseBuffer); return; }
-    if (it.kind === 'synth') {
-      // prueba rápida del preset sin agregarlo
-      toast('Tocá ＋ (o arrastralo) para usarlo · ' + it.label, 1500);
-      return;
-    }
-    toast('Arrastralo a una pista o tocá ＋', 1500);
-  }
-
   async function loadPad(i, it) {
     const t = selTrack();
     if (!t || t.inst?.type !== 'drums') return;
@@ -194,8 +288,9 @@ export function buildBrowser(el, { arr }) {
     studio.sync(); app.emit('studio');
   }
 
-  // ---- Aplicar: agrega a una pista existente o crea una nueva ----
+  // ---- Cargar: en una pista existente o en una nueva ----
   async function applyItem(it, target) {
+    studio.stopPreview();
     target ||= { t: compatible(it), b: S().pos };
     let t = target.t;
     const b = Math.max(0, target.b ?? S().pos);
@@ -210,6 +305,7 @@ export function buildBrowser(el, { arr }) {
           } else t = arr.addTrack('midi', { inst, name: it.label });
           S().sel.track = t.id; S().detail = 'devices';
           studio.sync(); app.emit('studio');
+          toast('🎹 «' + it.label + '» cargado');
           break;
         }
         case 'afx': case 'mfx': {
@@ -218,15 +314,16 @@ export function buildBrowser(el, { arr }) {
           addDevice(t, it.kind === 'mfx' ? 'midi' : 'audio', it.type);
           break;
         }
-        case 'sample': case 'loop': {
-          let buf, bpm = null, name = it.label;
+        case 'sample': case 'loop': case 'projbuf': {
+          let buf, bpm = null, name = it.label, bufId = null;
           if (it.kind === 'loop') { const lp = app.loopers[it.i]; buf = lp.baseBuffer; bpm = lp.recBpm; }
+          else if (it.kind === 'projbuf') { buf = getBuffer(it.buf); bufId = it.buf; bpm = it.warp ? it.bpm : null; }
           else { const r = await bank.load(it.pack, it.id); buf = r.buffer || r.zones[0].buffer; bpm = it.bpm || null; }
           if (!buf) return;
-          // Soltado sobre una pista MIDI: sampler o pad
+          // Sobre una pista MIDI: va al pad elegido o se vuelve un sampler
           if (t && t.kind === 'midi') {
             snapshot('Sample');
-            const src = it.kind === 'loop' ? { buf: putBuffer(buf), name } : { bank: { pack: it.pack, id: it.id }, name };
+            const src = it.kind === 'sample' ? { bank: { pack: it.pack, id: it.id }, name } : { buf: bufId || putBuffer(buf), name };
             if (t.inst.type === 'drums') { const i = t.inst.sel || 0; t.inst.pads[i] = { ...(t.inst.pads[i] || { vol: 0.8, pitch: 0, pan: 0 }), src }; }
             else t.inst = { ...samplerInst(src), root: 60 };
             studio.sync(); app.emit('studio');
@@ -235,7 +332,7 @@ export function buildBrowser(el, { arr }) {
           }
           if (!t || t.kind !== 'audio') t = arr.addTrack('audio', { name });
           snapshot('Agregar audio');
-          const id = putBuffer(buf);
+          const id = bufId || putBuffer(buf);
           const c = newAudioClip(b, buf, id, t.color, bpm || app.state.bpm, name);
           c.warp = !!bpm;
           if (!bpm) c.len = buf.duration / (60 / app.state.bpm);
@@ -245,7 +342,7 @@ export function buildBrowser(el, { arr }) {
           break;
         }
         case 'patdrums': case 'patsynth': case 'allpats': {
-          await importPatterns(it, t, b, arr);
+          await importPatterns(it, t, b);
           break;
         }
       }
@@ -255,17 +352,18 @@ export function buildBrowser(el, { arr }) {
   function compatible(it) {
     const t = selTrack();
     if (!t) return null;
-    if (['afx'].includes(it.kind)) return t;
-    if (['mfx'].includes(it.kind)) return t.kind === 'midi' ? t : null;
-    if (['sample', 'loop'].includes(it.kind)) return t.kind === 'audio' ? t : null;
-    if (['patdrums'].includes(it.kind)) return t.kind === 'midi' && t.inst.type === 'drums' ? t : null;
-    if (['patsynth'].includes(it.kind)) return t.kind === 'midi' && t.inst.type !== 'drums' ? t : null;
+    if (it.kind === 'afx') return t;
+    if (it.kind === 'mfx') return t.kind === 'midi' ? t : null;
+    if (['sample', 'loop', 'projbuf'].includes(it.kind)) return t.kind === 'audio' ? t : null;
+    if (it.kind === 'patdrums') return t.kind === 'midi' && t.inst.type === 'drums' ? t : null;
+    if (it.kind === 'patsynth') return t.kind === 'midi' && t.inst.type !== 'drums' ? t : null;
     return null; // los instrumentos van en una pista nueva (salvo que los sueltes sobre una)
   }
 
-  renderCats(); fill();
-  app.on('bank', () => { if (['samples', 'drums', 'inst'].includes(st.browserCat)) fill(); });
-  app.on('loops', () => { if (st.browserCat === 'live') fill(); });
+  renderSide(); fill();
+  app.on('bank', () => fill());
+  app.on('loops', () => { if (st.browserCat === 'clips') fill(); });
+  app.on('studio', () => { if (st.browserCat === 'project') fill(); });
   app.on('studio-view', fill);
   return { fill };
 }
@@ -279,13 +377,17 @@ async function instFor(it) {
 }
 
 // Drum Rack con los 8 sonidos de los pads del modo En vivo
-export function liveKit() {
+// (temp: solo para escuchar; los samples propios no se guardan)
+export function liveKit(temp = false) {
   const inst = drumInst();
   app.state.tracks.forEach((tr, i) => {
     const snd = tr.sound;
     let src;
-    if (snd.custom) { const b = app.customSamples.get(snd.custom); src = b ? { buf: putBuffer(b), name: snd.name || 'Sample' } : null; }
-    else if (snd.bank) src = { bank: { pack: snd.bank, id: snd.id }, name: snd.name };
+    if (snd.custom) {
+      const b = app.customSamples.get(snd.custom);
+      if (b && temp) { buffers.set('tmp-' + snd.custom, b); src = { buf: 'tmp-' + snd.custom, name: snd.name || 'Sample' }; }
+      else src = b ? { buf: putBuffer(b), name: snd.name || 'Sample' } : null;
+    } else if (snd.bank) src = { bank: { pack: snd.bank, id: snd.id }, name: snd.name };
     else src = { kit: snd.kit, idx: snd.idx };
     if (src) inst.pads[i] = { src, vol: tr.params.vol, pitch: tr.params.pitch || 0, pan: tr.params.pan || 0, choke: tr.choke || 0 };
   });
@@ -310,7 +412,7 @@ function patternSynthNotes(p) {
   return { notes: p.synth.notes.map(n => ({ p: n.midi, s: (n.step + (n.nudge || 0)) / 4, d: n.len / 4, v: n.vel })), len: Math.ceil(p.synth.len / 16) * 4 };
 }
 
-async function importPatterns(it, target, b, arr) {
+async function importPatterns(it, target, b) {
   const st = S();
   const pats = app.state.patterns;
   snapshot('Traer patrones');
@@ -347,7 +449,6 @@ async function importPatterns(it, target, b, arr) {
       put(ts, x, pats[e.pat], 'synth', e.bars);
       x += e.bars * 4;
     }
-    // las pistas que quedaron vacías se sacan
     st.tracks = st.tracks.filter(t => t.clips.length || (t !== td && t !== ts));
   }
   studio.sync(); app.emit('studio');

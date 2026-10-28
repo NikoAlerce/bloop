@@ -393,6 +393,7 @@ export async function calibrateLatency() {
 const recNodes = new Map();
 const pending = new Map();
 const peeks = new Map();
+const liveCbs = new Map(); // id -> función que recibe picos [min, max, …] mientras graba
 let jobId = 0;
 
 function recNodeFor(src) {
@@ -406,6 +407,7 @@ function recNodeFor(src) {
     n.connect(A.silent);
     n.port.onmessage = (e) => {
       if (e.data.peek) { const p = peeks.get(e.data.id); if (p) { peeks.delete(e.data.id); p(e.data); } return; }
+      if (e.data.live) { liveCbs.get(e.data.id)?.(e.data.p); return; }
       const cb = pending.get(e.data.id);
       if (cb) { pending.delete(e.data.id); cb(e.data); }
     };
@@ -415,19 +417,22 @@ function recNodeFor(src) {
 }
 
 // Graba `seconds` desde `startTime` (tiempo del contexto). stop() corta antes.
-export function capture(src, startTime, seconds) {
+// onPeaks: recibe los picos (min/max cada 256 muestras) a medida que graba.
+export function capture(src, startTime, seconds, onPeaks = null) {
   const n = recNodeFor(src);
   const id = ++jobId;
   const usesMic = src === A.micNode;
   if (usesMic) micHold();
   const sr = A.ctx.sampleRate;
+  if (onPeaks) liveCbs.set(id, onPeaks);
   const promise = new Promise(res => pending.set(id, res)).then(({ L, R }) => {
+    liveCbs.delete(id);
     if (usesMic) micRelease();
     const b = A.ctx.createBuffer(2, Math.max(1, L.length), sr);
     b.copyToChannel(L, 0); b.copyToChannel(R, 1);
     return b;
   });
-  n.port.postMessage({ type: 'start', id, startFrame: Math.round(startTime * sr), length: Math.round(seconds * sr) });
+  n.port.postMessage({ type: 'start', id, startFrame: Math.round(startTime * sr), length: Math.round(seconds * sr), live: !!onPeaks });
   return {
     promise,
     stop: () => n.port.postMessage({ type: 'stop', id }),

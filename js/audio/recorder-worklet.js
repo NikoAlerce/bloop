@@ -10,7 +10,7 @@ class BloopRecorder extends AudioWorkletProcessor {
     this.port.onmessage = (e) => {
       const m = e.data;
       if (m.type === 'start') {
-        this.jobs.push({ id: m.id, start: m.startFrame, len: m.length, pos: 0, L: [], R: [] });
+        this.jobs.push({ id: m.id, start: m.startFrame, len: m.length, pos: 0, L: [], R: [], live: !!m.live, lp: [], lo: 0, hi: 0, ln: 0 });
       } else if (m.type === 'stopAt') {
         const j = this.jobs.find(x => x.id === m.id);
         if (j) j.len = Math.max(0, Math.min(j.len, m.frame - j.start));
@@ -56,9 +56,17 @@ class BloopRecorder extends AudioWorkletProcessor {
         for (let k = kStart; k < kEnd; k++) {
           const idx = f0 + k - j.start, c = idx >> 16, o = idx & (CH - 1);
           if (!j.L[c]) { j.L[c] = new Float32Array(CH); j.R[c] = new Float32Array(CH); }
-          j.L[c][o] = l ? l[k] : 0;
-          j.R[c][o] = r ? r[k] : 0;
+          const vl = l ? l[k] : 0, vr = r ? r[k] : 0;
+          j.L[c][o] = vl;
+          j.R[c][o] = vr;
+          if (j.live) {
+            // picos cada 256 muestras para dibujar la onda mientras se graba
+            const v = (vl + vr) * 0.5;
+            if (v < j.lo) j.lo = v; if (v > j.hi) j.hi = v;
+            if (++j.ln === 256) { j.lp.push(j.lo, j.hi); j.lo = 0; j.hi = 0; j.ln = 0; }
+          }
         }
+        if (j.live && j.lp.length >= 32) { this.port.postMessage({ id: j.id, live: true, p: new Float32Array(j.lp) }); j.lp = []; }
         j.pos = f0 + kEnd - j.start;
       }
       if (f0 + n >= j.start + j.len) this.finish(j);

@@ -37,6 +37,9 @@ export function gestures(el, h) {
       mode = drag ? 'drag' : 'press';
       return;
     }
+    // Dedo sobre una agarradera (borde de un clip o nota elegidos): se arrastra directo
+    const grab = h.grab?.(p, e);
+    if (grab) { drag = grab; mode = 'drag'; return; }
     mode = 'press';
     longT = setTimeout(() => {
       const q = pts.get(e.pointerId);

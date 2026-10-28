@@ -331,6 +331,7 @@ export const studio = {
   heardBeat(ts) { return this.playing ? this.beatAt(heardTime(ts)) : S().pos; },
 
   tick() {
+    this.prevInst?.inst.service(ctx().currentTime + LOOK);
     if (!this.playing) { for (const ta of this.tracks.values()) ta.inst?.service(ctx().currentTime + LOOK); return; }
     const horizon = ctx().currentTime + LOOK, st = S();
     if (this.countIn && ctx().currentTime > this.countIn.t0 + 0.5) { this.countIn = null; this.countClicks = null; }
@@ -517,7 +518,12 @@ export const studio = {
     } else tStart = c.currentTime + 0.05;
     const b0 = this.beatAt(tStart);
     this.rec = { audio: audioT.length > 0, b0, tStart, tracks: armed.map(t => t.id), clips: {}, notes: new Map() };
-    if (mic) this.rec.job = capture(mic, tStart, 1200);
+    if (mic) {
+      // la onda se va dibujando mientras grabás
+      const lp = this.rec.lp = [];
+      this.rec.sr = c.sampleRate;
+      this.rec.job = capture(mic, tStart, 1200, p => { for (let i = 0; i < p.length; i++) lp.push(p[i]); });
+    }
     // Clips MIDI: con loop prendido se graba encima (overdub) del clip del loop
     for (const t of midiT) {
       const L = st.loop;
@@ -662,7 +668,40 @@ export const studio = {
     const src = ctx().createBufferSource(); src.buffer = buf; src.connect(this.preview); src.start();
     this.prevSrc = src;
   },
-  stopPreview() { try { this.prevSrc?.stop(); } catch (e) { /* */ } this.prevSrc = null; },
+  stopPreview() {
+    try { this.prevSrc?.stop(); } catch (e) { /* */ }
+    this.prevSrc = null;
+    const pi = this.prevInst; this.prevInst = null;
+    if (pi) { pi.inst.allOff(); clearTimeout(pi.timer); setTimeout(() => { try { pi.out.disconnect(); } catch (e) { /* */ } pi.inst.dispose(); }, 400); }
+  },
+
+  // Muestra de cómo suena un instrumento del navegador, sin agregarlo: una frase corta
+  async previewInst(inst, cat = '') {
+    this.stopPreview();
+    const c = ctx(), out = G(0.9);
+    out.connect(this.preview);
+    const ta = { input: out, instRev: G(1), instDly: G(1) };
+    ta.instRev.connect(A.reverbIn); ta.instDly.connect(A.delayIn);
+    const I = new INST[inst.type](ta, inst);
+    const me = this.prevInst = { inst: I, out, timer: 0 };
+    // los samples se cargan aparte: esperar un toque a que estén
+    for (let k = 0; k < 30 && (inst.type === 'drums' ? !I.bufs.some(Boolean) : inst.type === 'sampler' ? !I.zones.length : false); k++) await new Promise(r => setTimeout(r, 50));
+    if (this.prevInst !== me) return;
+    const t0 = c.currentTime + 0.06, b = 60 / 112 / 2; // corcheas a 112
+    const seq = [];
+    if (inst.type === 'drums') {
+      for (let k = 0; k < 8; k++) {
+        if (k === 0 || k === 5) seq.push([DRUM_NOTE, k, 0.95, 0.5]);
+        if (k === 2 || k === 6) seq.push([DRUM_NOTE + 1, k, 0.9, 0.5]);
+        seq.push([DRUM_NOTE + 3, k, k % 2 ? 0.45 : 0.7, 0.5]);
+      }
+    } else if (cat === 'bass') [36, 36, 43, 41, 36, 48, 46, 43].forEach((p, k) => seq.push([p, k, 0.85, 0.9]));
+    else if (['keys', 'bell', 'pluck', 'retro'].includes(cat)) [60, 64, 67, 72, 76, 72, 67, 64].forEach((p, k) => seq.push([p, k, 0.8, 0.9]));
+    else if (cat === 'lead') [72, 74, 76, 79, 76, 74, 72, 67].forEach((p, k) => seq.push([p, k, 0.85, 0.95]));
+    else [57, 60, 64, 67].forEach(p => seq.push([p, 0, 0.75, 6.5]));
+    for (const [p, k, v, d] of seq) I.play(p, v, t0 + k * b, d * b);
+    me.timer = setTimeout(() => { if (this.prevInst === me) this.stopPreview(); }, 5200);
+  },
 };
 
 // Al poner un clip, lo que queda debajo se recorta (como en Ableton)

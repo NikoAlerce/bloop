@@ -5,7 +5,8 @@ import { app } from '../app.js';
 import { A } from '../audio/engine.js';
 import { setBpm } from '../actions.js';
 import { undo } from '../undo.js';
-import { h, popover, closePopover, toast, ink, shade, isLight } from '../ui/util.js';
+import { h, popover, closePopover, toast } from '../ui/util.js';
+import { T, FONT, ink, dark, tint } from './theme.js';
 import { setView } from '../ui/padview.js';
 import {
   S, COLORS, clone, uid, spb, newTrack, newMidiClip, findTrack, findClip, selClip, selTrack, gridBeats, snapB,
@@ -14,13 +15,14 @@ import {
 import { studio, removeOverlaps, splitRight, autoTargets, autoValueAt, faderGain } from './engine.js';
 import { gestures, pointAnchor, fitCanvas } from './gest.js';
 import { buildBrowser } from './browser.js';
-import { buildDetail } from './detail.js';
+import { buildDetail, instView, setInstView } from './detail.js';
 import { buildStudioKeys } from './keys.js';
 import { reverseRange } from '../audio/edit.js';
 import { normalizeBuffer } from '../audio/engine.js';
 import { putBuffer } from './model.js';
 
 const RULER_H = 34, HEAD_W = 184, MIN_H = 44;
+export const defaultDetailH = () => Math.round(Math.min(330, Math.max(200, innerHeight * 0.4)));
 
 export function snapshot(label, key = null) {
   const st = S();
@@ -83,9 +85,17 @@ export function buildStudio(el) {
   const redoBtn = h('button', { class: 'round', title: 'Rehacer', onclick: () => undo.redo() }, '↷');
   const updUndo = () => { undoBtn.disabled = !undo.canUndo; redoBtn.disabled = !undo.canRedo; };
   app.on('undo-change', updUndo); updUndo();
-  const kbBtn = h('button', { class: 'tb-btn sm', title: 'Teclado para tocar y grabar la pista elegida' }, '🎹');
-  kbBtn.addEventListener('click', () => { st.kb = !st.kb; layout(); });
-  const brBtn = h('button', { class: 'tb-btn sm', title: 'Mostrar / ocultar el navegador' }, '📂');
+  // 🎹: abre el instrumento de la pista MIDI elegida en modo "Tocar" (teclado o pads)
+  const kbBtn = h('button', { class: 'tb-btn sm', title: 'Tocar la pista MIDI elegida con el teclado en pantalla' }, '🎹 Tocar');
+  kbBtn.addEventListener('click', () => {
+    const t = studio.playTarget();
+    if (!t) { toast('Elegí una pista MIDI'); return; }
+    st.sel.track = t.id; st.detail = 'devices';
+    setInstView(t.id, instView(t.id) === 'play' ? 'knobs' : 'play');
+    if (st.detailH < 60) st.detailH = defaultDetailH();
+    layout(); app.emit('studio-sel');
+  });
+  const brBtn = h('button', { class: 'tb-btn sm', title: 'Mostrar / ocultar el navegador' }, '📂 Navegador');
   brBtn.addEventListener('click', () => { st.browser = !st.browser; layout(); });
   const expBtn = h('button', { class: 'tb-btn sm', title: 'Exportar el tema (o la región del loop) a WAV' }, '⤓ WAV');
   expBtn.addEventListener('click', () => studio.exportMix());
@@ -106,6 +116,9 @@ export function buildStudio(el) {
 
   // ---------- Cuerpo ----------
   const browserEl = h('aside', { class: 'st-browser panel' });
+  // Con el navegador cerrado queda una pestañita vertical para abrirlo de un toque
+  const rail = h('button', { class: 'br-rail', title: 'Abrir el navegador' }, h('span', {}, '▶'), h('b', {}, 'Navegador'));
+  rail.addEventListener('click', () => { st.browser = true; layout(); });
   const ruler = h('canvas', { class: 'st-ruler' });
   const rulerSide = h('div', { class: 'st-ruler-side' });
   const lanes = h('canvas', { class: 'st-lanes' });
@@ -114,25 +127,37 @@ export function buildStudio(el) {
   const arrEl = h('section', { class: 'st-arr panel' },
     h('div', { class: 'st-row-ruler' }, ruler, rulerSide),
     h('div', { class: 'st-row-lanes' }, lanes, heads));
-  const body = h('div', { class: 'st-body' }, browserEl, arrEl);
+  const body = h('div', { class: 'st-body' }, rail, browserEl, arrEl);
+  // En pantalla angosta el navegador es un cajón: tocar el arreglo lo cierra
+  arrEl.addEventListener('pointerdown', () => { if (el.classList.contains('narrow') && st.browser) { st.browser = false; layout(); } }, true);
   const splitter = h('div', { class: 'st-split', title: 'Arrastrá para cambiar el alto' }, h('i'));
   const detailEl = h('section', { class: 'st-detail panel' });
-  const keysEl = h('section', { class: 'st-keys panel' });
-  el.append(bar, body, splitter, detailEl, keysEl);
+  const keysEl = h('div'); // (el teclado ahora vive en el instrumento: modo "Tocar")
+  el.append(bar, body, splitter, detailEl);
 
   { let d = null;
     splitter.addEventListener('pointerdown', e => { splitter.setPointerCapture(e.pointerId); d = { y: e.clientY, h: st.detailH }; });
     splitter.addEventListener('pointermove', e => { if (!d) return; st.detailH = Math.max(0, Math.min(innerHeight - 220, d.h + d.y - e.clientY)); layout(); });
-    splitter.addEventListener('pointerup', () => { if (d && Math.abs(st.detailH - d.h) < 3 && st.detailH < 60) st.detailH = 300; if (d && st.detailH < 60) st.detailH = 0; d = null; layout(); });
+    splitter.addEventListener('pointerup', () => {
+      if (d && Math.abs(st.detailH - d.h) < 3) st.detailH = st.detailH < 60 ? defaultDetailH() : 0; // tocar = abrir / cerrar
+      else if (st.detailH < 60) st.detailH = 0;
+      d = null; layout();
+    });
   }
 
+  // Todo se adapta a la pantalla: el detalle nunca tapa el arreglo, y en pantallas angostas
+  // (tablet vertical) el navegador se abre encima, como un cajón
   function layout() {
+    const narrow = innerWidth < 980;
+    el.classList.toggle('narrow', narrow);
     el.classList.toggle('no-browser', !st.browser);
     brBtn.classList.toggle('on', !!st.browser);
-    kbBtn.classList.toggle('on', !!st.kb);
-    detailEl.style.height = st.detailH + 'px';
-    detailEl.hidden = st.detailH < 60;
-    keysEl.hidden = !st.kb;
+    const t = studio.playTarget();
+    kbBtn.classList.toggle('on', !!t && st.detailH >= 60 && st.detail === 'devices' && instView(t.id) === 'play');
+    const closed = st.detailH < 60;
+    el.classList.toggle('detail-closed', closed);
+    const maxH = Math.max(140, innerHeight - 250);
+    detailEl.style.height = (closed ? 40 : Math.min(st.detailH, maxH)) + 'px';
     requestAnimationFrame(() => { arr.draw(); detail.render(); });
   }
 
@@ -150,6 +175,7 @@ export function buildStudio(el) {
   app.on('studio-rec', updTransport);
   app.on('studio', () => { arr.renderHeads(); arr.draw(); detail.render(); keys.render(); });
   app.on('studio-draw', () => { arr.draw(); detail.draw(); });
+  app.on('studio-draw-arr', () => arr.draw());
   app.on('studio-sel', () => { arr.renderHeads(); arr.draw(); detail.render(); keys.render(); });
   app.on('theme', () => arr.draw());
   app.on('studio-layout', layout);
@@ -175,6 +201,7 @@ const gridLabel = g => ({ auto: 'Auto', bar: 'Compás', off: 'Libre' })[g] || g;
 function studioKey(e, down, ui) {
   if (!down) return ui.keys.qwerty(e, false);
   const st = S(), k = e.key.toLowerCase(), mod = e.ctrlKey || e.metaKey;
+  if (ui.detail.key(e)) return true;
   if (e.code === 'Space') { studio.toggle(); return true; }
   if (mod && k === 'z') { e.shiftKey ? undo.redo() : undo.undo(); return true; }
   if (mod && k === 'y') { undo.redo(); return true; }
@@ -281,7 +308,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
     if (studio.playing) {
       const dpr = lanes.width / Math.max(1, lanes.clientWidth);
       g2.setTransform(dpr, 0, 0, dpr, 0, 0);
-      g2.fillStyle = studio.rec ? '#ff5470' : isLight() ? '#120d1a' : '#fff';
+      g2.fillStyle = studio.rec ? T.rec : T.playhead;
       g2.fillRect(Math.round(X(studio.heardBeat())), 0, 2, lanes.clientHeight);
     }
   }
@@ -292,8 +319,8 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
     for (let b = first; X(b) < w; b += gb || 1) {
       if (b < 0) continue;
       const x = Math.round(X(b)) + 0.5;
-      gc.fillStyle = b % bar === 0 ? ink(0.16) : b % 1 === 0 && st.zoom > 10 ? ink(0.07) : ink(0.03);
-      if (b % bar !== 0 && b % 4 === 0) gc.fillStyle = ink(0.09);
+      gc.fillStyle = b % bar === 0 ? dark(0.55) : b % 1 === 0 && st.zoom > 10 ? dark(0.28) : dark(0.14);
+      if (b % bar !== 0 && b % 4 === 0) gc.fillStyle = dark(0.4);
       gc.fillRect(x, y0, 1, hh);
     }
   }
@@ -303,18 +330,18 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
     if (base.width !== lanes.width || base.height !== lanes.height) { base.width = lanes.width; base.height = lanes.height; }
     const gc = base.getContext('2d');
     gc.setTransform(lanes.width / Math.max(1, w), 0, 0, lanes.width / Math.max(1, w), 0, 0);
-    gc.clearRect(0, 0, w, hh);
+    gc.fillStyle = '#1c1c1c'; gc.fillRect(0, 0, w, hh);
     let y0 = -st.sy;
     st.tracks.forEach((t, i) => {
       if (y0 + t.h > 0 && y0 < hh) {
-        gc.fillStyle = t.id === st.sel.track ? ink(0.06) : i % 2 ? ink(0.015) : ink(0.03);
+        gc.fillStyle = t.id === st.sel.track ? T.laneSel : i % 2 ? T.laneAlt : T.lane;
         gc.fillRect(0, y0, w, t.h - 1);
-        gc.fillStyle = ink(0.06); gc.fillRect(0, y0 + t.h - 1, w, 1);
+        gc.fillStyle = T.laneEdge; gc.fillRect(0, y0 + t.h - 1, w, 1);
       }
       y0 += t.h;
     });
     gridLines(gc, w, Math.min(hh, y0));
-    if (st.loop.on) { gc.fillStyle = 'rgba(124,240,176,0.05)'; gc.fillRect(X(st.loop.a), 0, (st.loop.b - st.loop.a) * st.zoom, Math.min(hh, y0)); }
+    if (st.loop.on) { gc.fillStyle = ink(0.035); gc.fillRect(X(st.loop.a), 0, (st.loop.b - st.loop.a) * st.zoom, Math.min(hh, y0)); }
     // Clips
     y0 = -st.sy;
     for (const t of st.tracks) {
@@ -325,31 +352,28 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
           drawClip(gc, t, c, x, y0 + 1, cw, t.h - 3, c.id === st.sel.clip, t.autoOn);
         }
         if (t.autoOn) drawAuto(gc, t, y0, w);
-        if (studio.rec && studio.rec.tracks.includes(t.id) && studio.rec.audio) {
-          const a = X(studio.rec.b0), b = X(studio.heardBeat());
-          gc.fillStyle = 'rgba(255,84,112,0.35)'; gc.fillRect(a, y0 + 2, Math.max(0, b - a), t.h - 5);
-        }
+        if (studio.rec && studio.rec.tracks.includes(t.id) && studio.rec.audio && t.kind === 'audio') drawRecording(gc, t, y0, w);
       }
       y0 += t.h;
     }
     // Zona para pistas nuevas
     if (y0 < hh) {
-      gc.fillStyle = drop && !drop.t ? 'rgba(255,142,212,0.14)' : ink(0.015);
+      gc.fillStyle = drop && !drop.t ? 'rgba(255,173,59,0.16)' : '#1c1c1c';
       gc.fillRect(0, y0, w, hh - y0);
-      gc.fillStyle = ink(0.3); gc.font = '600 12px ' + getComputedStyle(document.body).fontFamily;
+      gc.fillStyle = T.dim; gc.font = '12px ' + FONT;
       if (hh - y0 > 30) gc.fillText(drop ? 'Soltá acá para una pista nueva' : 'Arrastrá acá instrumentos o samples para crear una pista', 12, y0 + 22);
     }
     // Selección de tiempo
     if (tsel) {
       const ys = trackY(tsel.t0), ye = trackY(tsel.t1) + tsel.t1.h;
-      gc.fillStyle = 'rgba(255,142,212,0.18)';
+      gc.fillStyle = T.timeSel;
       gc.fillRect(X(Math.min(tsel.a, tsel.b)), ys, Math.abs(tsel.b - tsel.a) * st.zoom, ye - ys);
     }
     // Fantasma (crear clip / soltar del navegador)
     const gh = ghost || (drop?.t ? drop : null);
     if (gh?.t) {
       const y = trackY(gh.t);
-      gc.strokeStyle = '#ff8ed4'; gc.lineWidth = 2; gc.setLineDash([5, 4]);
+      gc.strokeStyle = T.accent; gc.lineWidth = 2; gc.setLineDash([5, 4]);
       gc.strokeRect(X(gh.a) + 1, y + 2, Math.max(6, (gh.b - gh.a) * st.zoom) - 2, gh.t.h - 5);
       gc.setLineDash([]);
     }
@@ -359,7 +383,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
     for (let y = 0; y < hh; y += 8) gc.fillRect(px, y, 1, 4);
     // Lápiz en el aire
     if (hover && !studio.playing) {
-      gc.fillStyle = 'rgba(255,142,212,0.6)';
+      gc.fillStyle = T.accent;
       if (hover.edge) {
         const xx = X(hover.edge === 'L' ? hover.clip.start : hover.clip.start + hover.clip.len);
         gc.fillRect(xx - 2, hover.y0 + 2, 4, hover.t.h - 5);
@@ -367,28 +391,31 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
     }
   }
 
+  // Clip al estilo Ableton: barra de título del color del clip, cuerpo más claro y el
+  // contenido (notas u onda) en negro. Seleccionado: más claro, borde blanco y agarraderas.
   function drawClip(gc, t, c, x, y, w, hh, sel, dim) {
     const col = c.color || t.color, muted = !audible(t);
     gc.save();
-    gc.globalAlpha = dim ? 0.35 : muted ? 0.45 : 1;
-    rr(gc, x, y, w, hh, 5);
-    gc.fillStyle = mix(col, 0.32);
+    gc.globalAlpha = dim ? 0.35 : muted ? 0.5 : 1;
+    rr(gc, x, y, w, hh, 2);
+    gc.fillStyle = sel ? tint(col, 0.55) : tint(col, 0.22);
     gc.fill();
     gc.save(); gc.clip();
-    gc.fillStyle = col; gc.fillRect(x, y, w, 15);
-    gc.fillStyle = 'rgba(0,0,0,0.75)'; gc.font = '700 10.5px ' + getComputedStyle(document.body).fontFamily;
+    gc.fillStyle = sel ? tint(col, 0.15) : col; gc.fillRect(x, y, w, 14);
+    gc.fillStyle = 'rgba(0,0,0,0.85)'; gc.font = '11px ' + FONT;
     const nm = c.name || (c.kind === 'midi' ? t.name : 'Audio');
-    if (w > 24) gc.fillText(nm + (c.kind === 'audio' && c.gain !== 1 && c.gain != null ? `  ${(20 * Math.log10(c.gain)).toFixed(1)} dB` : ''), x + 5, y + 11, Math.max(10, w - 8));
-    const by = y + 16, bh = hh - 17;
+    const gainTxt = c.kind === 'audio' && c.gain != null && Math.abs(c.gain - 1) > 0.001 ? '  ' + (20 * Math.log10(c.gain)).toFixed(1) + ' dB' : '';
+    if (w > 20) gc.fillText(nm + gainTxt, x + 4, y + 10.5, Math.max(10, w - 8));
+    const by = y + 15, bh = hh - 16;
     if (c.kind === 'midi') {
       const L = c.loop || c.len;
-      for (let k = 1; k * L < c.len - 1e-6; k++) { gc.fillStyle = 'rgba(0,0,0,0.25)'; gc.fillRect(x + k * L * st.zoom, by, 1, bh); }
+      for (let k = 1; k * L < c.len - 1e-6; k++) { gc.fillStyle = dark(0.35); gc.fillRect(x + k * L * st.zoom, by, 1, bh); }
       const ns = clipNotes(c);
       if (ns.length) {
         let lo = 127, hi = 0;
         for (const n of c.notes) { lo = Math.min(lo, n.p); hi = Math.max(hi, n.p); }
         const rng = Math.max(8, hi - lo + 1), nh = Math.max(1.5, Math.min(5, bh / rng));
-        gc.fillStyle = isLight() ? 'rgba(20,12,30,0.8)' : 'rgba(255,255,255,0.88)';
+        gc.fillStyle = dark(0.8);
         for (const n of ns) {
           const nx = X(n.s); if (nx > x + w || nx + n.d * st.zoom < x) continue;
           const ny = by + bh - 3 - ((n.p - lo + 0.5) / rng) * (bh - 6) - nh / 2;
@@ -399,7 +426,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
       const pk = peaksOf(c.buf), buf = getBuffer(c.buf);
       if (pk && buf) {
         const bufSpb = c.warp ? 60 / c.bpm : spb(), mid = by + bh / 2, amp = (bh / 2 - 1) * Math.min(2, c.gain ?? 1);
-        gc.fillStyle = isLight() ? 'rgba(20,12,30,0.7)' : 'rgba(255,255,255,0.8)';
+        gc.fillStyle = dark(0.75);
         const x0 = Math.max(x, 0), x1 = Math.min(x + w, lanes.clientWidth);
         for (let px = Math.floor(x0); px < x1; px++) {
           const s0 = c.off + (B(px) - c.start) * bufSpb, s1 = c.off + (B(px + 1) - c.start) * bufSpb;
@@ -410,11 +437,39 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
           for (let k = k0; k < k1; k++) { if (pk.mn[k] < lo) lo = pk.mn[k]; if (pk.mx[k] > hi2) hi2 = pk.mx[k]; }
           gc.fillRect(px, mid - hi2 * amp, 1, Math.max(1, (hi2 - lo) * amp));
         }
-      } else if (!buf) { gc.fillStyle = ink(0.4); gc.fillText('falta el audio', x + 5, by + 14); }
+      } else if (!buf) { gc.fillStyle = dark(0.6); gc.fillText('falta el audio', x + 5, by + 14); }
     }
     gc.restore();
-    if (sel) { gc.lineWidth = 2; gc.strokeStyle = isLight() ? '#120d1a' : '#fff'; rr(gc, x + 1, y + 1, w - 2, hh - 2, 5); gc.stroke(); }
+    gc.lineWidth = 1; gc.strokeStyle = sel ? '#fff' : dark(0.6); rr(gc, x + 0.5, y + 0.5, w - 1, hh - 1, 2); gc.stroke();
+    if (sel && w > 30) {
+      gc.fillStyle = '#fff';
+      gc.fillRect(x + 1, y + hh / 2 - 10, 3, 20); gc.fillRect(x + w - 4, y + hh / 2 - 10, 3, 20);
+    }
     gc.restore();
+  }
+
+  // Toma en curso: clip rojo con la onda que va llegando del micrófono
+  function drawRecording(gc, t, y0, w) {
+    const r = studio.rec, a = X(r.b0), b = X(studio.heardBeat());
+    if (b <= a) return;
+    const y = y0 + 1, hh = t.h - 3;
+    rr(gc, a, y, b - a, hh, 3); gc.fillStyle = '#e8484d'; gc.fill();
+    gc.fillStyle = '#b8282d'; gc.fillRect(a, y, b - a, 14);
+    gc.fillStyle = '#fff'; gc.font = '600 10px ' + FONT; gc.fillText('● Grabando', a + 5, y + 10);
+    const lp = r.lp; if (!lp?.length) return;
+    const lat = (app.state.settings.micLatency || 0) / 1000, sp = spb(), per = 256 / r.sr;
+    const by = y + 15, bh = hh - 16, mid = by + bh / 2, amp = bh / 2 - 1;
+    gc.fillStyle = 'rgba(0,0,0,0.7)';
+    const n = lp.length / 2;
+    for (let px = Math.max(0, Math.floor(a)); px < Math.min(w, b); px++) {
+      // segundos dentro de la toma (ya corridos por la demora del micrófono)
+      const s0 = (B(px) - r.b0) * sp + lat, s1 = (B(px + 1) - r.b0) * sp + lat;
+      let k0 = Math.floor(s0 / per), k1 = Math.max(k0 + 1, Math.floor(s1 / per));
+      if (k0 >= n) break; k0 = Math.max(0, k0); k1 = Math.min(n, k1);
+      let lo = 0, hi = 0;
+      for (let k = k0; k < k1; k++) { if (lp[2 * k] < lo) lo = lp[2 * k]; if (lp[2 * k + 1] > hi) hi = lp[2 * k + 1]; }
+      gc.fillRect(px, mid - hi * amp, 1, Math.max(1, (hi - lo) * amp));
+    }
   }
 
   // Automatización: línea con puntos sobre la pista
@@ -438,31 +493,33 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
       gc.fillStyle = '#fff';
       for (const [b, v] of pts) { gc.beginPath(); gc.arc(X(b), Y(v), 4, 0, 7); gc.fill(); gc.strokeStyle = t.color; gc.stroke(); }
     }
-    gc.fillStyle = ink(0.75); gc.font = '700 10px sans-serif';
+    gc.fillStyle = ink(0.8); gc.font = '10px ' + FONT;
     gc.fillText('⟋ ' + tg.label, 8, y0 + t.h - 6);
   }
 
   function paintRuler() {
     const { g: gc, w, h: hh } = fitCanvas(ruler);
-    gc.clearRect(0, 0, w, hh);
-    gc.fillStyle = ink(0.03); gc.fillRect(0, 0, w, hh);
-    // Región de loop (franja de arriba)
+    gc.fillStyle = T.ruler; gc.fillRect(0, 0, w, hh);
+    gc.fillStyle = '#151515'; gc.fillRect(0, 15, w, 1);
+    // Llave del loop (franja de arriba)
     const la = X(st.loop.a), lb = X(st.loop.b);
-    gc.fillStyle = st.loop.on ? 'rgba(124,240,176,0.85)' : ink(0.22);
-    rr(gc, la, 2, Math.max(4, lb - la), 11, 4); gc.fill();
+    gc.fillStyle = st.loop.on ? T.loopOn : T.loopOff;
+    gc.fillRect(la, 3, Math.max(4, lb - la), 10);
+    gc.fillStyle = st.loop.on ? '#1a1a1a' : '#2a2a2a';
+    gc.fillRect(la + 4, 6, Math.max(0, lb - la - 8), 4);
     // Números de compás
     const step = st.zoom * 4 < 26 ? (st.zoom * 4 < 8 ? 16 : 4) : 1;
-    gc.font = '700 11px ' + getComputedStyle(document.body).fontFamily;
+    gc.font = '11px ' + FONT;
     for (let bar = Math.floor(st.sx / 4); X(bar * 4) < w; bar++) {
       const x = Math.round(X(bar * 4)) + 0.5;
-      if (bar % step === 0) { gc.fillStyle = ink(0.55); gc.fillText(String(bar + 1), x + 3, hh - 6); gc.fillStyle = ink(0.3); gc.fillRect(x, 15, 1, hh - 15); }
-      else if (st.zoom > 4) { gc.fillStyle = ink(0.15); gc.fillRect(x, hh - 8, 1, 8); }
+      if (bar % step === 0) { gc.fillStyle = T.rulerText; gc.fillText(String(bar + 1), x + 3, hh - 5); gc.fillStyle = '#5a5a5a'; gc.fillRect(x, 16, 1, hh - 16); }
+      else if (st.zoom > 4) { gc.fillStyle = '#444'; gc.fillRect(x, hh - 6, 1, 6); }
     }
-    // Inicio
+    // Marcador de inicio
     const px = X(st.pos);
-    gc.fillStyle = isLight() ? '#120d1a' : '#fff';
-    gc.beginPath(); gc.moveTo(px - 6, 15); gc.lineTo(px + 6, 15); gc.lineTo(px, 23); gc.fill();
-    if (studio.playing) { gc.fillStyle = studio.rec ? '#ff5470' : '#7cf0b0'; gc.fillRect(Math.round(X(studio.heardBeat())), 14, 2, hh - 14); }
+    gc.fillStyle = T.text;
+    gc.beginPath(); gc.moveTo(px - 6, 16); gc.lineTo(px + 6, 16); gc.lineTo(px, 23); gc.fill();
+    if (studio.playing) { gc.fillStyle = studio.rec ? T.rec : T.playhead; gc.fillRect(Math.round(X(studio.heardBeat())), 16, 2, hh - 16); }
   }
 
   // ---- Encabezados de pista (derecha) ----
@@ -582,11 +639,13 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
     const clip = t.clips.find(c => b >= c.start && b < c.start + c.len) || null;
     let edge = null;
     if (clip) {
-      const xl = X(clip.start), xr = X(clip.start + clip.len), near = touch ? 16 : 9;
-      if (xr - xl > near * 2.5) { if (p.x - xl < near) edge = 'L'; else if (xr - p.x < near) edge = 'R'; }
-    } else if (!touch) {
-      // un poquito afuera del borde derecho también agarra
-      const c2 = t.clips.find(c => Math.abs(X(c.start + c.len) - p.x) < 6);
+      // Zona de los bordes generosa (más todavía en el clip elegido, que muestra agarraderas)
+      const xl = X(clip.start), xr = X(clip.start + clip.len), wc = xr - xl;
+      const near = Math.min(wc / 3, (touch ? 20 : 14) + (clip.id === st.sel.clip ? 6 : 0));
+      if (p.x - xl < near) edge = 'L'; else if (xr - p.x < near) edge = 'R';
+    } else {
+      // un poco afuera del borde derecho también agarra
+      const c2 = t.clips.find(c => p.x - X(c.start + c.len) >= 0 && p.x - X(c.start + c.len) < (touch ? 16 : 10));
       if (c2) return { t, y0, b, clip: c2, edge: 'R' };
     }
     return { t, y0, b, clip, edge };
@@ -736,6 +795,12 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
 
   gestures(lanes, {
     drawTouch: () => st.draw,
+    // Dedo sobre las agarraderas del clip elegido: estira directo, sin mantener apretado
+    grab(p) {
+      const hh = hit(p, true);
+      if (hh.clip && hh.edge && hh.clip.id === st.sel.clip && !hh.t.autoOn) return resizeClip(hh, hh.edge);
+      return null;
+    },
     down(p, e) {
       const hh = hit(p, e.pointerType === 'touch');
       tsel = null;
@@ -977,13 +1042,6 @@ function rr(gc, x, y, w, hh, r) {
   gc.moveTo(x + r, y); gc.arcTo(x + w, y, x + w, y + hh, r); gc.arcTo(x + w, y + hh, x, y + hh, r);
   gc.arcTo(x, y + hh, x, y, r); gc.arcTo(x, y, x + w, y, r); gc.closePath();
 }
-// Color de clip mezclado con el fondo
-function mix(hex, a) {
-  const n = parseInt(hex.slice(1), 16), r = n >> 16, gg = (n >> 8) & 255, b = n & 255;
-  const bg = isLight() ? [255, 250, 240] : [30, 25, 38];
-  return `rgb(${Math.round(bg[0] + (r - bg[0]) * a)},${Math.round(bg[1] + (gg - bg[1]) * a)},${Math.round(bg[2] + (b - bg[2]) * a)})`;
-}
-
 // Portapapeles de clips (lo usa también la vista de detalle)
 export let clipboard = null;
 export function copyClip(c) { clipboard = clone(c); toast('📋 Clip copiado: tocá con el botón del lápiz donde pegarlo'); }

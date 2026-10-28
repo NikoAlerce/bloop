@@ -19,6 +19,7 @@ export function setView(v) {
   el.classList.toggle('pads-mode', v === 'pads');
   el.classList.toggle('keys-mode', v === 'keys');
   el.classList.toggle('studio-mode', v === 'studio');
+  document.body.classList.toggle('studio-on', v === 'studio');
   document.getElementById('studio').hidden = v !== 'studio';
   if (v === 'studio') {
     if (app.seq.playing) app.seq.stop();

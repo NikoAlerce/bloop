@@ -3,7 +3,9 @@
 // y Mezcla (todas las pistas como canales).
 import { app } from '../app.js';
 import { A } from '../audio/engine.js';
-import { h, popover, closePopover, toast, toggle, ink, isLight } from '../ui/util.js';
+import { h, popover, closePopover, toast, toggle } from '../ui/util.js';
+import { T, FONT, ink, dark, tint } from './theme.js';
+const isLight = () => false;
 import { knob } from '../ui/knob.js';
 import { SYNTH_SPECS } from '../ui/params.js';
 import { allPresets } from '../ui/presets.js';
@@ -18,7 +20,8 @@ import {
 import { studio, faderGain } from './engine.js';
 import { AUDIO_FX, MIDI_FX, AUDIO_FX_KEYS, MIDI_FX_KEYS, defaultsOf } from './devices.js';
 import { gestures, fitCanvas, pointAnchor } from './gest.js';
-import { snapshot, norm, denorm, mfader, splitAt, copyClip } from './ui.js';
+import { snapshot, norm, denorm, mfader, splitAt, copyClip, defaultDetailH } from './ui.js';
+import { playSurface } from './keys.js';
 
 export function buildDetail(el, { arr }) {
   const st = S();
@@ -27,10 +30,13 @@ export function buildDetail(el, { arr }) {
   el.append(tabs, bodyEl);
   let view = null; // editor actual {draw(), frame(), deleteSel()}
 
-  function setTab(k) { st.detail = k; render(); }
+  function setTab(k) {
+    st.detail = k;
+    if (st.detailH < 60) { st.detailH = defaultDetailH(); app.emit('studio-layout'); return; }
+    render();
+  }
 
   function render() {
-    if (el.hidden) return;
     const t = selTrack(), sc = selClip();
     let k = st.detail;
     if (k === 'clip' && !sc) k = t ? 'devices' : 'mixer';
@@ -49,12 +55,14 @@ export function buildDetail(el, { arr }) {
       tabs.append(lbl);
     }
     tabs.append(h('div', { style: { flex: 1 } }));
-    const hide = h('button', { class: 'round sm', title: 'Ocultar el detalle' }, '▾');
-    hide.addEventListener('click', () => { st.detailH = 0; app.emit('studio-layout'); });
+    const closed = st.detailH < 60;
+    const hide = h('button', { class: 'st-collapse', title: closed ? 'Abrir el detalle' : 'Cerrar el detalle' }, closed ? '▴' : '▾');
+    hide.addEventListener('click', () => { st.detailH = closed ? defaultDetailH() : 0; app.emit('studio-layout'); });
     tabs.append(hide);
 
     bodyEl.innerHTML = '';
     view = null;
+    if (closed) return;
     if (k === 'clip') view = sc.c.kind === 'midi' ? midiEditor(bodyEl, sc.t, sc.c) : audioEditor(bodyEl, sc.t, sc.c, arr);
     else if (k === 'devices') view = deviceView(bodyEl, t);
     else view = mixerView(bodyEl);
@@ -65,6 +73,7 @@ export function buildDetail(el, { arr }) {
     draw() { view?.draw?.(); },
     frame() { view?.frame?.(); },
     deleteSel() { return view?.deleteSel?.() || false; },
+    key(e) { return view?.key?.(e) || false; },
   };
 }
 
@@ -78,19 +87,20 @@ function midiEditor(el, t, c) {
   const side = h('div', { class: 'st-dside' });
   el.append(side, h('div', { class: 'roll-wrap' }, cv));
 
-  // Vista: ajustada al loop del clip
-  const KEYS_W = drums ? 92 : 46, VEL_H = 54;
-  const vw = () => cv.clientWidth - KEYS_W;
-  const v = c._view ||= { zoom: 0, sx: 0, sy: null, rowH: drums ? 26 : 14, fold: false };
+  // Como en Ableton: regla con la llave del loop arriba, teclas a la izquierda, fuerza abajo
+  const RUL_H = 22, KEYS_W = drums ? 100 : 54, VEL_H = 56;
+  const v = rollViews.get(c.id) || { zoom: 0, sx: 0, sy: null, rowH: drums ? 26 : 15, fold: false, allPads: false };
+  rollViews.set(c.id, v);
   if (!v.zoom) v.zoom = Math.max(8, (el.clientWidth - 260 - KEYS_W) / Math.max(1, c.loop || c.len));
-  let hoverP = null, painting = null;
+  let sel = new Set(), hoverP = null, marquee = null;
+  const L = () => c.loop || c.len;
 
   const rows = () => {
-    // Batería: el pad 1 arriba; solo los pads con sonido o con golpes
+    // Batería: el pad 1 arriba y solo los pads con sonido o con golpes
     if (drums) {
+      if (v.allPads) return Array.from({ length: DRUM_PADS }, (_, i) => DRUM_NOTE + i);
       const out = [];
       for (let i = 0; i < DRUM_PADS; i++) if (t.inst.pads[i] || c.notes.some(n => n.p === DRUM_NOTE + i)) out.push(DRUM_NOTE + i);
-      if (v.allPads) return Array.from({ length: DRUM_PADS }, (_, i) => DRUM_NOTE + i);
       return out.length ? out : [DRUM_NOTE];
     }
     if (v.fold) {
@@ -103,15 +113,24 @@ function midiEditor(el, t, c) {
     const rs = rows();
     const center = c.notes.length ? c.notes.reduce((a, n) => a + n.p, 0) / c.notes.length : 60;
     const i = rs.findIndex(p => p <= Math.round(center));
-    v.sy = drums ? 0 : Math.max(0, i * v.rowH - 120);
+    v.sy = drums ? 0 : Math.max(0, i * v.rowH - 110);
   }
   const X = b => KEYS_W + (b - v.sx) * v.zoom;
   const B = x => (x - KEYS_W) / v.zoom + v.sx;
-  const gridH = () => cv.clientHeight - VEL_H;
-  const rowAt = y => { const rs = rows(), i = Math.floor((y + v.sy) / v.rowH); return i >= 0 && i < rs.length ? rs[i] : null; };
-  const rowY = p => rows().indexOf(p) * v.rowH - v.sy;
-  const gb = () => gridBeats(v.zoom * 1.6);
-  const L = () => c.loop || c.len;
+  const gridBot = () => cv.clientHeight - VEL_H;
+  const rowIndexAt = y => Math.floor((y - RUL_H + v.sy) / v.rowH);
+  const rowAt = y => { const rs = rows(), i = rowIndexAt(y); return i >= 0 && i < rs.length ? rs[i] : null; };
+  const rowY = p => RUL_H + rows().indexOf(p) * v.rowH - v.sy;
+  const gb = () => gridBeats(v.zoom * 1.6) || 0.25;
+  const noteAt = (p, b) => c.notes.find(n => n.p === p && b >= n.s - 1e-6 && b < n.s + Math.max(n.d, 10 / v.zoom));
+  // Borde de una nota: zona generosa (un tercio de la nota, mínimo 6 px, hasta 12/18 px)
+  function edgeOf(n, x, touch) {
+    const xl = X(n.s), xr = X(n.s + n.d), w = xr - xl;
+    const zone = Math.max(6, Math.min(w * 0.33, touch ? 18 : 12));
+    if (xr - x < zone && x <= xr + 6) return 'R';
+    if (x - xl < zone && w > zone * 2) return 'L';
+    return null;
+  }
 
   // ---- Panel lateral ----
   function renderSide() {
@@ -123,7 +142,7 @@ function midiEditor(el, t, c) {
       c.loop = nl; if (c.len < nl) c.len = nl;
       renderSide(); app.emit('studio-draw');
     };
-    side.append(
+    const items = [
       h('div', { class: 'dside-row' }, h('b', {}, 'Loop'), h('div', { class: 'stepper sm' },
         h('button', { onclick: () => setLoop(L() <= 1 ? L() / 2 : L() - (L() > 4 ? 4 : 1)) }, '−'), loopLbl,
         h('button', { onclick: () => setLoop(L() < 1 ? L() * 2 : L() + (L() >= 4 ? 4 : 1)) }, '＋'))),
@@ -132,31 +151,33 @@ function midiEditor(el, t, c) {
         const l = L(); c.notes = c.notes.filter(n => n.s < l); c.notes = c.notes.concat(c.notes.map(n => ({ ...n, s: n.s + l })));
         c.loop = l * 2; if (c.len < c.loop) c.len = c.loop; renderSide(); app.emit('studio');
       } }, '×2 Duplicar loop'),
-      h('button', { class: 'pill', title: 'Lleva las notas a la grilla', onclick: () => {
-        snapshot('Cuantizar');
-        const g = gb() || 0.25; c.notes.forEach(n => { n.s = Math.max(0, snapB(n.s, g)); });
-        dedupe(); app.emit('studio-draw');
-      } }, '🧲 Cuantizar'),
+      h('button', { class: 'pill', title: 'Lleva a la grilla las notas elegidas (o todas)', onclick: quantize }, '🧲 Cuantizar'),
       h('div', { class: 'dside-row' }, h('b', {}, 'Transp.'), h('div', { class: 'stepper sm' },
         h('button', { onclick: () => transpose(-12) }, '−8'), h('button', { onclick: () => transpose(-1) }, '−1'),
         h('button', { onclick: () => transpose(1) }, '+1'), h('button', { onclick: () => transpose(12) }, '+8'))),
       drums ? toggle('Los 16 pads', !!v.allPads, x => { v.allPads = x; v.sy = 0; draw(); }) : toggle('Plegar', v.fold, x => { v.fold = x; v.sy = 0; draw(); }),
+      h('button', { class: 'pill', onclick: () => { sel = new Set(c.notes); draw(); } }, '▦ Elegir todas'),
       h('button', { class: 'pill', onclick: () => copyClip(c) }, '📋 Copiar clip'),
-      h('button', { class: 'pill danger', onclick: () => { if (!c.notes.length) return; snapshot('Borrar notas'); c.notes = []; app.emit('studio-draw'); } }, '🗑 Borrar notas'),
-      h('div', { class: 'hint' }, drums
-        ? 'Lápiz o dedo: tocá un casillero para poner o sacar un golpe. Arrastrá un golpe para moverlo. Abajo, la fuerza.'
-        : 'Tocá para poner o sacar una nota. Arrastrá para moverla, del borde derecho para alargarla. Las teclas de la izquierda suenan.'),
-    );
+      h('div', { class: 'hint' }, 'Doble toque: crea o borra una nota. Tocá para elegir, arrastrá para mover, del borde para estirar. Arrastrando en el vacío elegís varias. ✏️ Dibujar: pintás notas. Arriba, la llave gris es el largo del loop.'),
+    ];
+    side.append(...items);
+  }
+  const targets = () => (sel.size ? [...sel] : c.notes);
+  function quantize() {
+    snapshot('Cuantizar');
+    const g = gb(); targets().forEach(n => { n.s = Math.max(0, snapB(n.s, g)); });
+    dedupe(); app.emit('studio-draw');
   }
   function transpose(d) {
-    snapshot('Transponer', 'tr' + c.id);
     if (drums) return;
-    c.notes.forEach(n => { n.p = Math.max(0, Math.min(127, n.p + d)); });
+    snapshot('Transponer', 'tr' + c.id);
+    targets().forEach(n => { n.p = Math.max(0, Math.min(127, n.p + d)); });
     app.emit('studio-draw');
   }
   const dedupe = () => {
     const seen = new Set();
     c.notes = c.notes.filter(n => { const k = n.p + ':' + n.s.toFixed(4); if (seen.has(k)) return false; seen.add(k); return true; });
+    sel = new Set([...sel].filter(n => c.notes.includes(n)));
   };
   renderSide();
 
@@ -164,102 +185,177 @@ function midiEditor(el, t, c) {
   function draw() {
     if (!cv.isConnected) return;
     const { g, w, h: hh } = fitCanvas(cv);
-    const gh = hh - VEL_H, rs = rows();
-    if (drums) v.rowH = Math.max(16, Math.min(34, Math.floor(gh / rs.length)));
-    v.sy = Math.max(0, Math.min(Math.max(0, rs.length * v.rowH - gh), v.sy));
+    const gbot = hh - VEL_H, rs = rows();
+    if (drums) v.rowH = Math.max(16, Math.min(34, Math.floor((gbot - RUL_H) / rs.length)));
+    v.sy = Math.max(0, Math.min(Math.max(0, rs.length * v.rowH - (gbot - RUL_H)), v.sy));
     v.sx = Math.max(0, v.sx);
-    g.clearRect(0, 0, w, hh);
+    g.fillStyle = '#1e1e1e'; g.fillRect(0, 0, w, hh);
+    g.save(); g.beginPath(); g.rect(KEYS_W, RUL_H, w - KEYS_W, gbot - RUL_H); g.clip();
     // Filas
     rs.forEach((p, i) => {
-      const y = i * v.rowH - v.sy;
-      if (y + v.rowH < 0 || y > gh) return;
+      const y = RUL_H + i * v.rowH - v.sy;
+      if (y + v.rowH < RUL_H || y > gbot) return;
       const black = [1, 3, 6, 8, 10].includes(p % 12);
-      g.fillStyle = drums ? (i % 2 ? ink(0.025) : ink(0.045)) : black ? ink(0.012) : ink(0.045);
-      g.fillRect(KEYS_W, y, w - KEYS_W, v.rowH - 1);
-      if (!drums && p % 12 === 0) { g.fillStyle = ink(0.12); g.fillRect(KEYS_W, y + v.rowH - 1, w, 1); }
+      g.fillStyle = drums ? (i % 2 ? T.rollBlack : T.rollWhite) : black ? T.rollBlack : T.rollWhite;
+      g.fillRect(KEYS_W, y, w - KEYS_W, v.rowH);
+      g.fillStyle = !drums && p % 12 === 0 ? T.rollC : dark(0.25);
+      g.fillRect(KEYS_W, y + v.rowH - 1, w - KEYS_W, 1);
     });
-    // Grilla y loop
-    const gg = gb() || 0.25;
+    // Grilla
+    const gg = gb();
     for (let b = Math.floor(v.sx / gg) * gg; X(b) < w; b += gg) {
       if (b < 0) continue;
-      g.fillStyle = b % 4 === 0 ? ink(0.2) : b % 1 === 0 ? ink(0.09) : ink(0.04);
-      g.fillRect(Math.round(X(b)), 0, 1, gh);
+      g.fillStyle = b % 4 === 0 ? dark(0.7) : b % 1 === 0 ? dark(0.4) : dark(0.18);
+      g.fillRect(Math.round(X(b)), RUL_H, 1, gbot - RUL_H);
     }
-    g.fillStyle = shadeOut(); g.fillRect(X(L()), 0, Math.max(0, w - X(L())), gh);
-    g.fillStyle = '#7cf0b0'; g.fillRect(X(L()) - 1, 0, 2, gh);
-    // Repeticiones (fantasmas) y notas
+    // Fuera del loop: más oscuro, con las repeticiones como fantasmas
+    g.fillStyle = T.outside; g.fillRect(X(L()), RUL_H, Math.max(0, w - X(L())), gbot);
     const col = c.color || t.color;
-    const vis = b => X(b) < w && X(b) > KEYS_W - 400;
+    const vis = (s, d) => X(s + d) > KEYS_W && X(s) < w;
     for (let k = 1; k * L() < c.len; k++) for (const n of c.notes) {
-      const s = n.s + k * L(); if (!vis(s)) continue;
-      const y = rowY(n.p); if (y < -v.rowH || y > gh) continue;
-      g.fillStyle = ink(0.12); g.fillRect(X(s), y + 1, Math.max(3, n.d * v.zoom - 1), v.rowH - 2);
+      const s = n.s + k * L(); if (!vis(s, n.d)) continue;
+      const y = rowY(n.p);
+      g.fillStyle = ink(0.1); g.fillRect(X(s) + 1, y + 1, Math.max(3, n.d * v.zoom - 2), v.rowH - 2);
     }
+    // Notas: más fuertes = más saturadas (como Ableton); las elegidas, claras y con borde
     for (const n of c.notes) {
-      if (!vis(n.s)) continue;
-      const y = rowY(n.p); if (y < -v.rowH || y > gh) continue;
-      const x = X(n.s), nw = Math.max(drums ? 8 : 4, n.d * v.zoom - 1);
-      g.fillStyle = col; g.globalAlpha = 0.45 + 0.55 * n.v;
-      g.fillRect(x, y + 1, nw, v.rowH - 2);
-      g.globalAlpha = 1;
-      g.strokeStyle = 'rgba(0,0,0,0.45)'; g.strokeRect(x + 0.5, y + 1.5, nw - 1, v.rowH - 3);
+      if (!vis(n.s, n.d)) continue;
+      const y = rowY(n.p); if (y < RUL_H - v.rowH || y > gbot) continue;
+      const x = X(n.s), nw = Math.max(drums ? 8 : 4, n.d * v.zoom - 1), on = sel.has(n);
+      g.fillStyle = on ? tint(col, 0.7) : tint(col, (1 - n.v) * 0.55);
+      g.fillRect(x + 0.5, y + 1, nw - 0.5, v.rowH - 2);
+      g.strokeStyle = on ? '#fff' : dark(0.75); g.lineWidth = 1;
+      g.strokeRect(x + 0.5, y + 1.5, nw - 1, v.rowH - 3);
+      if (on && nw > 14) { g.fillStyle = dark(0.5); g.fillRect(x + nw - 4, y + 3, 2, v.rowH - 6); }
     }
-    // Lápiz en el aire
-    if (hoverP && hoverP.p != null && hoverP.x > KEYS_W) {
-      const y = rowY(hoverP.p), b = snapB(B(hoverP.x), gg, 'floor');
-      g.strokeStyle = 'rgba(255,142,212,0.8)'; g.lineWidth = 1.5;
-      g.strokeRect(X(b) + 0.5, y + 1, gg * v.zoom - 1, v.rowH - 2);
+    // Lápiz en el aire: el casillero o el borde que vas a tocar
+    if (hoverP && hoverP.x > KEYS_W && hoverP.y > RUL_H && hoverP.y < gbot) {
+      const p = rowAt(hoverP.y), b = B(hoverP.x);
+      const n = p != null ? noteAt(p, b) : null;
+      g.strokeStyle = T.accent; g.lineWidth = 2;
+      if (n && edgeOf(n, hoverP.x)) {
+        const xx = edgeOf(n, hoverP.x) === 'R' ? X(n.s + n.d) : X(n.s);
+        g.fillStyle = T.accent; g.fillRect(xx - 2, rowY(n.p), 4, v.rowH);
+      } else if (!n && p != null) g.strokeRect(X(snapB(b, gg, 'floor')) + 1, rowY(p) + 1, gg * v.zoom - 2, v.rowH - 2);
+    }
+    if (marquee) {
+      const x0 = X(Math.min(marquee.a, marquee.b)), x1 = X(Math.max(marquee.a, marquee.b));
+      const y0 = Math.min(marquee.y0, marquee.y1), y1 = Math.max(marquee.y0, marquee.y1);
+      g.fillStyle = T.timeSel; g.fillRect(x0, y0, x1 - x0, y1 - y0);
+      g.strokeStyle = '#9cc2ee'; g.lineWidth = 1; g.strokeRect(x0 + 0.5, y0 + 0.5, x1 - x0, y1 - y0);
     }
     // Cabezal
     if (studio.playing) {
       const hb = studio.heardBeat();
       if (hb >= c.start && hb < c.start + c.len) {
-        const rel = (hb - c.start) % L();
-        g.fillStyle = isLight() ? '#120d1a' : '#fff'; g.fillRect(Math.round(X(rel)), 0, 2, hh);
+        g.fillStyle = T.playhead; g.fillRect(Math.round(X((hb - c.start) % L())), RUL_H, 2, gbot);
       }
+    }
+    g.restore();
+    // Regla con la llave del loop
+    g.fillStyle = T.ruler; g.fillRect(KEYS_W, 0, w - KEYS_W, RUL_H);
+    g.fillStyle = T.loopOn; g.fillRect(Math.max(KEYS_W, X(0)), 2, Math.max(0, X(L()) - Math.max(KEYS_W, X(0))), 8);
+    g.fillStyle = '#fff'; g.fillRect(X(L()) - 5, 0, 5, 12);
+    g.font = '10px ' + FONT;
+    for (let b = Math.floor(v.sx / 4) * 4; X(b) < w; b += 4) {
+      if (X(b) < KEYS_W) continue;
+      g.fillStyle = T.rulerText; g.fillText(String(Math.floor((c.start + b) / 4) + 1), X(b) + 3, RUL_H - 3);
+      g.fillStyle = '#555'; g.fillRect(Math.round(X(b)), 12, 1, RUL_H - 12);
     }
     // Teclas / nombres de los pads
-    g.fillStyle = isLight() ? '#efe7da' : '#1a1522'; g.fillRect(0, 0, KEYS_W, gh);
-    g.font = `600 ${drums ? 11 : 9}px ${getComputedStyle(document.body).fontFamily}`;
+    g.fillStyle = '#1a1a1a'; g.fillRect(0, 0, KEYS_W, hh);
+    g.save(); g.beginPath(); g.rect(0, RUL_H, KEYS_W, gbot - RUL_H); g.clip();
+    g.font = (drums ? '11px ' : '9px ') + FONT;
     rs.forEach((p, i) => {
-      const y = i * v.rowH - v.sy;
-      if (y + v.rowH < 0 || y > gh) return;
+      const y = RUL_H + i * v.rowH - v.sy;
+      if (y + v.rowH < RUL_H || y > gbot) return;
       if (drums) {
         const pd = t.inst.pads[p - DRUM_NOTE];
-        g.fillStyle = held.has(p) ? col : ink(0.06); g.fillRect(2, y + 1, KEYS_W - 4, v.rowH - 2);
-        g.fillStyle = pd ? ink(0.85) : ink(0.3);
-        g.fillText(`${p - DRUM_NOTE + 1} ${pd ? srcName(pd.src) : '—'}`.slice(0, 13), 6, y + v.rowH / 2 + 4);
+        g.fillStyle = held.has(p) ? T.accent : i % 2 ? '#2e2e2e' : '#333';
+        g.fillRect(0, y, KEYS_W - 1, v.rowH - 1);
+        g.fillStyle = held.has(p) ? '#111' : pd ? T.text : T.dim;
+        g.fillText(`${p - DRUM_NOTE + 1}  ${pd ? srcName(pd.src) : '—'}`.slice(0, 15), 6, y + v.rowH / 2 + 4);
       } else {
         const black = [1, 3, 6, 8, 10].includes(p % 12);
-        g.fillStyle = held.has(p) ? col : black ? (isLight() ? '#2a2233' : '#0d0a12') : (isLight() ? '#fff' : '#d9d2e6');
-        g.fillRect(0, y + 0.5, black ? KEYS_W * 0.62 : KEYS_W - 2, v.rowH - 1);
-        if (p % 12 === 0 && v.rowH >= 9) { g.fillStyle = 'rgba(0,0,0,0.6)'; g.fillText(noteName(p), KEYS_W - 26, y + v.rowH - 3); }
+        g.fillStyle = held.has(p) ? T.accent : black ? T.keyB : T.keyW;
+        g.fillRect(black ? 0 : 0, y, black ? KEYS_W * 0.62 : KEYS_W - 1, v.rowH - 1);
+        if (!black) { g.fillStyle = '#9a9a9a'; g.fillRect(0, y + v.rowH - 1, KEYS_W - 1, 1); }
+        if (p % 12 === 0 && v.rowH >= 9) { g.fillStyle = '#333'; g.fillText(noteName(p), KEYS_W - 24, y + v.rowH - 3); }
       }
     });
+    g.restore();
     // Fuerza (velocity)
-    g.fillStyle = ink(0.04); g.fillRect(0, gh, w, VEL_H);
-    g.fillStyle = ink(0.12); g.fillRect(0, gh, w, 1);
-    g.fillStyle = ink(0.45); g.font = '600 10px sans-serif'; g.fillText('Fuerza', 6, gh + VEL_H / 2 + 3);
+    g.fillStyle = '#232323'; g.fillRect(0, gbot, w, VEL_H);
+    g.fillStyle = '#111'; g.fillRect(0, gbot, w, 1);
+    g.fillStyle = T.dim; g.font = '10px ' + FONT; g.fillText('Fuerza', 8, gbot + VEL_H / 2 + 3);
+    g.save(); g.beginPath(); g.rect(KEYS_W, gbot, w - KEYS_W, VEL_H); g.clip();
     for (const n of c.notes) {
-      if (!vis(n.s)) continue;
-      const x = X(n.s), bh = (VEL_H - 8) * n.v;
-      g.fillStyle = col; g.fillRect(x, gh + VEL_H - 3 - bh, 3, bh);
-      g.beginPath(); g.arc(x + 1.5, gh + VEL_H - 3 - bh, 3, 0, 7); g.fill();
+      if (!vis(n.s, n.d)) continue;
+      const x = X(n.s), bh = (VEL_H - 10) * n.v, on = sel.has(n);
+      g.fillStyle = on ? '#fff' : col; g.fillRect(x, gbot + VEL_H - 4 - bh, 2, bh);
+      g.beginPath(); g.arc(x + 1, gbot + VEL_H - 4 - bh, 3.5, 0, 7); g.fill();
     }
+    g.restore();
   }
-  const shadeOut = () => (isLight() ? 'rgba(60,40,80,0.08)' : 'rgba(0,0,0,0.28)');
 
-  // ---- Interacción ----
+  // ---- Sonido al tocar ----
   const held = new Set();
   const audition = (p, on) => {
     const ta = studio.ta(t.id); if (!ta?.inst) return;
     if (on) { ta.inst.on(p, 0.85); held.add(p); } else { ta.inst.off(p); held.delete(p); }
     draw();
   };
-  const noteAt = (p, b) => c.notes.find(n => n.p === p && b >= n.s - 1e-6 && b < n.s + Math.max(n.d, drums ? 0.12 : 0));
+  const blip = p => { audition(p, true); setTimeout(() => audition(p, false), 150); };
+
+  // ---- Edición ----
+  function addNote(p, b) {
+    const gg = gb();
+    const n = { p, s: Math.max(0, snapB(b, gg, 'floor')), d: gg, v: 0.8 };
+    if (n.s >= L()) return null;
+    c.notes.push(n); blip(p);
+    return n;
+  }
+
+  // Mover / estirar todas las elegidas juntas
+  function groupDrag(anchor, edge, p0, copy) {
+    let began = false;
+    const b0 = B(p0.x), r0 = rowIndexAt(p0.y), rs = rows();
+    let orig = null;
+    return {
+      move(q, ev) {
+        if (!began) {
+          began = true;
+          snapshot(edge ? 'Estirar notas' : 'Mover notas');
+          if (copy) { const cp = [...sel].map(n => ({ ...n })); c.notes.push(...cp); }
+          orig = new Map([...sel].map(n => [n, { s: n.s, d: n.d, p: n.p }]));
+        }
+        const free = ev?.altKey, gg = gb(), db = B(q.x) - b0, oa = orig.get(anchor);
+        if (edge === 'R') {
+          const end = free ? oa.s + oa.d + db : snapB(oa.s + oa.d + db, gg);
+          const dd = end - (oa.s + oa.d);
+          for (const [n, o] of orig) n.d = Math.max(free ? 0.02 : gg, o.d + dd);
+        } else if (edge === 'L') {
+          const ns = free ? oa.s + db : snapB(oa.s + db, gg), ds = ns - oa.s;
+          for (const [n, o] of orig) { const s2 = Math.max(0, Math.min(o.s + o.d - (free ? 0.02 : gg), o.s + ds)); n.d = o.s + o.d - s2; n.s = s2; }
+        } else {
+          const ns = free ? oa.s + db : snapB(oa.s + db, gg), ds = ns - oa.s;
+          const dr = rowIndexAt(q.y) - r0;
+          for (const [n, o] of orig) {
+            n.s = Math.max(0, Math.min(L() - 0.001, o.s + ds));
+            const ri = rs.indexOf(o.p) + dr;
+            if (ri >= 0 && ri < rs.length) n.p = rs[ri];
+          }
+          if (anchor.p !== oa.p && anchor._lp !== anchor.p) { anchor._lp = anchor.p; blip(anchor.p); }
+        }
+        draw(); app.emit('studio-draw-arr');
+      },
+      up() { if (began) { delete anchor._lp; dedupe(); app.emit('studio-draw'); } },
+    };
+  }
 
   function editDown(pt, e, touch) {
-    if (pt.y > gridH()) return velDrag(pt);
+    if (pt.y < RUL_H) return rulerDrag(pt);
+    if (pt.y > gridBot()) return velDrag(pt);
     if (pt.x < KEYS_W) {
       const p = rowAt(pt.y); if (p == null) return null;
       audition(p, true);
@@ -267,110 +363,181 @@ function midiEditor(el, t, c) {
     }
     const p = rowAt(pt.y), b = B(pt.x);
     if (p == null || b < 0) return null;
-    const gg = gb() || 0.25;
     const n = noteAt(p, b);
-    if (n) {
-      const right = !drums && X(n.s + n.d) - pt.x < (touch ? 14 : 8) && n.d * v.zoom > 16;
-      const o = { ...n }, b0 = b, p0 = p;
-      let began = false;
-      let copy = e.ctrlKey || e.metaKey;
+    // Modo dibujo: tocar una nota la borra; en el vacío pinta notas al arrastrar
+    if (st.draw) {
+      snapshot(n ? 'Borrar nota' : 'Dibujar notas');
+      if (n) { c.notes = c.notes.filter(x => x !== n); sel.delete(n); app.emit('studio-draw'); return { move() { /* */ }, up() { /* */ } }; }
+      addNote(p, b); app.emit('studio-draw');
       return {
-        move(q, ev) {
-          if (!began) { began = true; snapshot(right ? 'Alargar nota' : 'Mover nota'); if (copy) c.notes.push({ ...o }); }
-          const free = ev?.altKey;
-          if (right) n.d = Math.max(free ? 0.03 : gg, (free ? B(q.x) : snapB(B(q.x), gg)) - n.s);
-          else {
-            const ns = o.s + B(q.x) - b0;
-            n.s = Math.max(0, Math.min(L() - 0.001, free ? ns : snapB(ns, gg)));
-            const np = rowAt(q.y); if (np != null && np !== n.p) { n.p = np; if (!drums || true) { audition(np, true); setTimeout(() => audition(np, false), 120); } }
-          }
-          app.emit('studio-draw');
+        move(q) {
+          const pp = drums ? (rowAt(q.y) ?? p) : p, bb = B(q.x);
+          if (bb >= 0 && bb < L() && !noteAt(pp, snapB(bb, gb(), 'floor') + 1e-4)) { addNote(pp, bb); app.emit('studio-draw'); }
         },
-        up(q, ev, tap) {
-          if (!began && tap) { snapshot('Borrar nota'); c.notes = c.notes.filter(x => x !== n); app.emit('studio-draw'); }
-          else if (began) { dedupe(); app.emit('studio-draw'); }
-        },
+        up() { /* */ },
       };
     }
-    // Nota nueva (y en modo dibujo, pintar varias arrastrando)
-    if (b >= L()) return null;
-    snapshot('Nota nueva');
-    const s0 = snapB(b, gg, 'floor');
-    const nn = { p, s: s0, d: drums ? gg : gg, v: 0.8 };
-    c.notes.push(nn);
-    audition(p, true); setTimeout(() => audition(p, false), 140);
-    app.emit('studio-draw');
-    const paint = st.draw || drums;
+    if (n) {
+      if (!sel.has(n)) { if (!e.shiftKey) sel.clear(); sel.add(n); }
+      blip(n.p);
+      draw();
+      return groupDrag(n, edgeOf(n, pt.x, touch), pt, e.altKey || e.ctrlKey || e.metaKey);
+    }
+    // Vacío: rectángulo para elegir varias
+    const add = e.shiftKey ? new Set(sel) : new Set();
+    marquee = { a: b, b, y0: pt.y, y1: pt.y };
     return {
       move(q) {
-        if (paint) {
-          const s = snapB(B(q.x), gg, 'floor'), pp = drums ? (rowAt(q.y) ?? p) : p;
-          if (s >= 0 && s < L() && !noteAt(pp, s + 1e-4)) { c.notes.push({ p: pp, s, d: gg, v: 0.8 }); app.emit('studio-draw'); }
-        } else {
-          nn.d = Math.max(gg, snapB(B(q.x), gg, 'ceil') - nn.s);
-          app.emit('studio-draw');
-        }
+        marquee.b = B(q.x); marquee.y1 = Math.max(RUL_H, Math.min(gridBot(), q.y));
+        const a0 = Math.min(marquee.a, marquee.b), a1 = Math.max(marquee.a, marquee.b);
+        const r0 = rowIndexAt(Math.min(marquee.y0, marquee.y1)), r1 = rowIndexAt(Math.max(marquee.y0, marquee.y1)), rs = rows();
+        sel = new Set(add);
+        for (const n2 of c.notes) { const ri = rs.indexOf(n2.p); if (ri >= r0 && ri <= r1 && n2.s < a1 && n2.s + n2.d > a0) sel.add(n2); }
+        draw();
       },
-      up() { /* */ },
+      up(q, ev, tap) { marquee = null; if (tap && !e.shiftKey) sel.clear(); draw(); },
     };
   }
 
-  // Pintar la fuerza: arrastrá sobre las barritas
+  // Llave del loop: arrastrá su punta para cambiar el largo
+  function rulerDrag(pt) {
+    if (Math.abs(pt.x - X(L())) > 22) return null;
+    let began = false;
+    return {
+      move(q) {
+        if (!began) { began = true; snapshot('Largo del loop', 'loop' + c.id); }
+        const nl = Math.max(gb(), snapB(B(q.x), gb()));
+        c.loop = nl; if (c.len < nl) c.len = nl;
+        draw(); app.emit('studio-draw-arr');
+      },
+      up() { if (began) { renderSide(); app.emit('studio'); } },
+    };
+  }
+
+  // Fuerza: arrastrá la barrita (si es de una nota elegida, cambian todas las elegidas)
   function velDrag(pt) {
     snapshot('Fuerza', 'vel' + c.id);
-    const set = q => {
-      const val = Math.max(0.05, Math.min(1, (gridH() + VEL_H - 3 - q.y) / (VEL_H - 8)));
-      const b = B(q.x), tol = 6 / v.zoom;
-      let hitAny = false;
-      for (const n of c.notes) if (Math.abs(n.s - b) < tol) { n.v = Math.round(val * 100) / 100; hitAny = true; }
-      if (hitAny) draw();
+    const bAt = B(pt.x), tol = 8 / v.zoom;
+    const hitN = c.notes.filter(n => Math.abs(n.s - bAt) < tol);
+    const group = hitN.some(n => sel.has(n)) ? [...sel] : hitN;
+    const y0 = pt.y, orig = new Map(group.map(n => [n, n.v]));
+    const valAt = y => Math.max(0.05, Math.min(1, (gridBot() + VEL_H - 4 - y) / (VEL_H - 10)));
+    if (!group.length) {
+      // sin nota debajo: pintar al pasar
+      const paint = q => { const b = B(q.x); for (const n of c.notes) if (Math.abs(n.s - b) < tol) n.v = Math.round(valAt(q.y) * 100) / 100; draw(); };
+      return { move: paint, up() { app.emit('studio-draw'); } };
+    }
+    if (group.length === 1) group[0].v = Math.round(valAt(pt.y) * 100) / 100;
+    draw();
+    return {
+      move(q) {
+        if (group.length === 1) group[0].v = Math.round(valAt(q.y) * 100) / 100;
+        else { const d = (y0 - q.y) / (VEL_H - 10); for (const [n, o] of orig) n.v = Math.round(Math.max(0.05, Math.min(1, o + d)) * 100) / 100; }
+        draw();
+      },
+      up() { app.emit('studio-draw'); },
     };
-    set(pt);
-    return { move: set, up() { app.emit('studio-draw'); } };
   }
 
   gestures(cv, {
-    drawTouch: () => false,
+    drawTouch: () => st.draw,
     down: (p, e) => editDown(p, e, false),
     long: p => editDown(p, {}, true),
-    tap(p, e) {
-      if (e.pointerType !== 'touch') return;
-      // dedo: tocar pone o saca una nota (como pintar cuadraditos)
-      if (p.y > gridH()) { const d = velDrag(p); d.up(); return; }
-      if (p.x < KEYS_W) { const r = rowAt(p.y); if (r != null) { audition(r, true); setTimeout(() => audition(r, false), 220); } return; }
-      const r = rowAt(p.y), b = B(p.x); if (r == null || b < 0 || b >= L()) return;
-      const n = noteAt(r, b), gg = gb() || 0.25;
-      snapshot(n ? 'Borrar nota' : 'Nota nueva');
-      if (n) c.notes = c.notes.filter(x => x !== n);
-      else { c.notes.push({ p: r, s: snapB(b, gg, 'floor'), d: gg, v: 0.8 }); audition(r, true); setTimeout(() => audition(r, false), 140); }
-      app.emit('studio-draw');
+    // Dedo sobre el borde de una nota elegida: estira directo
+    grab(p) {
+      if (p.y < RUL_H) return rulerDrag(p);
+      if (p.x < KEYS_W || p.y > gridBot()) return null;
+      const r = rowAt(p.y), n = r != null ? noteAt(r, B(p.x)) : null;
+      if (n && sel.has(n)) { const ed = edgeOf(n, p.x, true); if (ed) return groupDrag(n, ed, p, false); }
+      return null;
+    },
+    tap(p, e, dbl) {
+      if (st.draw || p.y < RUL_H) return;
+      if (p.y > gridBot()) { if (e.pointerType === 'touch') velDrag(p).up(); return; }
+      if (p.x < KEYS_W) { if (e.pointerType === 'touch') { const r = rowAt(p.y); if (r != null) blip(r); } return; }
+      const r = rowAt(p.y), b = B(p.x); if (r == null || b < 0) return;
+      const n = noteAt(r, b);
+      if (dbl) {
+        // Doble toque: borra la nota, o crea una en el casillero vacío (como en Ableton)
+        if (n) { snapshot('Borrar nota'); c.notes = c.notes.filter(x => x !== n); sel.delete(n); }
+        else if (b < L()) { snapshot('Nota nueva'); const nn = addNote(r, b); sel = new Set(nn ? [nn] : []); }
+        app.emit('studio-draw');
+        return;
+      }
+      if (n) { if (!e.shiftKey) sel.clear(); sel.add(n); if (e.pointerType === 'touch') blip(n.p); }
+      else sel.clear();
+      draw();
     },
     context(p, e) {
       popover(pointAnchor(e.clientX, e.clientY), [
-        h('h4', {}, 'Notas'),
-        h('button', { class: 'menu-item', onclick: () => { closePopover(); snapshot('Cuantizar'); const g = gb() || 0.25; c.notes.forEach(n => { n.s = snapB(n.s, g); }); dedupe(); app.emit('studio-draw'); } }, '🧲 Cuantizar todo'),
-        h('button', { class: 'menu-item', onclick: () => { closePopover(); snapshot('Legato'); const ns = c.notes.slice().sort((a, b) => a.s - b.s); ns.forEach((n, i) => { const nx = ns.find((m, j) => j > i && m.s > n.s + 1e-6); n.d = (nx ? nx.s : L()) - n.s; }); app.emit('studio-draw'); } }, '⟿ Legato (hasta la siguiente)'),
-        h('button', { class: 'menu-item', onclick: () => { closePopover(); snapshot('Fuerza pareja'); c.notes.forEach(n => { n.v = 0.8; }); app.emit('studio-draw'); } }, '▬ Fuerza pareja'),
-        h('button', { class: 'menu-item danger', onclick: () => { closePopover(); snapshot('Borrar notas'); c.notes = []; app.emit('studio-draw'); } }, '🗑 Borrar todas'),
+        h('h4', {}, sel.size ? `${sel.size} notas elegidas` : 'Notas'),
+        h('button', { class: 'menu-item', onclick: () => { closePopover(); quantize(); } }, '🧲 Cuantizar'),
+        h('button', { class: 'menu-item', onclick: () => { closePopover(); duplicateSel(); } }, '⧉ Duplicar  (Ctrl+D)'),
+        h('button', { class: 'menu-item', onclick: () => { closePopover(); snapshot('Legato'); const ns = c.notes.slice().sort((a, b) => a.s - b.s); targets().forEach(n => { const nx = ns.find(m => m.s > n.s + 1e-6); n.d = (nx ? nx.s : L()) - n.s; }); app.emit('studio-draw'); } }, '⟿ Legato'),
+        h('button', { class: 'menu-item', onclick: () => { closePopover(); snapshot('Fuerza pareja'); targets().forEach(n => { n.v = 0.8; }); app.emit('studio-draw'); } }, '▬ Fuerza pareja'),
+        h('button', { class: 'menu-item', onclick: () => { closePopover(); sel = new Set(c.notes); draw(); } }, '▦ Elegir todas  (Ctrl+A)'),
+        h('button', { class: 'menu-item danger', onclick: () => { closePopover(); delSel(true); } }, sel.size ? '🗑 Borrar las elegidas' : '🗑 Borrar todas'),
       ]);
     },
-    hover(p) { hoverP = p ? { x: p.x, p: p.y < gridH() ? rowAt(p.y) : null } : null; cv.style.cursor = p && p.x > KEYS_W && p.y < gridH() ? 'crosshair' : 'default'; draw(); },
+    hover(p) {
+      hoverP = p;
+      if (p && p.x > KEYS_W && p.y > RUL_H && p.y < gridBot()) {
+        const r = rowAt(p.y), n = r != null ? noteAt(r, B(p.x)) : null;
+        cv.style.cursor = st.draw ? 'crosshair' : n ? (edgeOf(n, p.x) ? 'ew-resize' : 'move') : 'default';
+      } else cv.style.cursor = p && p.y < RUL_H && Math.abs(p.x - X(L())) < 22 ? 'ew-resize' : 'default';
+      draw();
+    },
     pan(dx, dy) { v.sx -= dx / v.zoom; v.sy -= dy; draw(); },
-    pinch(r, cx, cy, dx, dy) { const b = B(cx); v.zoom = Math.max(4, Math.min(600, v.zoom * r)); v.sx = b - (cx - KEYS_W) / v.zoom - dx / v.zoom; v.sy -= dy; draw(); },
+    pinch(r, cx, cy, dx, dy) { const b = B(cx); v.zoom = Math.max(4, Math.min(800, v.zoom * r)); v.sx = b - (cx - KEYS_W) / v.zoom - dx / v.zoom; v.sy -= dy; draw(); },
     wheel(p, e) {
-      if (e.ctrlKey || e.metaKey) { const b = B(p.x); v.zoom = Math.max(4, Math.min(600, v.zoom * Math.exp(-e.deltaY * 0.003))); v.sx = b - (p.x - KEYS_W) / v.zoom; }
-      else if (e.shiftKey) v.sx += e.deltaY / v.zoom;
+      if (e.ctrlKey || e.metaKey) { const b = B(p.x); v.zoom = Math.max(4, Math.min(800, v.zoom * Math.exp(-e.deltaY * 0.003))); v.sx = b - (p.x - KEYS_W) / v.zoom; }
+      else if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) v.sx += (e.deltaX || e.deltaY) / v.zoom;
       else v.sy += e.deltaY;
       draw();
     },
   });
 
+  function delSel(all = false) {
+    if (!sel.size && !all) return false;
+    snapshot('Borrar notas');
+    c.notes = sel.size ? c.notes.filter(n => !sel.has(n)) : [];
+    sel.clear(); app.emit('studio-draw');
+    return true;
+  }
+  function duplicateSel() {
+    const src = targets(); if (!src.length) return;
+    snapshot('Duplicar notas');
+    const a = Math.min(...src.map(n => n.s)), b = Math.max(...src.map(n => n.s + n.d));
+    const span = Math.ceil((b - a) / gb() - 1e-6) * gb();
+    const cp = src.map(n => ({ ...n, s: n.s + span })).filter(n => n.s < Math.max(L(), c.len));
+    if (cp.some(n => n.s >= L())) { c.loop = Math.min(c.len, Math.max(L(), Math.ceil(Math.max(...cp.map(n => n.s + n.d)) / 4) * 4)); if (c.loop > c.len) c.len = c.loop; }
+    c.notes.push(...cp); sel = new Set(cp);
+    dedupe(); renderSide(); app.emit('studio-draw');
+  }
+
   requestAnimationFrame(draw);
   return {
     draw,
     frame() { if (studio.playing) draw(); },
+    deleteSel: () => delSel(false),
+    key(e) {
+      const k = e.key, mod = e.ctrlKey || e.metaKey;
+      if (mod && k.toLowerCase() === 'a') { sel = new Set(c.notes); draw(); return true; }
+      if (mod && k.toLowerCase() === 'd' && sel.size) { duplicateSel(); return true; }
+      if (k === 'Escape') { sel.clear(); draw(); return true; }
+      if (!sel.size) return false;
+      if (k === 'ArrowUp' || k === 'ArrowDown') { transpose((k === 'ArrowUp' ? 1 : -1) * (e.shiftKey ? 12 : 1)); return true; }
+      if (k === 'ArrowLeft' || k === 'ArrowRight') {
+        snapshot('Mover notas', 'mv' + c.id);
+        const d = (k === 'ArrowRight' ? 1 : -1) * gb();
+        sel.forEach(n => { n.s = Math.max(0, Math.min(L() - 0.001, n.s + d)); });
+        app.emit('studio-draw'); return true;
+      }
+      return false;
+    },
   };
 }
+const rollViews = new Map(); // vista (zoom, desplazamiento) de cada clip, solo en esta sesión
 
 // =====================================================================
 // Clip de audio: onda, selección y operaciones
@@ -617,8 +784,13 @@ function instCard(t) {
       studio.sync(); app.emit('studio');
     } }, l)));
   const body = h('div', { class: 'inst-body' });
-  const el = h('div', { class: 'dev inst' }, h('div', { class: 'dev-head' }, h('b', {}, 'Instrumento'), h('div', { style: { flex: 1 } }), kinds), body);
+  // Dos modos, como pediste: perillas para ajustar el sonido, o un teclado grande para tocarlo
+  const mode = instViews.get(t.id) || 'knobs';
+  const modeChips = h('div', { class: 'chips' }, ...[['knobs', '🎛 Perillas'], ['play', ins.type === 'drums' ? '🥁 Tocar' : '🎹 Tocar']].map(([k, l]) =>
+    h('button', { class: 'chip' + (mode === k ? ' on' : ''), onclick: () => { instViews.set(t.id, k); app.emit('studio-sel'); } }, l)));
+  const el = h('div', { class: 'dev inst' + (mode === 'play' ? ' playing' : '') }, h('div', { class: 'dev-head' }, h('b', {}, 'Instrumento'), modeChips, h('div', { style: { flex: 1 } }), kinds), body);
   const refresh = () => studio.ta(t.id)?.inst?.update(t.inst);
+  if (mode === 'play') { body.append(playSurface(t, { big: true })); return el; }
 
   if (ins.type === 'synth') {
     const pr = presetById(ins.preset);
@@ -710,6 +882,10 @@ function pickPreset(anchor, t) {
   fill();
   popover(anchor, [h('h4', {}, 'Sonidos del synth'), cats, box], { cls: 'wide' });
 }
+
+const instViews = new Map(); // pista -> 'knobs' | 'play'
+export const instView = id => instViews.get(id) || 'knobs';
+export const setInstView = (id, v) => instViews.set(id, v);
 
 // Sonidos del kit (rápido); los del banco se arrastran desde el navegador
 function pickKitSound(anchor, onPick) {
