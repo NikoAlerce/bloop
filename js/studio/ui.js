@@ -63,7 +63,8 @@ export function buildStudio(el) {
 
   const posLbl = h('div', { class: 'st-pos', title: 'Posición (compás . tiempo . semicorchea)' }, '1.1.1');
   const loopBtn = h('button', { class: 'tb-btn sm', title: 'Loop: repetir la región marcada en la regla (arrastrala arriba de los números)' }, '🔁 Loop');
-  loopBtn.addEventListener('click', () => { st.loop.on = !st.loop.on; updLoop(); arr.draw(); });
+  loopBtn.addEventListener('click', () => { st.loop.on = !st.loop.on; if (st.loop.on) arr.loopIntoView(); updLoop(); arr.draw(); });
+  app.on('studio-loop', () => updLoop());
   const updLoop = () => loopBtn.classList.toggle('on', !!st.loop.on);
   updLoop();
   const gridBtn = h('button', { class: 'tb-btn sm', title: 'Grilla para mover, estirar y dibujar' });
@@ -280,7 +281,24 @@ function showStudioHelp(anchor) {
 // =====================================================================
 function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
   const st = S();
-  let hover = null, tsel = null, ghost = null, drop = null;
+  let hover = null, tsel = null, ghost = null, drop = null, heightsDirty = false;
+  function zoomBy(f) { const w = lanes.clientWidth, b = B(w / 2); st.zoom *= f; clamp(); st.sx = Math.max(0, b - w / 2 / st.zoom); draw(); }
+  function zoomFit() {
+    const end = Math.max(16, songEnd(), st.loop.on ? st.loop.b : 0);
+    st.zoom = (lanes.clientWidth - 20) / end; st.sx = 0; clamp(); draw();
+  }
+  // Al prender el loop, si la llave no se ve, la trae a donde estás mirando (al compás del cursor)
+  function loopIntoView() {
+    const w = lanes.clientWidth, v0 = st.sx, v1 = B(w);
+    if (st.loop.b > v0 && st.loop.a < v1) return;
+    const len = Math.max(4, st.loop.b - st.loop.a);
+    // el clip elegido si se ve; si no, el compás del cursor (o el primero que se ve)
+    let sc = selClip();
+    if (sc && !(sc.c.start < v1 && sc.c.start + sc.c.len > v0)) sc = null;
+    const from = st.pos >= v0 && st.pos < v1 ? st.pos : v0;
+    const a = sc ? sc.c.start : Math.floor(from / 4 + 1e-6) * 4;
+    st.loop = { on: true, a, b: a + (sc ? sc.c.len : len) };
+  }
   const many = new Set(); // clips elegidos (además del principal st.sel.clip)
   const isSel = c => c.id === st.sel.clip || many.has(c.id);
   // Clips elegidos con su pista: [{t, c}]
@@ -549,9 +567,13 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
     // Llave del loop (franja de arriba)
     const la = X(st.loop.a), lb = X(st.loop.b);
     gc.fillStyle = st.loop.on ? T.loopOn : T.loopOff;
-    gc.fillRect(la, 3, Math.max(4, lb - la), 10);
-    gc.fillStyle = st.loop.on ? '#1a1a1a' : '#2a2a2a';
-    gc.fillRect(la + 4, 6, Math.max(0, lb - la - 8), 4);
+    gc.fillRect(la, 2, Math.max(6, lb - la), 12);
+    gc.fillStyle = st.loop.on ? '#9a9a9a' : '#4a4a4a';
+    gc.fillRect(la + 7, 5, Math.max(0, lb - la - 14), 6);
+    // corchetes para agarrar las puntas
+    gc.fillStyle = st.loop.on ? '#fff' : '#888';
+    gc.fillRect(la, 2, 3, 13); gc.fillRect(lb - 3, 2, 3, 13);
+    if (lb - la > 60) { gc.fillStyle = st.loop.on ? '#111' : '#aaa'; gc.font = '10px ' + FONT; gc.fillText('Loop ' + ((st.loop.b - st.loop.a) / 4).toFixed(2).replace(/\.?0+$/, '') + ' comp.', la + 10, 12); }
     // Números de compás
     const step = st.zoom * 4 < 26 ? (st.zoom * 4 < 8 ? 16 : 4) : 1;
     gc.font = '11px ' + FONT;
@@ -575,7 +597,11 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
       h('button', { class: 'pill', onclick: () => addTrack('audio') }, '＋ Audio'),
       h('button', { class: 'pill', onclick: () => addTrack('midi') }, '＋ MIDI')));
     rulerSide.innerHTML = '';
-    rulerSide.append(h('span', {}, st.tracks.length + ' pistas'));
+    const zb = (lbl, title, fn) => { const b = h('button', { class: 'rz-btn', title }, lbl); b.addEventListener('click', fn); return b; };
+    rulerSide.append(h('span', {}, st.tracks.length + ' pistas'), h('div', { style: { flex: 1 } }),
+      zb('−', 'Alejar', () => zoomBy(1 / 1.5)), zb('+', 'Acercar', () => zoomBy(1.5)),
+      zb('⤢', 'Ver todo el tema', zoomFit),
+      zb('↕', 'Pistas más altas / más bajas', () => { const big = st.tracks.some(t => t.h < 100); st.tracks.forEach(t => { t.h = big ? 120 : 76; }); renderHeads(); }));
     draw();
   }
 
@@ -609,6 +635,17 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
       h('div', { class: 'sth-top' }, name, more), btns, h('div', { class: 'sth-vol' }, fader, meter));
     el.style.setProperty('--c', t.color);
     el.style.height = t.h + 'px';
+    // Borde de abajo: arrastrar para cambiar el alto de la pista (como en Ableton)
+    const grip = h('div', { class: 'sth-grip', title: 'Arrastrá para cambiar el alto' });
+    grip.addEventListener('pointerdown', e => {
+      e.stopPropagation(); e.preventDefault(); grip.setPointerCapture(e.pointerId);
+      const y0 = e.clientY, h0 = t.h;
+      const mv = ev => { t.h = Math.max(MIN_H, Math.min(320, h0 + ev.clientY - y0)); el.style.height = t.h + 'px'; draw(); };
+      const up = () => { grip.removeEventListener('pointermove', mv); grip.removeEventListener('pointerup', up); renderHeads(); };
+      grip.addEventListener('pointermove', mv); grip.addEventListener('pointerup', up);
+    });
+    grip.addEventListener('click', e => e.stopPropagation());
+    el.append(grip);
     if (t.autoOn) {
       const tgs = autoTargets(t);
       const cur = tgs.find(a => a.key === t.autoKey) || tgs[0];
@@ -960,7 +997,18 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
       draw();
     },
     pan(dx, dy) { st.sx -= dx / st.zoom; st.sy -= dy; draw(); },
-    pinch(r, cx, cy, dx, dy) { const b = B(cx); st.zoom *= r; clamp(); st.sx = b - cx / st.zoom - dx / st.zoom; st.sy -= dy; draw(); },
+    // Pellizco: horizontal = zoom del tiempo; vertical = pistas más altas o más bajas
+    pinch(r, cx, cy, dx, dy, rx = r, ry = 1) {
+      const b = B(cx); st.zoom *= rx; clamp(); st.sx = b - cx / st.zoom - dx / st.zoom;
+      if (Math.abs(ry - 1) > 0.003) {
+        const before = totalH(), frac = (cy + st.sy) / Math.max(1, before);
+        st.tracks.forEach(t => { t.h = Math.max(MIN_H, Math.min(320, t.h * ry)); });
+        st.sy = frac * totalH() - cy;
+        heightsDirty = true;
+      }
+      st.sy -= dy; draw();
+    },
+    pinchEnd() { if (heightsDirty) { heightsDirty = false; renderHeads(); } },
     wheel(p, e) {
       if (e.ctrlKey || e.metaKey) { const b = B(p.x); st.zoom *= Math.exp(-e.deltaY * 0.0025); clamp(); st.sx = b - p.x / st.zoom; }
       else if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) st.sx += (e.deltaX || e.deltaY) / st.zoom;
@@ -1097,7 +1145,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
   // ---- Animación ----
   let lastPos = '', wasPlaying = false;
   return {
-    draw, renderHeads, trackAt, selectClip, selectTrack, addTrack, audioOp, many, deleteSelected, newMidiClipAtCursor,
+    draw, renderHeads, trackAt, selectClip, selectTrack, addTrack, audioOp, many, deleteSelected, newMidiClipAtCursor, loopIntoView,
     X, B,
     dropInfo,
     setDrop(d) { drop = d; draw(); },

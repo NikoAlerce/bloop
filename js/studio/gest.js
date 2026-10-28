@@ -26,7 +26,7 @@ export function gestures(el, h) {
       clearTimeout(longT);
       const [a, b] = [...pts.values()];
       mode = 'pinch';
-      pinch0 = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
+      pinch0 = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, sx: Math.abs(a.x - b.x), sy: Math.abs(a.y - b.y) };
       h.pinchStart?.(pinch0);
       return;
     }
@@ -60,8 +60,11 @@ export function gestures(el, h) {
       if (pts.size < 2) return;
       const [a, b] = [...pts.values()];
       const d = Math.hypot(a.x - b.x, a.y - b.y) || 1, cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
-      h.pinch?.(d / pinch0.d, cx, cy, cx - pinch0.cx, cy - pinch0.cy);
-      pinch0 = { d, cx, cy };
+      const sx = Math.abs(a.x - b.x), sy = Math.abs(a.y - b.y);
+      // zoom por eje: abrir los dedos en horizontal agranda el tiempo, en vertical los renglones
+      const rx = Math.max(sx, 50) / Math.max(pinch0.sx, 50), ry = Math.max(sy, 50) / Math.max(pinch0.sy, 50);
+      h.pinch?.(d / pinch0.d, cx, cy, cx - pinch0.cx, cy - pinch0.cy, rx, ry);
+      pinch0 = { d, cx, cy, sx, sy };
       return;
     }
     if (mode === 'drag') { drag?.move?.(p, e); return; }
@@ -81,6 +84,7 @@ export function gestures(el, h) {
     if (mode === 'drag') { drag?.up?.(p, e, !q.moved); drag = null; if (!q.moved) tapped(p, e); }
     else if (mode === 'press' && !q.moved && e.type === 'pointerup') tapped(p, e);
     else if (mode === 'pan') h.panEnd?.();
+    if (mode === 'pinch' && pts.size < 2) h.pinchEnd?.();
     if (mode === 'pinch' && pts.size) return;
     if (!pts.size) mode = null;
   };
