@@ -8,10 +8,11 @@ import { metroClick } from '../audio/drums.js';
 import { fxParams } from '../state.js';
 import { download } from '../zip.js';
 import { toast } from '../ui/util.js';
+import { stretchBuffer } from '../audio/stretch.js';
 import { undo } from '../undo.js';
 import {
   S, spb, clipNotes, audible, getBuffer, putBuffer, resolveSrc, newMidiClip, newAudioClip, newTrack, findTrack, uid,
-  DRUM_NOTE, songEnd, clone,
+  DRUM_NOTE, songEnd, clone, loopLen, loopStart, loopEnd,
 } from './model.js';
 import { AUDIO_FX, MIDI_FX, SYNC, transformNote } from './devices.js';
 
@@ -273,7 +274,9 @@ export const studio = {
     this.bus = G(0.6);
     this.bus.connect(A.sum);
     this.preview = G(0.9); this.preview.connect(A.sum);
-    app.on('bpm', () => this.refreshDevices());
+    let st = 0;
+    app.on('bpm', () => { this.refreshDevices(); clearTimeout(st); st = setTimeout(prepareStretch, 400); });
+    setTimeout(prepareStretch, 1000);
   },
 
   ta(id) { return this.tracks.get(id); },
@@ -391,12 +394,15 @@ export const studio = {
   },
 
   startAudio(ta, c, b0, b1, t, sp, bpm, now) {
-    const buf = getBuffer(c.buf); if (!buf || b1 <= b0) return;
-    const bufSpb = c.warp ? 60 / c.bpm : sp;            // segundos de buffer por tiempo
-    const off = c.off + (b0 - c.start) * bufSpb;
+    let buf = getBuffer(c.buf); if (!buf || b1 <= b0) return;
+    let bufSpb = c.warp ? 60 / c.bpm : sp;              // segundos de buffer por tiempo
+    let off = c.off + (b0 - c.start) * bufSpb;
+    let rate = c.warp ? bpm / c.bpm : 1;
+    // "Mantener el tono": versión estirada al tempo actual (si todavía no está, suena como cinta)
+    const sb = stretched(c, bpm);
+    if (sb) { buf = sb; bufSpb = 60 / bpm; off = c.off * (c.bpm / bpm) + (b0 - c.start) * bufSpb; rate = 1; }
     const dur = (b1 - b0) * bufSpb;
     if (off >= buf.duration) return;
-    const rate = c.warp ? bpm / c.bpm : 1;
     const src = ctx().createBufferSource(), g = ctx().createGain();
     src.buffer = buf; src.playbackRate.value = rate;
     src.connect(g).connect(ta.input);
@@ -423,7 +429,10 @@ export const studio = {
       ta.inst.play(n.p, n.v, Math.max(now, T(b) + (n.dt || 0)), d * sp);
     };
     if (!arp) {
-      for (const n of clipNotes(c, a, e)) for (const m of transformNote(n, fx)) play(m, n.s);
+      for (const n of clipNotes(c, a, e)) {
+        if (n.c < 1 && Math.random() > n.c) continue; // probabilidad de la nota
+        for (const m of transformNote(n, fx)) play(m, n.s);
+      }
       return;
     }
     // Arpegiador: en cada paso, las notas que están sonando (después de acordes/escala)
@@ -576,11 +585,12 @@ export const studio = {
       const id = this.rec.clips[t.id]; if (!id) continue;
       const c = t.clips.find(x => x.id === id); if (!c) continue;
       let rel = b - c.start;
-      const LL = c.loop || c.len;
+      const LL = loopLen(c), LS = loopStart(c);
       if (c.loopRec) rel = ((rel % LL) + LL) % LL;
       if (q.on) { const g = (({ '1/4': 4, '1/8': 2, '1/8T': 4 / 3, '1/16': 1, '1/16T': 2 / 3, '1/32': 0.5 })[q.grid] || 1) / 4; rel += (Math.round(rel / g) * g - rel) * q.amount; }
       rel = Math.max(0, rel);
       if (c.loopRec && rel >= LL - 1e-6) rel = 0;
+      if (c.loopRec) rel += LS;
       const nt = { p: midi, s: Math.round(rel * 1000) / 1000, d: 0.25, v: Math.round(vel * 100) / 100 };
       c.notes = c.notes.filter(n => !(n.p === midi && Math.abs(n.s - nt.s) < 0.01));
       c.notes.push(nt);
@@ -719,6 +729,32 @@ export const studio = {
   },
 };
 
+// ---------- Audio estirado al tempo sin cambiar el tono (como el warp "Complex" de Ableton) ----------
+const stretchCache = new Map(); // 'buf|bpm' -> AudioBuffer | 'pending'
+export function stretched(c, bpm = app.state.bpm) {
+  if (!c.warp || !c.keep || Math.abs(bpm - c.bpm) < 0.01) return null;
+  const key = c.buf + '|' + bpm.toFixed(2);
+  const v = stretchCache.get(key);
+  if (v && v !== 'pending') return v;
+  if (!v) {
+    const src = getBuffer(c.buf);
+    if (!src) return null;
+    stretchCache.set(key, 'pending');
+    // se agrega un poco de silencio al final: el estirador trata el audio como circular
+    const pad = A.ctx.createBuffer(src.numberOfChannels, src.length + 8192, src.sampleRate);
+    for (let ch = 0; ch < src.numberOfChannels; ch++) pad.copyToChannel(src.getChannelData(ch), ch);
+    stretchBuffer(pad, bpm / c.bpm).then(b => {
+      stretchCache.set(key, b);
+      if (stretchCache.size > 40) stretchCache.delete(stretchCache.keys().next().value);
+    });
+  }
+  return null;
+}
+// Prepara las versiones estiradas apenas cambia el tempo (así al dar play ya están)
+export function prepareStretch() {
+  for (const t of S().tracks) for (const c of t.clips) if (c.kind === 'audio') stretched(c);
+}
+
 // Al poner un clip, lo que queda debajo se recorta (como en Ableton)
 export function removeOverlaps(t, c) {
   const a = c.start, b = c.start + c.len, out = [];
@@ -728,7 +764,7 @@ export function removeOverlaps(t, c) {
     if (ob <= a + 1e-6 || oa >= b - 1e-6) { out.push(o); continue; }
     if (oa < a - 1e-6) { // queda la parte de la izquierda
       const left = { ...clone(o), len: a - oa };
-      if (o.kind === 'midi') left.loop = Math.min(o.loop, left.len);
+      if (o.kind === 'midi') left.loop = Math.min(loopEnd(o), loopStart(o) + left.len);
       out.push(left);
     }
     if (ob > b + 1e-6) { // y la de la derecha
@@ -749,7 +785,7 @@ export function splitRight(o, x) {
   else {
     // Las notas se "despliegan" y se vuelven a armar desde el corte
     const notes = clipNotes(o, x, o.start + o.len).map(n => ({ p: n.p, s: n.s - x, d: n.d, v: n.v }));
-    r.notes = notes; r.loop = r.len;
+    r.notes = notes; r.loop = r.len; r.ls = 0;
   }
   return r;
 }

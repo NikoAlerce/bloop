@@ -722,7 +722,7 @@ body.studio-on #app { padding: 4px; gap: 4px; }
 .studio.narrow .st-heads, .studio.narrow .st-ruler-side { width: 150px; }
 
 .st-arr { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
-.st-row-ruler { display: flex; height: 34px; flex: none; border-bottom: 1px solid var(--ab-line); }
+.st-row-ruler { display: flex; height: 48px; flex: none; border-bottom: 1px solid var(--ab-line); }
 .st-ruler { flex: 1; min-width: 0; height: 100%; display: block; touch-action: none; }
 .st-ruler-side { width: 184px; flex: none; display: flex; align-items: center; padding: 0 8px; font-size: 11px; color: var(--ab-dim); border-left: 1px solid var(--ab-line); background: #1f1f1f; }
 .st-row-lanes { flex: 1; min-height: 0; display: flex; }

@@ -10,7 +10,7 @@ import { T, FONT, ink, dark, tint } from './theme.js';
 import { setView } from '../ui/padview.js';
 import {
   S, COLORS, clone, uid, spb, newTrack, newMidiClip, findTrack, findClip, selClip, selTrack, gridBeats, snapB,
-  GRID_OPTS, clipNotes, peaksOf, getBuffer, songEnd, audible, synthInst, drumInst,
+  GRID_OPTS, clipNotes, peaksOf, getBuffer, songEnd, audible, synthInst, drumInst, loopLen, loopStart, loopEnd,
 } from './model.js';
 import { studio, removeOverlaps, splitRight, autoTargets, autoValueAt, faderGain, heard } from './engine.js';
 import { gestures, pointAnchor, fitCanvas } from './gest.js';
@@ -21,12 +21,15 @@ import { reverseRange } from '../audio/edit.js';
 import { normalizeBuffer } from '../audio/engine.js';
 import { putBuffer } from './model.js';
 
-const RULER_H = 34, HEAD_W = 184, MIN_H = 44;
+const RULER_H = 48, HEAD_W = 184, MIN_H = 44, MK_Y = 32;
 export const defaultDetailH = () => Math.round(Math.min(330, Math.max(200, innerHeight * 0.4)));
 
 export function snapshot(label, key = null) {
   const st = S();
-  undo.state(label, key, () => clone(st.tracks), v => { st.tracks = v; studio.sync(); app.emit('studio'); });
+  // foto de las pistas y los marcadores (los clips de audio apuntan a buffers que no cambian)
+  undo.state(label, key, () => clone({ tracks: st.tracks, markers: st.markers || [] }), v => {
+    st.tracks = clone(v.tracks); st.markers = clone(v.markers); studio.sync(); app.emit('studio');
+  });
 }
 
 export function buildStudio(el) {
@@ -229,6 +232,7 @@ function studioKey(e, down, ui) {
     }
     return true;
   }
+  if (mod && k === 'j') { ui.arr.joinSelected(); return true; }
   if (mod && k === 'e') { const sc = selClip(); if (sc) splitAt(sc.t, sc.c, st.pos); return true; }
   if (mod && k === 'l') { const sc = selClip(); if (sc) { st.loop = { on: true, a: sc.c.start, b: sc.c.start + sc.c.len }; app.emit('studio-draw'); } return true; }
   if (k === 'delete' || k === 'backspace') { if (ui.arr.many.size < 2 && ui.detail.deleteSel?.()) return true; ui.arr.deleteSelected(); return true; }
@@ -256,7 +260,7 @@ export function splitAt(t, c, x) {
   snapshot('Dividir clip');
   const r = splitRight(c, x);
   c.len = x - c.start;
-  if (c.kind === 'midi') c.loop = Math.min(c.loop, c.len);
+  if (c.kind === 'midi') c.loop = Math.min(loopEnd(c), loopStart(c) + c.len);
   t.clips.push(r);
   app.emit('studio');
 }
@@ -323,6 +327,52 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
     toast('Elegí uno o varios clips para borrar');
     return false;
   }
+  // Unir en un clip (Ctrl+J, "Consolidar" de Ableton): los clips elegidos de cada pista
+  function joinSelected() {
+    const byTrack = new Map();
+    for (const x of selected()) { if (!byTrack.has(x.t)) byTrack.set(x.t, []); byTrack.get(x.t).push(x.c); }
+    const groups = [...byTrack].filter(([, cs]) => cs.length > 1);
+    if (!groups.length) { toast('Elegí dos o más clips de la misma pista para unirlos (☑ Varios)'); return; }
+    const sp = spb(), bpm = app.state.bpm;
+    for (const [, cs] of groups) if (cs[0].kind === 'audio' && cs.some(c => c.warp && Math.abs(c.bpm - bpm) > 0.01)) {
+      toast('Para unir audio, los clips tienen que estar a su tempo original (o con "Sigue el tempo" apagado)'); return;
+    }
+    snapshot('Unir clips');
+    many.clear(); st.sel.clip = null;
+    for (const [t, cs] of groups) {
+      const a = Math.min(...cs.map(c => c.start)), b = Math.max(...cs.map(c => c.start + c.len));
+      let nc;
+      if (cs[0].kind === 'midi') {
+        const notes = cs.flatMap(c => clipNotes(c).map(n => ({ p: n.p, s: n.s - a, d: n.d, v: n.v, ...(n.c < 1 ? { c: n.c } : {}) })));
+        nc = newMidiClip(a, b - a, cs[0].color, notes);
+      } else {
+        // mezcla de los audios en uno nuevo, con su ganancia y sus fundidos
+        const sr = A.ctx.sampleRate, out = A.ctx.createBuffer(2, Math.max(1, Math.round((b - a) * sp * sr)), sr);
+        for (const c of cs) {
+          const src = getBuffer(c.buf); if (!src) continue;
+          const o0 = Math.round((c.start - a) * sp * sr), n = Math.round(c.len * sp * sr), s0 = Math.round(c.off * src.sampleRate);
+          const fi = Math.max(1, (c.fadeIn || 0) * sr), fo = Math.max(1, (c.fadeOut || 0) * sr), gn = c.gain ?? 1;
+          for (let ch = 0; ch < 2; ch++) {
+            const d = src.getChannelData(Math.min(ch, src.numberOfChannels - 1)), od = out.getChannelData(ch);
+            for (let i = 0; i < n && s0 + i < d.length && o0 + i < od.length; i++) {
+              const env = Math.min(1, i / fi, (n - i) / fo);
+              od[o0 + i] += d[s0 + i] * gn * env;
+            }
+          }
+        }
+        nc = newAudioClip(a, out, putBuffer(out), cs[0].color, bpm, cs[0].name || 'Audio');
+        nc.len = b - a;
+      }
+      nc.name = cs[0].name || nc.name;
+      const ids = new Set(cs.map(c => c.id));
+      t.clips = t.clips.filter(c => !ids.has(c.id));
+      t.clips.push(nc); removeOverlaps(t, nc);
+      st.sel.clip = nc.id; st.sel.track = t.id;
+    }
+    app.emit('studio');
+    toast('⧉ Clips unidos');
+  }
+
   function deleteTime(sel) {
     const a = Math.min(sel.a, sel.b), b = Math.max(sel.a, sel.b);
     snapshot('Borrar tiempo');
@@ -440,6 +490,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
       gc.strokeRect(X(gh.a) + 1, y + 2, Math.max(6, (gh.b - gh.a) * st.zoom) - 2, gh.t.h - 5);
       gc.setLineDash([]);
     }
+    drawMarkerLines(gc, hh);
     // Marcador de inicio y cabezal
     gc.fillStyle = ink(0.45);
     const px = Math.round(X(st.pos)) + 0.5;
@@ -471,7 +522,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
     if (w > 20) gc.fillText(nm + gainTxt, x + 4, y + 10.5, Math.max(10, w - 8));
     const by = y + 15, bh = hh - 16;
     if (c.kind === 'midi') {
-      const L = c.loop || c.len;
+      const L = loopLen(c);
       for (let k = 1; k * L < c.len - 1e-6; k++) { gc.fillStyle = dark(0.35); gc.fillRect(x + k * L * st.zoom, by, 1, bh); }
       const ns = clipNotes(c);
       if (ns.length) {
@@ -501,6 +552,15 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
           gc.fillRect(px, mid - hi2 * amp, 1, Math.max(1, (hi2 - lo) * amp));
         }
       } else if (!buf) { gc.fillStyle = dark(0.6); gc.fillText('falta el audio', x + 5, by + 14); }
+      // Fundidos: sombra y línea; en el clip elegido, agarraderas arriba para estirarlos
+      const fi = Math.min(w / 2, (c.fadeIn || 0) / spb() * st.zoom), fo = Math.min(w / 2, (c.fadeOut || 0) / spb() * st.zoom);
+      gc.fillStyle = dark(0.28); gc.strokeStyle = dark(0.7); gc.lineWidth = 1;
+      if (fi > 1.5) { gc.beginPath(); gc.moveTo(x, by); gc.lineTo(x + fi, by); gc.lineTo(x, by + bh); gc.fill(); gc.beginPath(); gc.moveTo(x, by + bh); gc.lineTo(x + fi, by); gc.stroke(); }
+      if (fo > 1.5) { gc.beginPath(); gc.moveTo(x + w, by); gc.lineTo(x + w - fo, by); gc.lineTo(x + w, by + bh); gc.fill(); gc.beginPath(); gc.moveTo(x + w - fo, by); gc.lineTo(x + w, by + bh); gc.stroke(); }
+      if (sel && w > 40) {
+        gc.fillStyle = '#fff'; gc.strokeStyle = '#111';
+        for (const fx of [x + Math.max(5, fi), x + w - Math.max(5, fo)]) { gc.fillRect(fx - 4, by + 1, 8, 8); gc.strokeRect(fx - 4 + 0.5, by + 1.5, 7, 7); }
+      }
     }
     gc.restore();
     gc.lineWidth = 1; gc.strokeStyle = sel ? '#fff' : dark(0.6); rr(gc, x + 0.5, y + 0.5, w - 1, hh - 1, 2); gc.stroke();
@@ -579,14 +639,30 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
     gc.font = '11px ' + FONT;
     for (let bar = Math.floor(st.sx / 4); X(bar * 4) < w; bar++) {
       const x = Math.round(X(bar * 4)) + 0.5;
-      if (bar % step === 0) { gc.fillStyle = T.rulerText; gc.fillText(String(bar + 1), x + 3, hh - 5); gc.fillStyle = '#5a5a5a'; gc.fillRect(x, 16, 1, hh - 16); }
-      else if (st.zoom > 4) { gc.fillStyle = '#444'; gc.fillRect(x, hh - 6, 1, 6); }
+      if (bar % step === 0) { gc.fillStyle = T.rulerText; gc.fillText(String(bar + 1), x + 3, 28); gc.fillStyle = '#5a5a5a'; gc.fillRect(x, 16, 1, 16); }
+      else if (st.zoom > 4) { gc.fillStyle = '#444'; gc.fillRect(x, 26, 1, 6); }
     }
+    // Fila de marcadores (doble toque = marcador nuevo)
+    gc.fillStyle = '#191919'; gc.fillRect(0, MK_Y, w, hh - MK_Y);
+    gc.fillStyle = '#0d0d0d'; gc.fillRect(0, MK_Y, w, 1);
+    for (const m of st.markers || []) {
+      const mx = X(m.b); if (mx > w || mx + markerW(m) < 0) continue;
+      gc.fillStyle = '#c9c9c9';
+      gc.beginPath(); gc.moveTo(mx, MK_Y + 2); gc.lineTo(mx + 7, MK_Y + 8); gc.lineTo(mx, MK_Y + 14); gc.fill();
+      gc.fillStyle = '#3a3a3a'; gc.fillRect(mx + 8, MK_Y + 2, markerW(m) - 10, 12);
+      gc.fillStyle = T.text; gc.font = '10px ' + FONT; gc.fillText(m.name, mx + 11, MK_Y + 11);
+    }
+    if (!(st.markers || []).length && w > 300) { gc.fillStyle = '#555'; gc.font = '10px ' + FONT; gc.fillText('doble toque acá: marcador', 8, MK_Y + 11); }
     // Marcador de inicio
     const px = X(st.pos);
     gc.fillStyle = T.text;
     gc.beginPath(); gc.moveTo(px - 6, 16); gc.lineTo(px + 6, 16); gc.lineTo(px, 23); gc.fill();
     if (studio.playing) { gc.fillStyle = studio.rec ? T.rec : T.playhead; gc.fillRect(Math.round(X(studio.heardBeat())), 16, 2, hh - 16); }
+  }
+  // Los marcadores también se ven como líneas finas sobre las pistas
+  function drawMarkerLines(gc, hh) {
+    gc.fillStyle = 'rgba(201,201,201,0.18)';
+    for (const m of st.markers || []) gc.fillRect(Math.round(X(m.b)), 0, 1, hh);
   }
 
   // ---- Encabezados de pista (derecha) ----
@@ -769,7 +845,31 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
       const c2 = t.clips.find(c => p.x - X(c.start + c.len) >= 0 && p.x - X(c.start + c.len) < (touch ? 16 : 10));
       if (c2) return { t, y0, b, clip: c2, edge: 'R' };
     }
+    if (clip && clip.kind === 'audio' && clip.id === st.sel.clip) {
+      const by = y0 + 16, xs = X(clip.start), xe = X(clip.start + clip.len);
+      const fi = Math.max(5, Math.min((xe - xs) / 2, (clip.fadeIn || 0) / spb() * st.zoom));
+      const fo = Math.max(5, Math.min((xe - xs) / 2, (clip.fadeOut || 0) / spb() * st.zoom));
+      const nearY = p.y >= by - 6 && p.y <= by + (touch ? 22 : 14), r = touch ? 16 : 10;
+      if (nearY && Math.abs(p.x - (xs + fi)) < r) return { t, y0, b, clip, fade: 'in' };
+      if (nearY && Math.abs(p.x - (xe - fo)) < r) return { t, y0, b, clip, fade: 'out' };
+    }
     return { t, y0, b, clip, edge };
+  }
+
+  // Estirar un fundido de entrada o de salida
+  function fadeDrag(hh) {
+    const c = hh.clip; let began = false;
+    return {
+      move(q) {
+        if (!began) { began = true; snapshot('Fundido', 'fade' + c.id); }
+        const max = c.len * spb() / 2;
+        const beats = hh.fade === 'in' ? B(q.x) - c.start : c.start + c.len - B(q.x);
+        const sec = Math.max(0.002, Math.min(max, beats * spb()));
+        if (hh.fade === 'in') c.fadeIn = sec; else c.fadeOut = sec;
+        draw();
+      },
+      up() { if (began) app.emit('studio'); },
+    };
   }
 
   function dragClip(hh, p, e, copy) {
@@ -838,7 +938,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
             ns = Math.max(0, ns);
             // contenido fijo en el tiempo: se despliegan las notas
             const notes = clipNotes(orig, Math.max(ns, start0), end0).map(n => ({ p: n.p, s: n.s - ns, d: n.d, v: n.v }));
-            c.notes = notes; c.loop = end0 - ns;
+            c.notes = notes; c.loop = end0 - ns; c.ls = 0;
           }
           c.start = ns; c.len = end0 - ns;
         }
@@ -948,6 +1048,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
     // Dedo sobre las agarraderas del clip elegido: estira directo, sin mantener apretado
     grab(p) {
       const hh = hit(p, true);
+      if (hh.fade && !hh.t.autoOn) return fadeDrag(hh);
       if (hh.clip && hh.edge && hh.clip.id === st.sel.clip && !hh.t.autoOn) return resizeClip(hh, hh.edge);
       return null;
     },
@@ -956,6 +1057,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
       tsel = null;
       if (!hh.t) return null;
       if (hh.t.autoOn) return autoDrag(hh, p, e);
+      if (hh.fade) return fadeDrag(hh);
       if (hh.clip) {
         return hh.edge && !st.multi ? resizeClip(hh, hh.edge) : dragClip(hh, p, e, e.altKey);
       }
@@ -993,7 +1095,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
       if (!p) { if (hover) { hover = null; draw(); } return; }
       const hh = hit(p);
       hover = hh.t ? hh : null;
-      lanes.style.cursor = hh.edge ? 'ew-resize' : hh.clip ? 'grab' : hh.t?.autoOn ? 'crosshair' : st.draw ? 'crosshair' : 'default';
+      lanes.style.cursor = hh.fade ? 'col-resize' : hh.edge ? 'ew-resize' : hh.clip ? 'grab' : hh.t?.autoOn ? 'crosshair' : st.draw ? 'crosshair' : 'default';
       draw();
     },
     pan(dx, dy) { st.sx -= dx / st.zoom; st.sy -= dy; draw(); },
@@ -1036,7 +1138,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
           const ts = st.tracks.slice(st.tracks.indexOf(sel.t0), st.tracks.indexOf(sel.t1) + 1);
           for (const t of ts) for (const x of [a, b]) {
             const c = t.clips.find(c => x > c.start + 1e-3 && x < c.start + c.len - 1e-3);
-            if (c) { const r = splitRight(c, x); c.len = x - c.start; if (c.kind === 'midi') c.loop = Math.min(c.loop, c.len); t.clips.push(r); }
+            if (c) { const r = splitRight(c, x); c.len = x - c.start; if (c.kind === 'midi') c.loop = Math.min(loopEnd(c), loopStart(c) + c.len); t.clips.push(r); }
           }
           tsel = null; app.emit('studio');
         } }, '✂ Dividir los clips en los bordes'),
@@ -1054,9 +1156,11 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
     }
     if (hh.clip) {
       const { t, clip: c } = hh;
-      selectClip(t, c);
+      if (!isSel(c)) selectClip(t, c);   // si ya estaba entre los elegidos, se mantiene la selección
+      const nSel = selected().length;
       const items = [
         h('h4', {}, c.name || (c.kind === 'midi' ? 'Clip MIDI' : 'Clip de audio')),
+        nSel > 1 ? h('button', { class: 'menu-item', onclick: () => { closePopover(); joinSelected(); } }, '⧉ Unir los elegidos en un clip  (Ctrl+J)') : null,
         h('button', { class: 'menu-item', onclick: () => { closePopover(); duplicateClip(t, c); } }, '⧉ Duplicar  (Ctrl+D)'),
         h('button', { class: 'menu-item', onclick: () => { closePopover(); splitAt(t, c, Math.max(c.start, snapB(hh.b, g()))); } }, '✂ Dividir acá'),
         h('button', { class: 'menu-item', onclick: () => { closePopover(); st.loop = { on: true, a: c.start, b: c.start + c.len }; app.emit('studio'); } }, '🔁 Loop en este clip'),
@@ -1069,7 +1173,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
         h('button', { class: 'menu-item', onclick: () => { closePopover(); audioOp(t, c, 'rev'); } }, '⇄ Al revés'),
         h('button', { class: 'menu-item', onclick: () => { closePopover(); audioOp(t, c, 'norm'); } }, '📈 Normalizar'),
       );
-      items.push(h('button', { class: 'menu-item danger', onclick: () => { closePopover(); deleteClip(t, c); } }, '🗑 Borrar  (Supr)'));
+      items.push(h('button', { class: 'menu-item danger', onclick: () => { closePopover(); nSel > 1 ? deleteSelected() : deleteClip(t, c); } }, nSel > 1 ? `🗑 Borrar los ${nSel} elegidos` : '🗑 Borrar  (Supr)'));
       popover(anchor, items);
       return;
     }
@@ -1111,11 +1215,67 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
           up(q, e, tap) { if (tap) { st.loop.on = !st.loop.on; app.emit('studio-loop'); } draw(); },
         };
       }
-      return { move(q) { st.pos = Math.max(0, snapB(B(q.x), g())); draw(); }, up(q) { st.pos = Math.max(0, snapB(B(q.x), g())); if (studio.playing) { studio.stop(); studio.play(); } draw(); } };
+      if (p.y >= MK_Y) {
+        // fila de marcadores: arrastrar uno lo mueve, tocarlo salta ahí
+        const m = markerAt(p.x);
+        if (!m) return null;
+        let began = false; const b0 = m.b, x0 = p.x;
+        return {
+          move(q) {
+            if (!began && Math.abs(q.x - x0) < 5) return;
+            if (!began) { began = true; snapshot('Mover marcador'); }
+            m.b = Math.max(0, snapB(b0 + B(q.x) - B(x0), g() || 1)); draw();
+          },
+          up(q, e, tap) { if (tap) jumpTo(m.b); draw(); },
+        };
+      }
+      return { move(q) { st.pos = Math.max(0, snapB(B(q.x), g())); draw(); }, up(q) { jumpTo(Math.max(0, snapB(B(q.x), g()))); } };
+    },
+    tap(p, e, dbl) {
+      if (p.y < MK_Y || !dbl) return;
+      const m = markerAt(p.x);
+      if (m) renameMarker(m); else addMarker(Math.max(0, snapB(B(p.x), g() || 1, 'round')));
+    },
+    context(p, e) {
+      const m = p.y >= MK_Y ? markerAt(p.x) : null;
+      const anchor = pointAnchor(e.clientX, e.clientY);
+      if (m) popover(anchor, [h('h4', {}, '◆ ' + m.name),
+        h('button', { class: 'menu-item', onclick: () => { closePopover(); jumpTo(m.b); } }, '▶ Ir acá'),
+        h('button', { class: 'menu-item', onclick: () => { closePopover(); renameMarker(m); } }, '✎ Renombrar'),
+        h('button', { class: 'menu-item', onclick: () => { closePopover(); const nx = nextMarkerAfter(m); st.loop = { on: true, a: m.b, b: nx ? nx.b : m.b + 16 }; app.emit('studio-loop'); draw(); } }, '🔁 Loop hasta el siguiente marcador'),
+        h('button', { class: 'menu-item danger', onclick: () => { closePopover(); snapshot('Borrar marcador'); st.markers = st.markers.filter(x => x !== m); draw(); } }, '🗑 Borrar')]);
+      else popover(anchor, [h('h4', {}, 'Regla'),
+        h('button', { class: 'menu-item', onclick: () => { closePopover(); addMarker(Math.max(0, snapB(B(p.x), g() || 1, 'round'))); } }, '◆ Marcador acá')]);
     },
     pinch(r, cx) { const b = B(cx); st.zoom *= r; clamp(); st.sx = b - cx / st.zoom; draw(); },
     wheel(p, e) { const b = B(p.x); st.zoom *= Math.exp(-e.deltaY * 0.0025); clamp(); st.sx = b - p.x / st.zoom; draw(); },
   });
+
+  // ---- Marcadores ----
+  function markerAt(x) {
+    let best = null;
+    for (const m of st.markers || []) { const mx = X(m.b); if (x >= mx - 8 && x <= mx + markerW(m)) best = m; }
+    return best;
+  }
+  const markerW = m => Math.max(24, m.name.length * 6.2 + 18);
+  const nextMarkerAfter = m => (st.markers || []).filter(x => x.b > m.b + 1e-6).sort((a, b) => a.b - b.b)[0] || null;
+  function addMarker(b) {
+    snapshot('Marcador');
+    st.markers ||= [];
+    const names = ['Intro', 'Verso', 'Estribillo', 'Puente', 'Final'];
+    st.markers.push({ id: uid('m'), b, name: names[st.markers.length] || 'Marcador ' + (st.markers.length + 1) });
+    st.markers.sort((a, c) => a.b - c.b);
+    draw();
+  }
+  function renameMarker(m) {
+    const v = prompt('Nombre del marcador', m.name);
+    if (v != null && v.trim()) { snapshot('Renombrar marcador'); m.name = v.trim().slice(0, 24); draw(); }
+  }
+  function jumpTo(b) {
+    st.pos = b;
+    if (studio.playing) { studio.stop(); studio.play(); }
+    draw();
+  }
 
   // ---- Soltar cosas del navegador ----
   function dropInfo(clientX, clientY) {
@@ -1145,7 +1305,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
   // ---- Animación ----
   let lastPos = '', wasPlaying = false;
   return {
-    draw, renderHeads, trackAt, selectClip, selectTrack, addTrack, audioOp, many, deleteSelected, newMidiClipAtCursor, loopIntoView,
+    draw, renderHeads, trackAt, selectClip, selectTrack, addTrack, audioOp, many, deleteSelected, newMidiClipAtCursor, loopIntoView, joinSelected,
     X, B,
     dropInfo,
     setDrop(d) { drop = d; draw(); },

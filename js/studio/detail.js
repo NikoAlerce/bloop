@@ -14,10 +14,10 @@ import { PRESET_CATS, PRESET_DEFAULTS } from '../audio/presets.js';
 import { noteName, NOTE_NAMES, SCALES } from '../scales.js';
 import { silenceRange, deleteRange, copyRange } from '../audio/edit.js';
 import {
-  S, uid, clone, spb, selClip, selTrack, findTrack, gridBeats, snapB, getBuffer, putBuffer, peaksOf, clipNotes,
+  S, uid, clone, spb, selClip, selTrack, findTrack, gridBeats, snapB, getBuffer, putBuffer, peaksOf, clipNotes, loopStart, loopEnd, loopLen,
   DRUM_NOTE, DRUM_PADS, srcName, synthInst, drumInst, samplerInst, audible,
 } from './model.js';
-import { studio, faderGain, silentHint, heard } from './engine.js';
+import { studio, faderGain, silentHint, heard, prepareStretch } from './engine.js';
 import { AUDIO_FX, MIDI_FX, AUDIO_FX_KEYS, MIDI_FX_KEYS, defaultsOf } from './devices.js';
 import { gestures, fitCanvas, pointAnchor } from './gest.js';
 import { snapshot, norm, denorm, mfader, splitAt, copyClip, defaultDetailH } from './ui.js';
@@ -91,9 +91,11 @@ function midiEditor(el, t, c) {
   const RUL_H = 22, KEYS_W = drums ? 100 : 54, VEL_H = 56;
   const v = rollViews.get(c.id) || { zoom: 0, sx: 0, sy: null, rowH: drums ? 26 : 15, fold: false, allPads: false };
   rollViews.set(c.id, v);
-  if (!v.zoom) v.zoom = Math.max(8, (el.clientWidth - 260 - KEYS_W) / Math.max(1, c.loop || c.len));
+  if (!v.zoom) v.zoom = Math.max(8, (el.clientWidth - 260 - KEYS_W) / Math.max(1, loopEnd(c)));
   let sel = new Set(), hoverP = null, marquee = null;
-  const L = () => c.loop || c.len;
+  const L = () => loopEnd(c);           // fin del loop (tiempos dentro del clip)
+  const LS = () => loopStart(c);        // inicio del loop
+  const LEN = () => L() - LS();         // largo del loop
   const scaleSet = () => {
     const fx = (t.midiFx || []).find(f => f.type === 'scale' && f.on);
     const sc = fx ? { root: +fx.p.root, type: fx.p.type } : app.state.scale;
@@ -141,21 +143,24 @@ function midiEditor(el, t, c) {
   // ---- Panel lateral ----
   function renderSide() {
     side.innerHTML = '';
-    const loopLbl = h('span', {}, fmtBeats(L()));
+    const loopLbl = h('span', {}, fmtBeats(LEN()));
     const setLoop = nl => {
       nl = Math.max(0.25, Math.min(256, nl));
       snapshot('Largo del loop', 'loop' + c.id);
-      c.loop = nl; if (c.len < nl) c.len = nl;
+      c.loop = LS() + nl; if (c.len < nl) c.len = nl;
       renderSide(); app.emit('studio-draw');
     };
+    const len = LEN();
     const items = [
       h('div', { class: 'dside-row' }, h('b', {}, 'Loop'), h('div', { class: 'stepper sm' },
-        h('button', { onclick: () => setLoop(L() <= 1 ? L() / 2 : L() - (L() > 4 ? 4 : 1)) }, '−'), loopLbl,
-        h('button', { onclick: () => setLoop(L() < 1 ? L() * 2 : L() + (L() >= 4 ? 4 : 1)) }, '＋'))),
+        h('button', { onclick: () => setLoop(len <= 1 ? len / 2 : len - (len > 4 ? 4 : 1)) }, '−'), loopLbl,
+        h('button', { onclick: () => setLoop(len < 1 ? len * 2 : len + (len >= 4 ? 4 : 1)) }, '＋'))),
       h('button', { class: 'pill', title: 'Duplica el loop con sus notas (como en Ableton)', onclick: () => {
         snapshot('Duplicar loop');
-        const l = L(); c.notes = c.notes.filter(n => n.s < l); c.notes = c.notes.concat(c.notes.map(n => ({ ...n, s: n.s + l })));
-        c.loop = l * 2; if (c.len < c.loop) c.len = c.loop; renderSide(); app.emit('studio');
+        const l = LEN(), e = L();
+        c.notes = c.notes.filter(n => n.s < e);
+        c.notes = c.notes.concat(c.notes.filter(n => n.s >= LS()).map(n => ({ ...n, s: n.s + l })));
+        c.loop = e + l; if (c.len < l * 2) c.len = l * 2; renderSide(); app.emit('studio');
       } }, '×2 Duplicar loop'),
       h('button', { class: 'pill', title: 'Lleva a la grilla las notas elegidas (o todas)', onclick: quantize }, '🧲 Cuantizar'),
       h('div', { class: 'dside-row' }, h('b', {}, 'Transp.'), h('div', { class: 'stepper sm' },
@@ -231,10 +236,12 @@ function midiEditor(el, t, c) {
     }
     // Fuera del loop: más oscuro, con las repeticiones como fantasmas
     g.fillStyle = T.outside; g.fillRect(X(L()), RUL_H, Math.max(0, w - X(L())), gbot);
+    if (LS() > 0) g.fillRect(KEYS_W, RUL_H, Math.max(0, X(LS()) - KEYS_W), gbot);
     const col = c.color || t.color;
     const vis = (s, d) => X(s + d) > KEYS_W && X(s) < w;
-    for (let k = 1; k * L() < c.len; k++) for (const n of c.notes) {
-      const s = n.s + k * L(); if (!vis(s, n.d)) continue;
+    for (let k = 1; k * LEN() < c.len; k++) for (const n of c.notes) {
+      if (n.s < LS() || n.s >= L()) continue;
+      const s = n.s + k * LEN(); if (!vis(s, n.d)) continue;
       const y = rowY(n.p);
       g.fillStyle = ink(0.1); g.fillRect(X(s) + 1, y + 1, Math.max(3, n.d * v.zoom - 2), v.rowH - 2);
     }
@@ -248,6 +255,7 @@ function midiEditor(el, t, c) {
       g.strokeStyle = on ? '#fff' : dark(0.75); g.lineWidth = 1;
       g.strokeRect(x + 0.5, y + 1.5, nw - 1, v.rowH - 3);
       if (on && nw > 14) { g.fillStyle = dark(0.5); g.fillRect(x + nw - 4, y + 3, 2, v.rowH - 6); }
+      if ((n.c ?? 1) < 1) { g.fillStyle = '#1d4f80'; g.beginPath(); g.moveTo(x + 1, y + 1); g.lineTo(x + 8, y + 1); g.lineTo(x + 1, y + 8); g.fill(); }
     }
     // Lápiz en el aire: el casillero o el borde que vas a tocar
     if (hoverP && hoverP.x > KEYS_W && hoverP.y > RUL_H && hoverP.y < gbot) {
@@ -269,14 +277,16 @@ function midiEditor(el, t, c) {
     if (studio.playing) {
       const hb = studio.heardBeat();
       if (hb >= c.start && hb < c.start + c.len) {
-        g.fillStyle = T.playhead; g.fillRect(Math.round(X((hb - c.start) % L())), RUL_H, 2, gbot);
+        g.fillStyle = T.playhead; g.fillRect(Math.round(X(LS() + (hb - c.start) % LEN())), RUL_H, 2, gbot);
       }
     }
     g.restore();
     // Regla con la llave del loop
     g.fillStyle = T.ruler; g.fillRect(KEYS_W, 0, w - KEYS_W, RUL_H);
-    g.fillStyle = T.loopOn; g.fillRect(Math.max(KEYS_W, X(0)), 2, Math.max(0, X(L()) - Math.max(KEYS_W, X(0))), 8);
-    g.fillStyle = '#fff'; g.fillRect(X(L()) - 5, 0, 5, 12);
+    // llave del loop con sus dos puntas (inicio y fin), como en Ableton
+    const la = Math.max(KEYS_W, X(LS())), lb = X(L());
+    g.fillStyle = T.loopOn; g.fillRect(la, 2, Math.max(0, lb - la), 9);
+    g.fillStyle = '#fff'; if (X(LS()) >= KEYS_W) g.fillRect(X(LS()), 0, 4, 13); g.fillRect(lb - 4, 0, 4, 13);
     g.font = '10px ' + FONT;
     for (let b = Math.floor(v.sx / 4) * 4; X(b) < w; b += 4) {
       if (X(b) < KEYS_W) continue;
@@ -305,16 +315,21 @@ function midiEditor(el, t, c) {
       }
     });
     g.restore();
-    // Fuerza (velocity)
+    // Tira de abajo: Fuerza o Probabilidad (tocá el nombre para cambiar, como en Live 11/12)
+    const prob = v.lane === 'prob';
     g.fillStyle = '#232323'; g.fillRect(0, gbot, w, VEL_H);
     g.fillStyle = '#111'; g.fillRect(0, gbot, w, 1);
-    g.fillStyle = T.dim; g.font = '10px ' + FONT; g.fillText('Fuerza', 8, gbot + VEL_H / 2 + 3);
+    g.fillStyle = '#333'; g.fillRect(4, gbot + 6, KEYS_W - 8, 20);
+    g.fillStyle = T.acc2 || T.accent; g.font = '10px ' + FONT;
+    g.fillText(prob ? 'Prob. ▾' : 'Fuerza ▾', 8, gbot + 20);
     g.save(); g.beginPath(); g.rect(KEYS_W, gbot, w - KEYS_W, VEL_H); g.clip();
     for (const n of c.notes) {
       if (!vis(n.s, n.d)) continue;
-      const x = X(n.s), bh = (VEL_H - 10) * n.v, on = sel.has(n);
-      g.fillStyle = on ? '#fff' : col; g.fillRect(x, gbot + VEL_H - 4 - bh, 2, bh);
+      const val = prob ? (n.c ?? 1) : n.v;
+      const x = X(n.s), bh = (VEL_H - 10) * val, on = sel.has(n);
+      g.fillStyle = on ? '#fff' : prob ? '#7fb3e6' : col; g.fillRect(x, gbot + VEL_H - 4 - bh, 2, bh);
       g.beginPath(); g.arc(x + 1, gbot + VEL_H - 4 - bh, 3.5, 0, 7); g.fill();
+      if (prob && val < 1 && v.zoom > 30) { g.fillStyle = T.text; g.fillText(Math.round(val * 100) + '%', x + 5, gbot + VEL_H - 6 - bh + 10); }
     }
     g.restore();
   }
@@ -442,15 +457,22 @@ function midiEditor(el, t, c) {
     v.sy = anchor * v.rowH - (cy - RUL_H);
   }
 
-  // Llave del loop: arrastrá su punta para cambiar el largo
+  // Llave del loop: la punta derecha cambia el fin, la izquierda el inicio, el medio la mueve entera
   function rulerDrag(pt) {
-    if (Math.abs(pt.x - X(L())) > 22) return null;
+    const xa = X(LS()), xb = X(L());
+    const mode = Math.abs(pt.x - xb) < 22 ? 'end' : Math.abs(pt.x - xa) < 22 ? 'start' : pt.x > xa && pt.x < xb ? 'move' : null;
+    if (!mode) return null;
     let began = false;
+    const b0 = B(pt.x), o = { ls: LS(), le: L() };
     return {
       move(q) {
-        if (!began) { began = true; snapshot('Largo del loop', 'loop' + c.id); }
-        const nl = Math.max(gb(), snapB(B(q.x), gb()));
-        c.loop = nl; if (c.len < nl) c.len = nl;
+        if (!began) { began = true; snapshot('Loop del clip', 'loop' + c.id); }
+        const g = gb(), b = snapB(B(q.x), g);
+        if (mode === 'end') c.loop = Math.max(LS() + g, b);
+        else if (mode === 'start') c.ls = Math.max(0, Math.min(L() - g, b));
+        else { const d = snapB(B(q.x) - b0, g); c.ls = Math.max(0, o.ls + d); c.loop = c.ls + (o.le - o.ls); }
+        if (!c.ls) delete c.ls;
+        if (c.len < LEN()) c.len = LEN();
         draw(); app.emit('studio-draw-arr');
       },
       up() { if (began) { renderSide(); app.emit('studio'); } },
@@ -459,23 +481,28 @@ function midiEditor(el, t, c) {
 
   // Fuerza: arrastrá la barrita (si es de una nota elegida, cambian todas las elegidas)
   function velDrag(pt) {
-    snapshot('Fuerza', 'vel' + c.id);
+    // el nombre de la tira cambia entre Fuerza y Probabilidad
+    if (pt.x < KEYS_W) { v.lane = v.lane === 'prob' ? 'vel' : 'prob'; draw(); return { move() { /* */ }, up() { /* */ } }; }
+    const prob = v.lane === 'prob', k = prob ? 'c' : 'v', min = prob ? 0 : 0.05;
+    const get = n => (prob ? n.c ?? 1 : n.v);
+    const put = (n, x) => { x = Math.round(Math.max(min, Math.min(1, x)) * 100) / 100; if (prob && x >= 1) delete n.c; else n[k] = x; };
+    snapshot(prob ? 'Probabilidad' : 'Fuerza', k + c.id);
     const bAt = B(pt.x), tol = 8 / v.zoom;
     const hitN = c.notes.filter(n => Math.abs(n.s - bAt) < tol);
     const group = hitN.some(n => sel.has(n)) ? [...sel] : hitN;
-    const y0 = pt.y, orig = new Map(group.map(n => [n, n.v]));
-    const valAt = y => Math.max(0.05, Math.min(1, (gridBot() + VEL_H - 4 - y) / (VEL_H - 10)));
+    const y0 = pt.y, orig = new Map(group.map(n => [n, get(n)]));
+    const valAt = y => (gridBot() + VEL_H - 4 - y) / (VEL_H - 10);
     if (!group.length) {
       // sin nota debajo: pintar al pasar
-      const paint = q => { const b = B(q.x); for (const n of c.notes) if (Math.abs(n.s - b) < tol) n.v = Math.round(valAt(q.y) * 100) / 100; draw(); };
+      const paint = q => { const b = B(q.x); for (const n of c.notes) if (Math.abs(n.s - b) < tol) put(n, valAt(q.y)); draw(); };
       return { move: paint, up() { app.emit('studio-draw'); } };
     }
-    if (group.length === 1) group[0].v = Math.round(valAt(pt.y) * 100) / 100;
+    if (group.length === 1) put(group[0], valAt(pt.y));
     draw();
     return {
       move(q) {
-        if (group.length === 1) group[0].v = Math.round(valAt(q.y) * 100) / 100;
-        else { const d = (y0 - q.y) / (VEL_H - 10); for (const [n, o] of orig) n.v = Math.round(Math.max(0.05, Math.min(1, o + d)) * 100) / 100; }
+        if (group.length === 1) put(group[0], valAt(q.y));
+        else { const d = (y0 - q.y) / (VEL_H - 10); for (const [n, o] of orig) put(n, o + d); }
         draw();
       },
       up() { app.emit('studio-draw'); },
@@ -490,7 +517,7 @@ function midiEditor(el, t, c) {
     grab(p) {
       if (p.y < RUL_H) return rulerDrag(p);
       if (p.x < KEYS_W && p.y < gridBot()) return keysDrag(p);
-      if (p.y > gridBot()) return null;
+      if (p.y > gridBot()) return p.x >= KEYS_W ? velDrag(p) : null; // el dedo pinta la fuerza directo
       const r = rowAt(p.y), n = r != null ? noteAt(r, B(p.x)) : null;
       if (n && sel.has(n)) { const ed = edgeOf(n, p.x, true); if (ed) return groupDrag(n, ed, p, false); }
       return null;
@@ -528,7 +555,7 @@ function midiEditor(el, t, c) {
       if (p && p.x > KEYS_W && p.y > RUL_H && p.y < gridBot()) {
         const r = rowAt(p.y), n = r != null ? noteAt(r, B(p.x)) : null;
         cv.style.cursor = st.draw ? 'crosshair' : n ? (edgeOf(n, p.x) ? 'ew-resize' : 'move') : 'default';
-      } else cv.style.cursor = p && p.y < RUL_H && Math.abs(p.x - X(L())) < 22 ? 'ew-resize' : 'default';
+      } else cv.style.cursor = p && p.y < RUL_H && (Math.abs(p.x - X(L())) < 22 || Math.abs(p.x - X(LS())) < 22) ? 'ew-resize' : p && p.y < RUL_H && p.x > X(LS()) && p.x < X(L()) ? 'grab' : 'default';
       draw();
     },
     pan(dx, dy) { v.sx -= dx / v.zoom; v.sy -= dy; draw(); },
@@ -624,6 +651,8 @@ function audioEditor(el, t, c, arr) {
       c.len = sec / bs();
       renderSide(); app.emit('studio');
     });
+    const keep = c.warp ? toggle('🎤 Mantener el tono', !!c.keep, x => { snapshot('Mantener el tono'); c.keep = x; prepareStretch(); renderSide(); }) : null;
+    if (keep) keep.title = 'Si cambiás el tempo, el audio se estira sin subir ni bajar de tono (si no, suena como una cinta acelerada)';
     const bpmBtn = h('button', { class: 'pill', title: 'Tempo en el que se grabó el audio' }, `♩ ${Math.round(c.bpm * 10) / 10} BPM original`);
     bpmBtn.addEventListener('click', () => {
       const x = prompt('Tempo original del audio (BPM)', Math.round(c.bpm * 100) / 100);
@@ -636,15 +665,15 @@ function audioEditor(el, t, c, arr) {
       h('button', { class: 'pill', onclick: () => op('split') }, '| Dividir'),
       h('button', { class: 'pill', onclick: () => op('pad') }, '🥁 A un pad'),
     );
-    side.append(
+    side.append(...[
       h('div', { class: 'dside-knobs' }, gain.el, fi.el, fo.el),
-      warp, bpmBtn,
+      warp, keep, bpmBtn,
       h('div', { class: 'dside-row' },
         h('button', { class: 'pill', onclick: () => arr.audioOp(t, c, 'rev') }, '⇄ Al revés'),
         h('button', { class: 'pill', onclick: () => arr.audioOp(t, c, 'norm') }, '📈 Normalizar')),
       h('div', { class: 'hint' }, sel ? 'Con lo seleccionado:' : 'Marcá un trozo con el lápiz (o el dedo) para silenciarlo, borrarlo, recortar o mandarlo a un pad.'),
       sel ? selOps : null,
-    );
+    ].filter(Boolean));
   }
 
   function op(kind) {

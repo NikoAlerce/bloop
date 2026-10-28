@@ -62,7 +62,7 @@ export function newMidiClip(start, len, color, notes = []) {
 export function newAudioClip(start, buf, bufId, color, bpm = app.state.bpm, name = '') {
   return {
     id: uid('c'), kind: 'audio', start, len: buf.duration / (60 / bpm), name, color,
-    buf: bufId, off: 0, gain: 1, bpm, warp: true, fadeIn: 0.003, fadeOut: 0.003,
+    buf: bufId, off: 0, gain: 1, bpm, warp: true, keep: true, fadeIn: 0.003, fadeOut: 0.003,
   };
 }
 
@@ -101,18 +101,24 @@ export function audible(t) {
   return any ? t.solo : !t.mute;
 }
 
-// Notas de un clip MIDI dentro de su largo, repitiendo el loop: [{p, s (absoluto en tiempos), d, v}]
+// Loop de un clip MIDI (como la llave de Ableton): va de c.ls (inicio) a c.loop (fin),
+// en tiempos dentro del clip. El clip arranca en el inicio del loop y lo repite.
+export const loopStart = c => c.ls || 0;
+export const loopEnd = c => c.loop || c.len;
+export const loopLen = c => Math.max(0.0625, loopEnd(c) - loopStart(c));
+
+// Notas de un clip MIDI dentro de su largo, repitiendo el loop: [{p, s (absoluto en tiempos), d, v, c}]
 export function clipNotes(c, from = c.start, to = c.start + c.len) {
-  const out = [], L = c.loop || c.len;
+  const out = [], ls = loopStart(c), le = loopEnd(c), L = le - ls;
   if (L <= 0) return out;
   const k0 = Math.max(0, Math.floor((from - c.start) / L) - 1);
   for (let k = k0; c.start + k * L < Math.min(to, c.start + c.len); k++) {
     for (const nt of c.notes) {
-      if (nt.s >= L) continue;
-      const s = c.start + k * L + nt.s;
+      if (nt.s < ls - 1e-9 || nt.s >= le) continue;
+      const s = c.start + k * L + nt.s - ls;
       if (s >= c.start + c.len || s < from || s >= to) continue;
       const end = Math.min(s + nt.d, c.start + c.len, c.start + (k + 1) * L);
-      out.push({ p: nt.p, s, d: Math.max(0.01, end - s), v: nt.v });
+      out.push({ p: nt.p, s, d: Math.max(0.01, end - s), v: nt.v, c: nt.c ?? 1 });
     }
   }
   return out;
