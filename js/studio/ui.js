@@ -11,6 +11,7 @@ import { setView } from '../ui/padview.js';
 import {
   S, COLORS, clone, uid, spb, newTrack, newMidiClip, findTrack, findClip, selClip, selTrack, gridBeats, snapB,
   GRID_OPTS, clipNotes, peaksOf, getBuffer, songEnd, audible, synthInst, drumInst, loopLen, loopStart, loopEnd,
+  newGroup, groupOf, members, hiddenTrack,
 } from './model.js';
 import { studio, removeOverlaps, splitRight, autoTargets, autoValueAt, faderGain, heard } from './engine.js';
 import { gestures, pointAnchor, fitCanvas } from './gest.js';
@@ -233,6 +234,7 @@ function studioKey(e, down, ui) {
     return true;
   }
   if (mod && k === 'j') { ui.arr.joinSelected(); return true; }
+  if (mod && k === 'g') { ui.arr.groupSelected(); return true; }
   if (mod && k === 'e') { const sc = selClip(); if (sc) splitAt(sc.t, sc.c, st.pos); return true; }
   if (mod && k === 'l') { const sc = selClip(); if (sc) { st.loop = { on: true, a: sc.c.start, b: sc.c.start + sc.c.len }; app.emit('studio-draw'); } return true; }
   if (k === 'delete' || k === 'backspace') { if (ui.arr.many.size < 2 && ui.detail.deleteSel?.()) return true; ui.arr.deleteSelected(); return true; }
@@ -376,7 +378,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
   function deleteTime(sel) {
     const a = Math.min(sel.a, sel.b), b = Math.max(sel.a, sel.b);
     snapshot('Borrar tiempo');
-    for (const t of st.tracks.slice(st.tracks.indexOf(sel.t0), st.tracks.indexOf(sel.t1) + 1)) {
+    for (const t of VT().slice(VT().indexOf(sel.t0), VT().indexOf(sel.t1) + 1)) {
       const tmp = newMidiClip(a, b - a); tmp.kind = '__cut';
       t.clips.push(tmp); removeOverlaps(t, tmp); t.clips = t.clips.filter(c => c !== tmp);
     }
@@ -385,13 +387,14 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
 
   const X = b => (b - st.sx) * st.zoom;
   const B = x => x / st.zoom + st.sx;
-  const totalH = () => st.tracks.reduce((a, t) => a + t.h, 0);
+  const VT = () => st.tracks.filter(t => !hiddenTrack(t));   // pistas visibles
+  const totalH = () => VT().reduce((a, t) => a + t.h, 0);
   function trackAt(y) {
     let y0 = -st.sy;
-    for (const t of st.tracks) { if (y >= y0 && y < y0 + t.h) return { t, y0 }; y0 += t.h; }
+    for (const t of VT()) { if (y >= y0 && y < y0 + t.h) return { t, y0 }; y0 += t.h; }
     return null;
   }
-  const trackY = t => { let y0 = -st.sy; for (const x of st.tracks) { if (x === t) return y0; y0 += x.h; } return y0; };
+  const trackY = t => { let y0 = -st.sy; for (const x of VT()) { if (x === t) return y0; y0 += x.h; } return y0; };
   const g = () => gridBeats(st.zoom);
   const clamp = () => {
     st.zoom = Math.max(1.5, Math.min(480, st.zoom));
@@ -445,7 +448,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
     gc.setTransform(lanes.width / Math.max(1, w), 0, 0, lanes.width / Math.max(1, w), 0, 0);
     gc.fillStyle = '#1c1c1c'; gc.fillRect(0, 0, w, hh);
     let y0 = -st.sy;
-    st.tracks.forEach((t, i) => {
+    VT().forEach((t, i) => {
       if (y0 + t.h > 0 && y0 < hh) {
         gc.fillStyle = t.id === st.sel.track ? T.laneSel : i % 2 ? T.laneAlt : T.lane;
         gc.fillRect(0, y0, w, t.h - 1);
@@ -457,8 +460,9 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
     if (st.loop.on) { gc.fillStyle = ink(0.035); gc.fillRect(X(st.loop.a), 0, (st.loop.b - st.loop.a) * st.zoom, Math.min(hh, y0)); }
     // Clips
     y0 = -st.sy;
-    for (const t of st.tracks) {
+    for (const t of VT()) {
       if (y0 + t.h > 0 && y0 < hh) {
+        if (t.kind === 'group') drawGroupLane(gc, t, y0, w);
         for (const c of t.clips) {
           const x = X(c.start), cw = c.len * st.zoom;
           if (x > w || x + cw < 0) continue;
@@ -571,6 +575,21 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
     gc.restore();
   }
 
+  // Carril del grupo: un resumen de los clips de sus pistas (como Ableton)
+  function drawGroupLane(gc, g, y0, w) {
+    const ms = members(g); if (!ms.length) return;
+    const top = y0 + 4, hh = g.h - 9, rowH = Math.max(2, Math.min(8, hh / ms.length));
+    ms.forEach((t, k) => {
+      gc.fillStyle = t.color;
+      for (const c of t.clips) {
+        const x = X(c.start), cw = c.len * st.zoom;
+        if (x > w || x + cw < 0) continue;
+        gc.globalAlpha = 0.75; gc.fillRect(x, top + k * rowH, Math.max(2, cw - 1), rowH - 1);
+      }
+    });
+    gc.globalAlpha = 1;
+  }
+
   // Toma en curso: clip rojo con la onda que va llegando del micrófono
   function drawRecording(gc, t, y0, w) {
     const r = studio.rec, a = X(r.b0), b = X(studio.heardBeat());
@@ -668,7 +687,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
   // ---- Encabezados de pista (derecha) ----
   function renderHeads() {
     headsIn.innerHTML = '';
-    st.tracks.forEach((t, i) => headsIn.append(trackHead(t, i)));
+    st.tracks.forEach((t, i) => { if (!hiddenTrack(t)) headsIn.append(trackHead(t, i)); });
     headsIn.append(h('div', { class: 'sth-add' },
       h('button', { class: 'pill', onclick: () => addTrack('audio') }, '＋ Audio'),
       h('button', { class: 'pill', onclick: () => addTrack('midi') }, '＋ MIDI')));
@@ -683,7 +702,10 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
 
   function trackHead(t, i) {
     const sel = t.id === st.sel.track;
-    const name = h('div', { class: 'sth-name' }, t.kind === 'audio' ? '〰 ' : t.inst?.type === 'drums' ? '🥁 ' : t.inst?.type === 'sampler' ? '🎻 ' : '🎹 ', t.name);
+    const isG = t.kind === 'group';
+    const fold = isG ? h('button', { class: 'sth-fold', title: t.fold ? 'Desplegar el grupo' : 'Plegar el grupo' }, t.fold ? '▸' : '▾') : null;
+    if (fold) fold.addEventListener('click', e => { e.stopPropagation(); t.fold = !t.fold; renderHeads(); });
+    const name = h('div', { class: 'sth-name' }, isG ? '📁 ' : t.kind === 'audio' ? '〰 ' : t.inst?.type === 'drums' ? '🥁 ' : t.inst?.type === 'sampler' ? '🎻 ' : '🎹 ', t.name, isG ? h('small', {}, `  ${members(t).length} pistas`) : null);
     const act = h('button', { class: 'sth-b act' + (t.mute ? '' : ' on'), title: 'Prender / apagar (mute)' }, String(i + 1));
     act.addEventListener('click', e => { e.stopPropagation(); t.mute = !t.mute; studio.applyMix(); renderHeads(); app.emit('studio-draw'); });
     const solo = h('button', { class: 'sth-b solo' + (t.solo ? ' on' : ''), title: 'Solo' }, 'S');
@@ -692,7 +714,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
     arm.addEventListener('click', e => { e.stopPropagation(); t.arm = !t.arm; studio.sync(); renderHeads(); });
     const auto = h('button', { class: 'sth-b' + (t.autoOn ? ' on' : ''), title: 'Automatización: dibujá cómo cambia un parámetro' }, 'A');
     auto.addEventListener('click', e => { e.stopPropagation(); t.autoOn = !t.autoOn; if (t.autoOn && t.h < 90) t.h = 110; renderHeads(); });
-    const btns = h('div', { class: 'sth-btns' }, act, solo, arm, auto);
+    const btns = h('div', { class: 'sth-btns' }, act, solo, ...(isG ? [] : [arm]), auto);
     if (t.kind === 'midi') {
       const add = h('button', { class: 'sth-b', title: 'Clip MIDI vacío nuevo (en el cursor)' }, '＋');
       add.addEventListener('click', e => { e.stopPropagation(); newMidiClipAtCursor(t); });
@@ -707,8 +729,10 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
     const meter = h('i', { class: 'sth-meter' });
     const more = h('button', { class: 'sth-more', title: 'Opciones de la pista' }, '⋯');
     more.addEventListener('click', e => { e.stopPropagation(); trackMenu(more, t); });
-    const el = h('div', { class: 'sth' + (sel ? ' sel' : '') + (heard(t) ? '' : ' muted') },
-      h('div', { class: 'sth-top' }, name, more), btns, h('div', { class: 'sth-vol' }, fader, meter));
+    const grp = groupOf(t);
+    const el = h('div', { class: 'sth' + (sel ? ' sel' : '') + (heard(t) ? '' : ' muted') + (isG ? ' group' : '') + (grp ? ' member' : '') },
+      h('div', { class: 'sth-top' }, fold, name, more), btns, h('div', { class: 'sth-vol' }, fader, meter));
+    if (grp) el.style.setProperty('--g', grp.color);
     el.style.setProperty('--c', t.color);
     el.style.height = t.h + 'px';
     // Borde de abajo: arrastrar para cambiar el alto de la pista (como en Ableton)
@@ -796,7 +820,12 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
   function addTrack(kind, opts = {}) {
     snapshot('Pista nueva');
     const t = newTrack(kind, opts);
-    const at = st.tracks.findIndex(x => x.id === st.sel.track);
+    const cur = selTrack();
+    const g = cur ? (cur.kind === 'group' ? cur : groupOf(cur)) : null;
+    if (g) { t.group = g.id; g.fold = false; }
+    // va después de la elegida (o al final del grupo si elegiste el grupo)
+    let at = st.tracks.findIndex(x => x.id === st.sel.track);
+    if (cur?.kind === 'group') { const ms = members(cur); at = ms.length ? st.tracks.indexOf(ms[ms.length - 1]) : at; }
     st.tracks.splice(at >= 0 ? at + 1 : st.tracks.length, 0, t);
     st.sel.track = t.id; st.sel.clip = null; st.detail = 'devices';
     studio.sync(); app.emit('studio');
@@ -817,14 +846,79 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
         d.auto = Object.fromEntries(Object.entries(d.auto || {}).map(([k, v]) => [k.replace(/^d:([^:]+)/, (m, id) => 'd:' + (map[id] || id)), v]));
         st.tracks.splice(st.tracks.indexOf(t) + 1, 0, d); studio.sync(); app.emit('studio');
       } }, '⧉ Duplicar pista'),
-      h('button', { class: 'menu-item', onclick: () => { closePopover(); studio.bounce(t); } }, '🧊 Pasar a audio (congelar con efectos)'),
-      h('button', { class: 'menu-item danger', onclick: () => {
-        closePopover(); snapshot('Borrar pista');
-        st.tracks = st.tracks.filter(x => x !== t);
-        if (st.sel.track === t.id) { st.sel.track = st.tracks[0]?.id || null; st.sel.clip = null; }
-        studio.sync(); app.emit('studio');
-      } }, '🗑 Borrar pista'),
+      h('button', { class: 'menu-item', onclick: () => { closePopover(); studio.bounce(t); } }, t.kind === 'group' ? '🧊 Pasar el grupo a audio' : '🧊 Pasar a audio (congelar con efectos)'),
+      ...groupItems(t),
+      t.kind === 'group'
+        ? h('button', { class: 'menu-item danger', onclick: () => { closePopover(); deleteTracks([t, ...members(t)], 'Borrar grupo'); } }, '🗑 Borrar el grupo y sus pistas')
+        : h('button', { class: 'menu-item danger', onclick: () => { closePopover(); deleteTracks([t], 'Borrar pista'); } }, '🗑 Borrar pista'),
     ]);
+  }
+
+  function deleteTracks(list, label) {
+    snapshot(label);
+    const ids = new Set(list.map(x => x.id));
+    st.tracks = st.tracks.filter(x => !ids.has(x.id));
+    if (ids.has(st.sel.track)) { st.sel.track = st.tracks[0]?.id || null; st.sel.clip = null; }
+    studio.sync(); app.emit('studio');
+  }
+
+  // ---- Grupos ----
+  function groupItems(t) {
+    const out = [];
+    if (t.kind === 'group') {
+      out.push(h('button', { class: 'menu-item', onclick: () => { closePopover(); ungroup(t); } }, '📂 Desarmar el grupo (las pistas quedan)'));
+      return out;
+    }
+    out.push(h('button', { class: 'menu-item', onclick: () => { closePopover(); groupTracks(tracksToGroup(t)); } }, '📁 Agrupar  (Ctrl+G)'));
+    const g = groupOf(t);
+    if (g) out.push(h('button', { class: 'menu-item', onclick: () => { closePopover(); moveToGroup(t, null); } }, `↖ Sacar del grupo «${g.name}»`));
+    for (const og of st.tracks.filter(x => x.kind === 'group' && x !== g)) {
+      out.push(h('button', { class: 'menu-item', onclick: () => { closePopover(); moveToGroup(t, og); } }, `↘ Meter en el grupo «${og.name}»`));
+    }
+    return out;
+  }
+  // Qué pistas se agrupan: las de los clips elegidos (si hay de varias), si no la pista misma
+  function tracksToGroup(t) {
+    const ts = [...new Set(selected().map(x => x.t))].filter(x => x.kind !== 'group');
+    if (t && !ts.includes(t)) ts.push(t);
+    return ts.length ? ts : (t ? [t] : []);
+  }
+  function groupTracks(ts) {
+    ts = ts.filter(x => x && x.kind !== 'group');
+    if (!ts.length) { toast('Elegí una pista (o clips de varias pistas) para agrupar'); return; }
+    snapshot('Agrupar');
+    const order = ts.slice().sort((a, b) => st.tracks.indexOf(a) - st.tracks.indexOf(b));
+    const at = st.tracks.indexOf(order[0]);
+    const g = newGroup('Grupo ' + (st.tracks.filter(x => x.kind === 'group').length + 1), order[0].color);
+    st.tracks = st.tracks.filter(x => !order.includes(x));
+    order.forEach(x => { x.group = g.id; });
+    st.tracks.splice(Math.min(at, st.tracks.length), 0, g, ...order);
+    st.sel.track = g.id; st.sel.clip = null; many.clear(); st.detail = 'devices';
+    studio.sync(); app.emit('studio');
+    toast(order.length > 1 ? `📁 ${order.length} pistas en «${g.name}»: los efectos del grupo suenan sobre todas` : `📁 «${g.name}» creado: metele más pistas desde su menú ⋯ (o creándolas con el grupo elegido)`, 3800);
+  }
+  function ungroup(g) {
+    snapshot('Desarmar grupo');
+    members(g).forEach(x => { delete x.group; });
+    st.tracks = st.tracks.filter(x => x !== g);
+    if (st.sel.track === g.id) st.sel.track = st.tracks[0]?.id || null;
+    studio.sync(); app.emit('studio');
+  }
+  function moveToGroup(t, g) {
+    snapshot(g ? 'Meter en el grupo' : 'Sacar del grupo');
+    st.tracks = st.tracks.filter(x => x !== t);
+    if (g) {
+      t.group = g.id; g.fold = false;
+      const ms = members(g);
+      const at = ms.length ? st.tracks.indexOf(ms[ms.length - 1]) : st.tracks.indexOf(g);
+      st.tracks.splice(at + 1, 0, t);
+    } else {
+      const old = groupOf(t); delete t.group;
+      const ms = old ? members(old) : [];
+      const at = ms.length ? st.tracks.indexOf(ms[ms.length - 1]) : old ? st.tracks.indexOf(old) : st.tracks.length - 1;
+      st.tracks.splice(at + 1, 0, t);
+    }
+    studio.sync(); app.emit('studio');
   }
 
   // ---- Interacción con los carriles ----
@@ -969,8 +1063,8 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
     return {
       move(q) {
         const tr = trackAt(q.y)?.t || hh.t;
-        const i0 = st.tracks.indexOf(hh.t), i1 = st.tracks.indexOf(tr);
-        tsel = { a: Math.max(0, snapB(a, g())), b: Math.max(0, snapB(B(q.x), g())), t0: st.tracks[Math.min(i0, i1)], t1: st.tracks[Math.max(i0, i1)] };
+        const vt = VT(), i0 = vt.indexOf(hh.t), i1 = vt.indexOf(tr);
+        tsel = { a: Math.max(0, snapB(a, g())), b: Math.max(0, snapB(B(q.x), g())), t0: vt[Math.min(i0, i1)], t1: vt[Math.max(i0, i1)] };
         draw();
       },
       up(q, ev, tap) {
@@ -980,7 +1074,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
           // quedan elegidos los clips que toca el rectángulo
           const a = Math.min(tsel.a, tsel.b), b = Math.max(tsel.a, tsel.b);
           many.clear(); st.sel.clip = null;
-          for (const t of st.tracks.slice(st.tracks.indexOf(tsel.t0), st.tracks.indexOf(tsel.t1) + 1)) {
+          for (const t of VT().slice(VT().indexOf(tsel.t0), VT().indexOf(tsel.t1) + 1)) {
             for (const c of t.clips) if (c.start < b && c.start + c.len > a) { if (st.sel.clip) many.add(c.id); else { st.sel.clip = c.id; st.sel.track = t.id; } }
           }
           app.emit('studio-sel');
@@ -1129,13 +1223,13 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
         h('button', { class: 'menu-item', onclick: () => { st.loop = { on: true, a, b }; closePopover(); tsel = null; app.emit('studio'); } }, '🔁 Hacer loop acá'),
         h('button', { class: 'menu-item', onclick: () => {
           closePopover(); snapshot('Clip nuevo');
-          const ts = st.tracks.slice(st.tracks.indexOf(sel.t0), st.tracks.indexOf(sel.t1) + 1).filter(t => t.kind === 'midi');
+          const ts = VT().slice(VT().indexOf(sel.t0), VT().indexOf(sel.t1) + 1).filter(t => t.kind === 'midi');
           ts.forEach(t => { const c = newMidiClip(a, b - a, t.color); t.clips.push(c); removeOverlaps(t, c); });
           tsel = null; app.emit('studio');
         } }, '＋ Clip MIDI vacío acá'),
         h('button', { class: 'menu-item', onclick: () => {
           closePopover(); snapshot('Dividir');
-          const ts = st.tracks.slice(st.tracks.indexOf(sel.t0), st.tracks.indexOf(sel.t1) + 1);
+          const ts = VT().slice(VT().indexOf(sel.t0), VT().indexOf(sel.t1) + 1);
           for (const t of ts) for (const x of [a, b]) {
             const c = t.clips.find(c => x > c.start + 1e-3 && x < c.start + c.len - 1e-3);
             if (c) { const r = splitRight(c, x); c.len = x - c.start; if (c.kind === 'midi') c.loop = Math.min(loopEnd(c), loopStart(c) + c.len); t.clips.push(r); }
@@ -1144,7 +1238,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
         } }, '✂ Dividir los clips en los bordes'),
         h('button', { class: 'menu-item danger', onclick: () => {
           closePopover(); snapshot('Borrar tiempo');
-          const ts = st.tracks.slice(st.tracks.indexOf(sel.t0), st.tracks.indexOf(sel.t1) + 1);
+          const ts = VT().slice(VT().indexOf(sel.t0), VT().indexOf(sel.t1) + 1);
           for (const t of ts) {
             const tmp = newMidiClip(a, b - a); tmp.kind = '__cut';
             t.clips.push(tmp); removeOverlaps(t, tmp); t.clips = t.clips.filter(c => c !== tmp);
@@ -1306,6 +1400,7 @@ function buildArrangement({ ruler, rulerSide, lanes, heads, headsIn, posLbl }) {
   let lastPos = '', wasPlaying = false;
   return {
     draw, renderHeads, trackAt, selectClip, selectTrack, addTrack, audioOp, many, deleteSelected, newMidiClipAtCursor, loopIntoView, joinSelected,
+    groupSelected: () => groupTracks(tracksToGroup(selTrack())),
     X, B,
     dropInfo,
     setDrop(d) { drop = d; draw(); },

@@ -12,7 +12,7 @@ import { stretchBuffer } from '../audio/stretch.js';
 import { undo } from '../undo.js';
 import {
   S, spb, clipNotes, audible, getBuffer, putBuffer, resolveSrc, newMidiClip, newAudioClip, newTrack, findTrack, uid,
-  DRUM_NOTE, songEnd, clone, loopLen, loopStart, loopEnd,
+  DRUM_NOTE, songEnd, clone, loopLen, loopStart, loopEnd, groupOf,
 } from './model.js';
 import { AUDIO_FX, MIDI_FX, SYNC, transformNote } from './devices.js';
 
@@ -147,7 +147,9 @@ class TrackAudio {
     this.out = G(1);
     this.revSend = G(0); this.dlySend = G(0);
     this.meter = ctx().createAnalyser(); this.meter.fftSize = 256;
-    this.fader.connect(this.pan).connect(this.out).connect(bus);
+    // out → post → (bus general | entrada del grupo)
+    this.post = G(1); this.dest = bus;
+    this.fader.connect(this.pan).connect(this.out).connect(this.post).connect(bus);
     this.out.connect(this.revSend).connect(A.reverbIn);
     this.out.connect(this.dlySend).connect(A.delayIn);
     this.out.connect(this.meter);
@@ -193,6 +195,12 @@ class TrackAudio {
   }
 
   dev(id) { return this.devs.find(d => d.id === id); }
+
+  route(dest) {
+    if (dest === this.dest) return;
+    try { this.post.disconnect(); } catch (e) { /* */ }
+    this.post.connect(dest); this.dest = dest;
+  }
 
   // Escuchar la entrada (micrófono) a través de los efectos de la pista
   syncMon(t) {
@@ -289,6 +297,11 @@ export const studio = {
       let ta = this.tracks.get(t.id);
       if (!ta) { ta = new TrackAudio(t, this.bus); this.tracks.set(t.id, ta); }
       ta.syncInst(t); ta.syncChain(t); ta.syncMon(t);
+    }
+    // las pistas de un grupo suenan a través del grupo (sus efectos y su volumen)
+    for (const t of st.tracks) {
+      const g = groupOf(t);
+      this.tracks.get(t.id).route(g ? this.tracks.get(g.id).input : this.bus);
     }
     this.applyMix();
   },
@@ -511,7 +524,7 @@ export const studio = {
     let armed = st.tracks.filter(t => t.arm);
     if (!armed.length) {
       const sel = st.tracks.find(t => t.id === st.sel.track);
-      if (sel) { sel.arm = true; armed = [sel]; this.sync(); app.emit('studio'); }
+      if (sel && sel.kind !== 'group') { sel.arm = true; armed = [sel]; this.sync(); app.emit('studio'); }
     }
     if (!armed.length) { toast('Armá una pista (botón ⏺ de la pista) para grabar'); return; }
     const audioT = armed.filter(t => t.kind === 'audio'), midiT = armed.filter(t => t.kind === 'midi');
@@ -668,9 +681,11 @@ export const studio = {
 
   // Congela una pista: la graba con sus efectos y la pone como audio en una pista nueva
   async bounce(t) {
-    const end = Math.max(...t.clips.map(c => c.start + c.len), 0);
+    // un grupo se congela con todas sus pistas sumadas
+    const cs = t.kind === 'group' ? S().tracks.filter(x => x.group === t.id).flatMap(x => x.clips) : t.clips;
+    const end = Math.max(...cs.map(c => c.start + c.len), 0);
     if (!end) { toast('La pista está vacía'); return; }
-    const a = Math.floor(Math.min(...t.clips.map(c => c.start)) / 4) * 4;
+    const a = Math.floor(Math.min(...cs.map(c => c.start)) / 4) * 4;
     toast(`⏺ Pasando «${t.name}» a audio…`, 3000);
     const ta = this.ta(t.id);
     const buf = await this.renderRange(ta.out, a, end, 1.5);

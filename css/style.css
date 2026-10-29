@@ -931,3 +931,10 @@ body.studio-on .toast { border-radius: 3px; background: #ddd; color: #111; font-
 .st-ruler-side { gap: 3px; }
 .rz-btn { width: 26px; height: 24px; border-radius: 2px; background: #3c3c3c; border: 1px solid #0d0d0d; color: #d9d9d9; font-size: 13px; line-height: 1; flex: none; }
 .rz-btn:active { background: #4a4a4a; }
+/* Grupos de pistas */
+.sth.group { background: #2a2a2a; }
+.sth.group .sth-top { height: 22px; }
+.sth.group .sth-name small { font-weight: 400; opacity: 0.7; font-size: 10px; }
+.sth.member { padding-left: 10px; box-shadow: inset 6px 0 0 var(--g, #888); }
+.sth.member .sth-top { margin-left: -4px; }
+.sth-fold { width: 20px; height: 18px; border-radius: 2px; background: rgba(0, 0, 0, 0.25); color: #111; font-size: 11px; flex: none; margin-left: -4px; }

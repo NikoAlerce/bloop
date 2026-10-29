@@ -96,9 +96,25 @@ export function songEnd() {
   return e;
 }
 
+// Grupos de pistas (como los Group Tracks de Ableton): la pista grupo suma a sus pistas,
+// que la siguen en la lista con t.group = id del grupo. Apagar o hacer Solo del grupo vale
+// para todas sus pistas; el Solo de una pista de adentro deja sonar a su grupo.
+export function newGroup(name = 'Grupo', color = nextColor()) {
+  return {
+    id: uid('g'), kind: 'group', name, color, vol: 0.8, pan: 0, rev: 0, dly: 0, mute: false, solo: false, arm: false, h: 60,
+    inst: null, midiFx: [], devices: [], auto: {}, autoKey: 'vol', autoOn: false, clips: [], fold: false,
+  };
+}
+export const groupOf = t => (t.group ? S().tracks.find(x => x.id === t.group && x.kind === 'group') || null : null);
+export const members = g => S().tracks.filter(x => x.group === g.id);
+export const hiddenTrack = t => !!groupOf(t)?.fold;
+
 export function audible(t) {
-  const any = S().tracks.some(x => x.solo);
-  return any ? t.solo : !t.mute;
+  const g = groupOf(t), tracks = S().tracks;
+  if (t.mute || g?.mute) return false;
+  if (!tracks.some(x => x.solo)) return true;
+  if (t.solo || g?.solo) return true;
+  return t.kind === 'group' && tracks.some(x => x.group === t.id && x.solo);
 }
 
 // Loop de un clip MIDI (como la llave de Ableton): va de c.ls (inicio) a c.loop (fin),
